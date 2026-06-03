@@ -1,0 +1,87 @@
+name: Auth Proxy
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target Environment (DEMO/LIVE)'
+        required: true
+        default: 'DEMO'
+
+jobs:
+  proxy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install cloudflared
+        run: |
+          wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
+
+      - name: Start Hono Proxy
+        env:
+          ENV: ${{ github.event.inputs.env }}
+          CAPITAL_API_KEY: ${{ secrets.CAPITAL_API_KEY }}
+          PORT: 3000
+        run: |
+          npm run start:proxy &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+
+      - name: Start Tunnel
+        run: |
+          cloudflared tunnel --url http://localhost:3000 > tunnel.log 2>&1 &
+          echo "TUNNEL_PID=$!" >> $GITHUB_ENV
+          
+          # Wait for URL to appear in logs
+          for i in {1..30}; do
+            URL=$(grep -o 'https://.*\.trycloudflare\.com' tunnel.log | head -n 1)
+            if [ -n "$URL" ]; then
+              echo "PROXY_URL=$URL" >> $GITHUB_ENV
+              echo "::notice title=Proxy URL::$URL"
+              break
+            fi
+            sleep 2
+          done
+          
+          if [ -z "$URL" ]; then
+            cat tunnel.log
+            exit 1
+          fi
+
+      - name: Update Discovery State
+        if: env.PROXY_URL != ''
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if grep -q "proxy_url:" .planning/STATE.md; then
+            sed -i "s|proxy_url:.*|proxy_url: $PROXY_URL|" .planning/STATE.md
+          elif grep -q "\*\*Proxy URL\*\*:" .planning/STATE.md; then
+            sed -i "s|\*\*Proxy URL\*\*:.*|\*\*Proxy URL\*\*: $PROXY_URL|" .planning/STATE.md
+          else
+            sed -i "/## Current Position/a **Proxy URL**: $PROXY_URL" .planning/STATE.md
+          fi
+          
+          git add .planning/STATE.md
+          git commit -m "chore(infra): update ephemeral proxy URL [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
+
+      - name: Keep Alive
+        run: |
+          echo "Proxy is running at $PROXY_URL"
+          echo "Press Ctrl+C to stop (if running locally) or wait for timeout."
+          # To keep the action running, we can use a sleep loop or wait on the server pid
+          wait $SERVER_PID
