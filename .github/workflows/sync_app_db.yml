@@ -1,0 +1,46 @@
+name: Sync Local Database
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install libsql
+
+      - name: Run Master Sync
+        env:
+          TURSO_DB_URL: ${{ secrets.TURSO_DB_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Setup Git Identity
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "Starting Master Sync once..."
+          
+          # 2. Run the sync script ONCE
+          python backend/app_db_sync/sync.py
+          
+          # 3. Upload as a GitHub Release to bypass the 100MB limit
+          echo "Uploading database as a GitHub Release..."
+          gh release delete latest-data --cleanup-tag -y || true
+          git tag latest-data
+          git push origin latest-data --force
+          gh release create latest-data backend/app_db_sync/market_data.db -t "Latest Market Data" -n "Auto-synced from Turso"
+          
+          echo "Sync complete. Backend task finished."

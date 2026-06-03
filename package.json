@@ -1,0 +1,39 @@
+{
+  "name": "market-rewind",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "postinstall": "mkdir -p public && cp node_modules/sql.js/dist/sql-wasm.wasm public/sql-wasm.wasm",
+    "dev": "vite",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lightweight-charts": "^4.2.1",
+    "lucide-react": "^0.453.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sql.js": "^1.10.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@google/gemini-cli": "^0.44.1",
+    "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.11",
+    "@vitejs/plugin-react": "^4.3.3",
+    "@vitest/ui": "^4.1.7",
+    "jsdom": "^29.1.1",
+    "msw": "^2.14.6",
+    "playwright": "^1.60.0",
+    "typescript": "^6.0.3",
+    "vite": "^5.4.10",
+    "vitest": "^4.1.7"
+  }
+}
