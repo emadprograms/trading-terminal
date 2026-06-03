@@ -613,6 +613,71 @@ body {
   z-index: 10;
 }
 
+/* --- Account Header --- */
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 16px;
+  height: 100%;
+}
+
+.account-metrics {
+  display: flex;
+  gap: 20px;
+}
+
+.account-metrics .metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-metrics .label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.account-metrics .value {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.status-indicator .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.status-indicator .dot.status-online {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.status-indicator .status-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.status-indicator .dot.status-online + .status-text {
+  color: var(--text-primary);
+}
+
 select:focus, input:focus {
   border-color: var(--accent-green);
 }
