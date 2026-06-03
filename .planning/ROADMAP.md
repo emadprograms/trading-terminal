@@ -19,7 +19,8 @@
   2. Frontend successfully completes the CST/X-SECURITY-TOKEN handshake for both Demo and Live environments.
   3. User can toggle between Demo and Live environments with immediate visual confirmation of the active account.
   4. Real-time account equity and margin are visible in the terminal header.
-**Plans**: 3 plans
+**Plans**: 4 plans
+- [ ] 01-00-PLAN.md — Setup the test scaffolding and mocking infrastructure.
 - [ ] 01-01-PLAN.md — Setup the Hono proxy and tunnel automation in GitHub Actions.
 - [ ] 01-02-PLAN.md — Implement the auth handshake, token management, and Ky integration.
 - [ ] 01-03-PLAN.md — Build the UI components for account toggling and state synchronization.
@@ -73,7 +74,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth & Infrastructure | 0/3 | Not started | - |
+| 1. Auth & Infrastructure | 0/4 | Not started | - |
 | 2. Market Data Engine | 0/0 | Not started | - |
 | 3. Order Execution Layer | 0/0 | Not started | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
