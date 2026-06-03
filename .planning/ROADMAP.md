@@ -26,7 +26,7 @@
 
 - [x] 01-00-PLAN.md — Setup the test scaffolding and mocking infrastructure.
 - [x] 01-01-PLAN.md — Setup the Hono proxy and tunnel automation in GitHub Actions.
-- [ ] 01-02-PLAN.md — Implement the auth handshake, token management, and Ky integration.
+- [x] 01-02-PLAN.md — Implement the auth handshake, token management, and Ky integration.
 - [ ] 01-03-PLAN.md — Build the UI components for account toggling and state synchronization.
 
 **UI hint**: yes
@@ -91,7 +91,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth & Infrastructure | 2/5 | In Progress|  |
+| 1. Auth & Infrastructure | 3/5 | In Progress|  |
 | 2. Market Data Engine | 0/0 | Not started | - |
 | 3. Order Execution Layer | 0/0 | Not started | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |

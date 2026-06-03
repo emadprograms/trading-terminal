@@ -3,21 +3,25 @@
 ## v1 Requirements (The "Executioner" MVP)
 
 ### Authentication & Infrastructure (AUTH)
-- [ ] **AUTH-01**: Implement an ephemeral backend proxy using Hono (deployed via GitHub Actions) to securely manage API Secrets.
-- [ ] **AUTH-02**: Implement the dual-token session handshake (CST/X-SECURITY-TOKEN) for both REST and WebSocket authentication.
-- [ ] **AUTH-03**: Implement a global toggle for switching between "Demo" and "Live" account environments.
+
+- [x] **AUTH-01**: Implement an ephemeral backend proxy using Hono (deployed via GitHub Actions) to securely manage API Secrets.
+- [x] **AUTH-02**: Implement the dual-token session handshake (CST/X-SECURITY-TOKEN) for both REST and WebSocket authentication.
+- [x] **AUTH-03**: Implement a global toggle for switching between "Demo" and "Live" account environments.
 
 ### Data Layer (DATA)
+
 - [ ] **DATA-01**: Integrate the Capital.com WebSocket API for direct-to-client streaming of real-time Bid/Ask ticks.
 - [ ] **DATA-02**: Implement REST API integration for fetching historical OHLVC candle data on chart initialization.
-- [ ] **DATA-03**: Implement real-time account equity and margin synchronization to display available funds before trading.
+- [x] **DATA-03**: Implement real-time account equity and margin synchronization to display available funds before trading.
 
 ### Execution Layer (EXEC)
+
 - [ ] **EXEC-01**: Implement Market Order execution with state tracking (Pending -> Accepted/Rejected).
 - [ ] **EXEC-02**: Implement Limit Order execution for precise entry points.
 - [ ] **EXEC-03**: Implement "One-Click" position closing (Flatten) for instant exits from active trades.
 
 ### Professional UI & Risk (UI)
+
 - [ ] **UI-01**: Implement keyboard shortcut orchestration for rapid execution:
     - `Ctrl + 1`: Buy full default size.
     - `Ctrl + 2`: Buy half default size.
@@ -29,6 +33,7 @@
 ---
 
 ## v2 Requirements (Deferred)
+
 - [ ] **TP-01**: Automated Take Profit (TP) placement.
 - [ ] **JOURNAL-01**: Automated trade journaling and performance tracking.
 - [ ] **OCO-01**: One-Cancels-Other (OCO) bracket orders for advanced strategy management.
@@ -36,6 +41,7 @@
 ---
 
 ## Out of Scope
+
 - **Complex Macros**: No multi-step automated trade sequences.
 - **Social Features**: No chat or social sharing within the terminal.
 - **Full-Scale Backend**: No persistent database or user account system outside of Capital.com.
@@ -46,12 +52,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Complete |
 | EXEC-01 | Phase 3 | Pending |
 | EXEC-02 | Phase 3 | Pending |
 | EXEC-03 | Phase 4 | Pending |

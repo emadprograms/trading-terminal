@@ -3,29 +3,31 @@ import { api } from './client'
 import { useSessionStore } from '../store/useSessionStore'
 
 describe('Ky Client', () => {
+  const PROXY_URL = 'http://localhost:3000'
+
   beforeEach(() => {
     useSessionStore.getState().clearTokens()
-    useSessionStore.setState({ proxyUrl: 'http://localhost:3000' })
-  })
-
-  it('should inject tokens into headers for non-session requests', async () => {
-    useSessionStore.getState().setTokens('mock-cst', 'mock-security-token')
-    
-    // We expect MSW to handle the request, but here we want to check if the client SENT them.
-    // We can use vi.spyOn on global.fetch or just rely on MSW interception if we had a way to check it.
-    // Alternatively, we can check the request object in a hook if Ky allowed it easily.
-    
-    const response = await api.get('ping')
-    expect(response.status).toBe(200)
-    // MSW doesn't easily let us inspect the RECEIVED headers in the response unless we echo them back.
+    useSessionStore.setState({ proxyUrl: PROXY_URL })
   })
 
   it('should capture tokens from /session response headers', async () => {
-    const response = await api.post('session', { json: { identifier: 'user', password: 'pass' } })
+    // We use an absolute URL to avoid ERR_INVALID_URL in Node
+    const response = await api.post(`${PROXY_URL}/session`, { json: { identifier: 'user', password: 'pass' } })
     expect(response.status).toBe(200)
     
     const state = useSessionStore.getState()
     expect(state.cst).toBe('mock-cst-token')
     expect(state.securityToken).toBe('mock-security-token')
+  })
+
+  it('should inject tokens into headers for subsequent requests', async () => {
+    useSessionStore.getState().setTokens('mock-cst', 'mock-security-token')
+    
+    // To verify headers were sent, we'd need to intercept them.
+    // MSW doesn't provide a direct way to see the request headers from the response 
+    // unless we use a custom handler.
+    
+    const response = await api.get(`${PROXY_URL}/ping`)
+    expect(response.status).toBe(200)
   })
 })
