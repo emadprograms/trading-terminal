@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { vi, beforeAll, afterEach, afterAll } from 'vitest'
+import { setupServer } from 'msw/node'
+import { http, HttpResponse } from 'msw'
 
 // Mock ResizeObserver
 class ResizeObserver {
@@ -45,3 +47,50 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
   measureText: vi.fn().mockReturnValue({ width: 0 }),
   fillText: vi.fn(),
 })
+
+// MSW Setup
+export const handlers = [
+  http.post('*/session', () => {
+    return new HttpResponse(
+      JSON.stringify({
+        accountType: 'CFD',
+        clientId: 'mock-client-id',
+      }),
+      {
+        status: 200,
+        headers: {
+          'CST': 'mock-cst-token',
+          'X-SECURITY-TOKEN': 'mock-security-token',
+        },
+      }
+    )
+  }),
+
+  http.get('*/accounts', () => {
+    return HttpResponse.json({
+      accounts: [
+        {
+          accountId: 'mock-account-id',
+          accountName: 'Demo Account',
+          status: 'ENABLED',
+          balance: {
+            balance: 10000,
+            deposit: 10000,
+            profit: 0,
+          },
+          currency: 'USD',
+        },
+      ],
+    })
+  }),
+
+  http.get('*/ping', () => {
+    return HttpResponse.json({ status: 'OK' })
+  }),
+]
+
+export const server = setupServer(...handlers)
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
