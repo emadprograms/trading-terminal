@@ -51,5 +51,6 @@ progress:
 
 ## Session Continuity
 
-- **Last Action**: Created ROADMAP.md and STATE.md.
-- **Next Step**: Begin planning Phase 1 (Auth & Infrastructure).
+- **Last Action**: Gathered implementation decisions for Phase 1 (Auth & Infrastructure).
+- **Next Step**: Begin planning Phase 1 (Auth & Infrastructure) using the captured context.
+- **Resume File**: .planning/phases/01-auth-infrastructure/01-CONTEXT.md
