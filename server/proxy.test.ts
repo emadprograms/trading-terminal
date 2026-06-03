@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-// @ts-ignore - server/proxy doesn't exist yet
-import app from './proxy'
+// @ts-ignore - server/index doesn't exist yet in some environments
+import app from './index'
 
 describe('Hono Proxy Server', () => {
   it('should have a login endpoint', async () => {
