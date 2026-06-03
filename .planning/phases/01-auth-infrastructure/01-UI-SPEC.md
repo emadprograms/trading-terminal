@@ -5,9 +5,10 @@ status: draft
 shadcn_initialized: false
 preset: none
 created: 2026-06-03
+updated: 2026-06-03
 ---
 
-# Phase 1 — UI Design Contract
+# Phase 1 — UI Design Contract (Revised)
 
 > Visual and interaction contract for Auth & Infrastructure. Defines the Terminal Header, Account Handshake visuals, and Environment Toggle.
 
@@ -36,12 +37,12 @@ Declared values (multiples of 4):
 | md | 16px | Section padding, default gaps |
 | lg | 24px | Layout margins |
 | xl | 32px | Major component spacing |
-| 2xl | 48px | Page margins |
+| 2xl | 48px | Page margins, Sidebar width, Header height |
 | 3xl | 64px | Hero/Splash spacing |
 
 Exceptions: 
-- `40px`: Fixed height for Terminal Header and Playback Bar (consistency).
-- `48px`: Fixed width for Sidebar Icon Dock.
+- `48px`: Fixed height for Terminal Header and Playback Bar (standardized to `2xl`).
+- `48px`: Fixed width for Sidebar Icon Dock (standardized to `2xl`).
 
 ---
 
@@ -49,11 +50,12 @@ Exceptions:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body | 14px (0.875rem) | 400 | 1.5 |
-| Label | 12px (0.75rem) | 600 | 1.2 |
-| Data | 13px (0.812rem) | 500 (Mono) | 1.0 |
+| Body / Data | 14px (0.875rem) | 400 | 1.5 |
+| Label | 12px (0.75rem) | 400 | 1.2 |
 | Heading | 20px (1.25rem) | 600 | 1.2 |
-| Display | 28px (1.75rem) | 700 | 1.1 |
+| Display | 28px (1.75rem) | 600 | 1.1 |
+
+*Note: Font weights limited to 400 (Regular) and 600 (Semi-bold) for design consistency.*
 
 ---
 
@@ -74,6 +76,23 @@ Accent reserved for:
 
 ---
 
+## Visual Hierarchy & Accessibility
+
+### Primary Focal Point
+- **Disconnected State:** The "Launch Terminal" CTA (Center Screen) is the primary focal point.
+- **Connected State:** The "Account Handshake Status" and "Environment Toggle" (Top Right) are the primary indicators of terminal readiness.
+
+### Visual Hierarchy
+1. **Dominant (60%):** Deep black backgrounds to minimize eye strain and establish a professional "terminal" feel.
+2. **Secondary (30%):** Subtle translucent overlays for headers and bars to provide structural depth without visual noise.
+3. **Accent (10%):** High-contrast Teal (`#26a69a`) reserved strictly for "System Ready" or "Action Required" states.
+
+### Accessibility
+- **Icon Labels:** All icons in the Sidebar Icon Dock must include accessible tooltips (using Lucide's title or a separate tooltip component) and `aria-label` fallbacks for screen readers.
+- **Contrast:** Accent and Destructive colors must maintain a minimum 4.5:1 contrast ratio against the dominant background.
+
+---
+
 ## Copywriting Contract
 
 | Element | Copy |
@@ -82,7 +101,9 @@ Accent reserved for:
 | Empty state heading | "Awaiting Handshake..." |
 | Empty state body | "Connecting to ephemeral backend proxy via GitHub Actions." |
 | Error state | "Handshake Failed: [Error Detail]. Ensure GHA Tunnel is active." |
-| Destructive confirmation | Reset Environment: "This will terminate your current session and re-authenticate. Proceed?" |
+| Destructive confirmation | Reset Environment: "This will terminate your current session and re-authenticate." |
+| Confirmation Action | "Reset Session" (Destructive Action) |
+| Cancellation Action | "Keep Session" (Safe Action) |
 | Toggle Label (Demo) | "DEMO ACCOUNT" |
 | Toggle Label (Live) | "LIVE ACCOUNT" |
 
