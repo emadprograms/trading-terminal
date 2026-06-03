@@ -1,22 +1,69 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import React from 'react'
-// @ts-ignore
-import { EnvToggle } from './EnvToggle'
-import { useSessionStore } from '../store/useSessionStore'
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { EnvToggle } from './EnvToggle';
+import { useSession } from '../hooks/useSession';
+import { useSessionStore } from '../store/useSessionStore';
 
-describe('EnvToggle Component', () => {
-  it('should render initial DEMO state', () => {
-    useSessionStore.setState({ environment: 'DEMO' })
-    render(<EnvToggle />)
-    expect(screen.getByText(/DEMO/i)).toBeInTheDocument()
-  })
+vi.mock('../hooks/useSession');
+vi.mock('../store/useSessionStore');
 
-  it('should switch to LIVE when clicked', () => {
-    useSessionStore.setState({ environment: 'DEMO' })
-    render(<EnvToggle />)
-    const button = screen.getByRole('button')
-    fireEvent.click(button)
-    expect(useSessionStore.getState().environment).toBe('LIVE')
-  })
-})
+describe('EnvToggle', () => {
+  it('renders DEMO and LIVE buttons', () => {
+    (useSession as any).mockReturnValue({
+      login: vi.fn(),
+      isLoggingIn: false,
+    });
+    (useSessionStore as any).mockReturnValue({
+      environment: 'DEMO',
+    });
+
+    render(<EnvToggle />);
+    expect(screen.getByText('DEMO')).toBeInTheDocument();
+    expect(screen.getByText('LIVE')).toBeInTheDocument();
+  });
+
+  it('highlights the active environment', () => {
+    (useSession as any).mockReturnValue({
+      login: vi.fn(),
+      isLoggingIn: false,
+    });
+    (useSessionStore as any).mockReturnValue({
+      environment: 'LIVE',
+    });
+
+    render(<EnvToggle />);
+    const liveButton = screen.getByText('LIVE').closest('button');
+    // We expect some visual indicator of being active
+    expect(liveButton).toHaveAttribute('data-active', 'true');
+  });
+
+  it('calls login with correct environment when clicked', async () => {
+    const loginMock = vi.fn();
+    (useSession as any).mockReturnValue({
+      login: loginMock,
+      isLoggingIn: false,
+    });
+    (useSessionStore as any).mockReturnValue({
+      environment: 'DEMO',
+    });
+
+    render(<EnvToggle />);
+    fireEvent.click(screen.getByText('LIVE'));
+    
+    expect(loginMock).toHaveBeenCalledWith({ environment: 'LIVE' });
+  });
+
+  it('shows loading state when logging in', () => {
+    (useSession as any).mockReturnValue({
+      login: vi.fn(),
+      isLoggingIn: true,
+    });
+    (useSessionStore as any).mockReturnValue({
+      environment: 'DEMO',
+    });
+
+    render(<EnvToggle />);
+    // Should show Activity icon or similar
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+  });
+});

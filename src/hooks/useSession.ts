@@ -15,11 +15,17 @@ export function useSession(tickers: string[]) {
 
   // Auth Mutation
   const loginMutation = useMutation({
-    mutationFn: async (credentials?: { identifier: string; password: string }) => {
-      const { proxyUrl } = useSessionStore.getState();
+    mutationFn: async (params?: { credentials?: { identifier: string; password: string }, environment?: 'DEMO' | 'LIVE' }) => {
+      const { proxyUrl, setEnvironment, clearTokens } = useSessionStore.getState();
+      
+      if (params?.environment) {
+        setEnvironment(params.environment);
+        clearTokens();
+      }
+
       console.log(`[StabilityTrace] Attempting login handshake at ${proxyUrl}...`);
       const response = await api.post(`${proxyUrl}/session`, { 
-        json: credentials || { 
+        json: params?.credentials || { 
           identifier: import.meta.env.VITE_CAPITAL_USER, 
           password: import.meta.env.VITE_CAPITAL_PASSWORD 
         } 
@@ -34,8 +40,8 @@ export function useSession(tickers: string[]) {
     }
   });
 
-  const login = useCallback(async (credentials?: { identifier: string; password: string }) => {
-    return loginMutation.mutateAsync(credentials);
+  const login = useCallback(async (params?: { credentials?: { identifier: string; password: string }, environment?: 'DEMO' | 'LIVE' }) => {
+    return loginMutation.mutateAsync(params);
   }, [loginMutation]);
 
   const logout = useCallback(() => {

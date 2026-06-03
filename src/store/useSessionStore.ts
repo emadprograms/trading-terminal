@@ -8,6 +8,7 @@ interface SessionState {
   isAuthenticated: boolean
   setTokens: (cst: string, securityToken: string) => void
   clearTokens: () => void
+  setEnvironment: (env: 'DEMO' | 'LIVE') => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -30,4 +31,6 @@ export const useSessionStore = create<SessionState>((set) => ({
       securityToken: null, 
       isAuthenticated: false 
     }),
+
+  setEnvironment: (environment) => set({ environment }),
 }))
