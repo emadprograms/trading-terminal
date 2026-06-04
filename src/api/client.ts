@@ -14,7 +14,9 @@ export const api = ky.create({
         if (proxyUrl) {
           try {
             const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
-            const url = new URL(request.url)
+            // Use base as the second argument to handle relative request.url
+            const url = new URL(request.url, base)
+            
             // Combine proxy base + the intended path (e.g. /session)
             const finalUrl = new URL(url.pathname + url.search, base)
             
