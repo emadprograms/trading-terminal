@@ -4,28 +4,43 @@ import { useSessionStore } from '../store/useSessionStore'
 export const api = ky.create({
   hooks: {
     beforeRequest: [
-      ({ request, options }) => {
+      ({ request }) => {
         const { cst, securityToken, proxyUrl } = useSessionStore.getState()
 
-        // 1. DYNAMIC PROXY ROUTING (Ky v2.x pattern)
-        // In Ky v2.x, prefixUrl was renamed to prefix.
+        // 1. Prepare the base for rewriting
+        let finalRequest = request
+
         if (proxyUrl) {
-          options.prefix = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
+          try {
+            const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
+            const url = new URL(request.url)
+            // Combine proxy base + the intended path (e.g. /session)
+            const finalUrl = new URL(url.pathname + url.search, base)
+            
+            // 2. CREATE A NEW REQUEST
+            // This bypasses the read-only 'options' object by creating a fresh Request
+            // that inherits from the original.
+            finalRequest = new Request(finalUrl.toString(), request)
+          } catch (e) {
+            console.error('[StabilityTrace] Request cloning failed:', e)
+          }
         }
 
-        // 2. AUTH HEADERS
+        // 3. APPLY AUTH HEADERS
         if (cst) {
-          request.headers.set('CST', cst)
+          finalRequest.headers.set('CST', cst)
         }
         if (securityToken) {
-          request.headers.set('X-SECURITY-TOKEN', securityToken)
+          finalRequest.headers.set('X-SECURITY-TOKEN', securityToken)
         }
+
+        return finalRequest
       }
     ],
     afterResponse: [
       async ({ response }) => {
         try {
-          // 3. SECURE TOKEN CAPTURE
+          // 4. SECURE TOKEN CAPTURE
           if (response.url.includes('/session') && response.ok) {
             const cst = response.headers.get('CST')
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
