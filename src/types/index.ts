@@ -19,6 +19,26 @@ export interface RawBar {
   session: 'REG' | 'PRE' | 'POST' | string;
 }
 
+/** Capital.com API Candle response shape */
+export interface CapitalCandle {
+  snapshotTime: string;
+  openPrice: { bid: number; ask: number };
+  closePrice: { bid: number; ask: number };
+  highPrice: { bid: number; ask: number };
+  lowPrice: { bid: number; ask: number };
+}
+
+/** Capital.com WebSocket tick update shape */
+export interface CapitalTick {
+  epic: string;
+  bid: number;
+  ask: number;
+  timestamp: number;
+}
+
+/** Capital.com API resolutions */
+export type MarketResolution = 'MINUTE' | 'MINUTE_5' | 'MINUTE_15' | 'MINUTE_30' | 'HOUR' | 'DAY';
+
 /** Resampled OHLCV bar (same shape, but time may be bucketed) */
 export type ChartBar = RawBar;
 
