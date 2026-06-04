@@ -26,11 +26,13 @@ const API_TARGET = process.env.ENV === 'LIVE'
 app.get('/ping', (c) => c.json({ status: 'OK' }))
 
 app.post('/session', async (c) => {
-  // For testing purposes, if we are in test mode, mock the Capital.com response
+  console.log(`[StabilityTrace] Handling /session request...`)
+  
   if (process.env.NODE_ENV === 'test') {
     return c.json({ accountType: 'CFD' }, 200, {
       'CST': 'mock-cst',
-      'X-SECURITY-TOKEN': 'mock-token'
+      'X-SECURITY-TOKEN': 'mock-token',
+      'Access-Control-Expose-Headers': 'CST, X-SECURITY-TOKEN'
     })
   }
 
@@ -45,17 +47,35 @@ app.post('/session', async (c) => {
       body: JSON.stringify(body),
     })
 
-    // Explicitly copy headers to ensure they are forwarded correctly
-    const headers = new Headers(response.headers)
+    console.log(`[StabilityTrace] Capital.com responded with status: ${response.status}`)
     
-    // Ensure CORS headers are present for the browser to allow reading security tokens
-    headers.set('Access-Control-Allow-Origin', '*')
-    headers.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type')
+    // Log all received headers for debugging in GHA logs
+    const upstreamHeaders = Object.fromEntries(response.headers.entries())
+    console.log(`[StabilityTrace] Upstream headers:`, JSON.stringify(upstreamHeaders))
+
+    const cst = response.headers.get('CST')
+    const securityToken = response.headers.get('X-SECURITY-TOKEN')
+    console.log(`[StabilityTrace] Tokens in upstream - CST: ${cst ? 'YES' : 'NO'}, X-SECURITY-TOKEN: ${securityToken ? 'YES' : 'NO'}`)
+
+    // Create fresh headers for the client
+    const clientHeaders = new Headers()
+    
+    // Copy all upstream headers except for problematic ones
+    response.headers.forEach((value, key) => {
+      if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
+        clientHeaders.set(key, value)
+      }
+    })
+
+    // FORCE CORS EXPOSURE
+    clientHeaders.set('Access-Control-Allow-Origin', '*')
+    clientHeaders.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type, Set-Cookie')
+    clientHeaders.set('Access-Control-Allow-Headers', 'Content-Type, CST, X-SECURITY-TOKEN, X-CAP-API-KEY')
     
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
-      headers,
+      headers: clientHeaders,
     })
   } catch (error) {
     console.error(`[StabilityTrace] Session error:`, error)
@@ -64,32 +84,37 @@ app.post('/session', async (c) => {
 })
 
 app.all('*', async (c) => {
+  const targetUrl = `${API_TARGET}${c.req.path}`
+  console.log(`[StabilityTrace] Proxying ${c.req.method} ${c.req.path} to ${targetUrl}`)
+
   if (process.env.NODE_ENV === 'test') {
     return c.json({ success: true })
   }
 
-  const targetUrl = `${API_TARGET}${c.req.path}`
-  const headers = new Headers(c.req.header())
-  headers.delete('host')
+  const requestHeaders = new Headers(c.req.header())
+  requestHeaders.delete('host')
   
   try {
     const response = await fetch(targetUrl, {
       method: c.req.method,
-      headers,
+      headers: requestHeaders,
       body: ['POST', 'PUT', 'PATCH'].includes(c.req.method) ? await c.req.blob() : undefined,
     })
 
-    // Explicitly copy headers to ensure they are forwarded correctly
-    const responseHeaders = new Headers(response.headers)
-    
-    // Ensure CORS headers are present for the browser
-    responseHeaders.set('Access-Control-Allow-Origin', '*')
-    responseHeaders.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type')
+    const clientHeaders = new Headers()
+    response.headers.forEach((value, key) => {
+      if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
+        clientHeaders.set(key, value)
+      }
+    })
 
+    clientHeaders.set('Access-Control-Allow-Origin', '*')
+    clientHeaders.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type')
+    
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
-      headers: responseHeaders,
+      headers: clientHeaders,
     })
   } catch (error) {
     console.error(`[StabilityTrace] Proxy error for ${targetUrl}:`, error)
