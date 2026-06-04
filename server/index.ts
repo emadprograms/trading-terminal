@@ -102,8 +102,15 @@ app.post('/session', async (c) => {
 
 app.all('*', async (c) => {
   const targetBase = getApiTarget(c.req.header('X-Environment'))
-  const targetUrl = `${targetBase}${c.req.path}`
-  console.log(`[StabilityTrace] Proxying ${c.req.method} ${c.req.path} to ${targetUrl}`)
+  
+  // Rewrite path to include /api/v1 if it's missing
+  let path = c.req.path
+  if (!path.startsWith('/api/v1')) {
+    path = `/api/v1${path}`
+  }
+  
+  const targetUrl = `${targetBase}${path}`
+  console.log(`[StabilityTrace] Proxying ${c.req.method} ${c.req.path} -> ${targetUrl}`)
 
   if (process.env.NODE_ENV === 'test') {
     return c.json({ success: true })
