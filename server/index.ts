@@ -47,6 +47,11 @@ app.post('/session', async (c) => {
 
     // Explicitly copy headers to ensure they are forwarded correctly
     const headers = new Headers(response.headers)
+    
+    // Ensure CORS headers are present for the browser to allow reading security tokens
+    headers.set('Access-Control-Allow-Origin', '*')
+    headers.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type')
+    
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
@@ -76,6 +81,11 @@ app.all('*', async (c) => {
 
     // Explicitly copy headers to ensure they are forwarded correctly
     const responseHeaders = new Headers(response.headers)
+    
+    // Ensure CORS headers are present for the browser
+    responseHeaders.set('Access-Control-Allow-Origin', '*')
+    responseHeaders.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type')
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
