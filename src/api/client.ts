@@ -5,6 +5,7 @@ export const api = ky.create({
   hooks: {
     beforeRequest: [
       ({ request }) => {
+        console.log(`[StabilityTrace] Outgoing Request: ${request.url}`);
         const { cst, securityToken, proxyUrl, environment } = useSessionStore.getState()
 
         // 1. Prepare the base for rewriting

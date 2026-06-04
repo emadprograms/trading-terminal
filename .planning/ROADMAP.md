@@ -4,6 +4,7 @@
 
 - [ ] **Phase 1: Auth & Infrastructure** - Secure backend proxy, dual-token handshake, and account state synchronization.
 - [ ] **Phase 2: Market Data Engine** - Real-time Bid/Ask streaming via WebSocket and historical candle data integration.
+
 - [ ] **Phase 3: Order Execution Layer** - Implementation of market and limit order execution with state tracking.
 - [ ] **Phase 4: Risk & Position Management** - Position flattening and automated stop-loss placement logic.
 - [ ] **Phase 5: UI & Shortcut Orchestration** - Keyboard shortcut integration, visual trade markers, and execution optimization.
@@ -91,8 +92,8 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth & Infrastructure | 3/5 | In Progress|  |
-| 2. Market Data Engine | 0/0 | Not started | - |
+| 1. Auth & Infrastructure | 4/4 | Completed | Yes |
+| 2. Market Data Engine | 0/0 | In Progress | - |
 | 3. Order Execution Layer | 0/0 | Not started | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |

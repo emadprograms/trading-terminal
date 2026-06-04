@@ -5,18 +5,21 @@ interface SessionState {
   securityToken: string | null
   proxyUrl: string | null
   environment: 'DEMO' | 'LIVE'
+  selectedAccountId: string | null
   isAuthenticated: boolean
   setTokens: (cst: string, securityToken: string) => void
   clearTokens: () => void
   setEnvironment: (env: 'DEMO' | 'LIVE') => void
+  setSelectedAccountId: (id: string | null) => void
   setProxyUrl: (url: string) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   cst: null,
   securityToken: null,
-  proxyUrl: null,
+  proxyUrl: localStorage.getItem('proxyUrl'),
   environment: 'DEMO',
+  selectedAccountId: null,
   isAuthenticated: false,
 
   setTokens: (cst, securityToken) => 
@@ -30,10 +33,16 @@ export const useSessionStore = create<SessionState>((set) => ({
     set({ 
       cst: null, 
       securityToken: null, 
-      isAuthenticated: false 
+      isAuthenticated: false,
+      selectedAccountId: null
     }),
 
-  setEnvironment: (environment) => set({ environment }),
+  setEnvironment: (environment) => set({ environment, selectedAccountId: null }),
 
-  setProxyUrl: (proxyUrl) => set({ proxyUrl }),
+  setSelectedAccountId: (selectedAccountId) => set({ selectedAccountId }),
+
+  setProxyUrl: (proxyUrl) => {
+    localStorage.setItem('proxyUrl', proxyUrl || '');
+    set({ proxyUrl });
+  },
 }))

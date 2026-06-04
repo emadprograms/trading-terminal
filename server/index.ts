@@ -126,6 +126,14 @@ app.all('*', async (c) => {
       body: ['POST', 'PUT', 'PATCH'].includes(c.req.method) ? await c.req.blob() : undefined,
     })
 
+    // DEBUG: Log account data to verify structure
+    if (path.includes('accounts')) {
+      const clonedRes = response.clone()
+      clonedRes.text().then(text => {
+        console.log(`[StabilityTrace] Account Response Body: ${text}`)
+      }).catch(e => console.error(`[StabilityTrace] Failed to log account body: ${e}`))
+    }
+
     const clientHeaders = new Headers()
     response.headers.forEach((value, key) => {
       if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {

@@ -1,30 +1,71 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useSessionStore } from '../store/useSessionStore';
 
 interface AccountData {
-  equity: number;
-  margin: number;
-  available: number;
-  marginLevel: number;
+  balance: number;
+  margin?: number;
+  available?: number;
+  marginLevel?: number;
+  profitLoss?: number;
 }
 
 export const AccountHeader: React.FC = () => {
-  const { isAuthenticated } = useSessionStore();
+  const { isAuthenticated, selectedAccountId, environment } = useSessionStore();
+  const [showPnl, setShowPnl] = useState(true);
+  console.log(`[AccountHeader] Rendering. isAuthenticated: ${isAuthenticated}`);
 
   const { data, isLoading, error } = useQuery<AccountData>({
-    queryKey: ['account'],
+    queryKey: ['account', selectedAccountId, environment],
     queryFn: async () => {
+      console.log('[AccountHeader] queryFn triggered! Fetching accounts...');
       const res = await api.get('accounts');
-      return res.json();
+      const rawData = await res.json();
+      
+      console.log('[AccountHeader] Raw API Response:', rawData);
+      
+      if (rawData && typeof rawData === 'object') {
+        if (Array.isArray(rawData.accounts) && rawData.accounts.length > 0) {
+          // Use selected account or fallback to first
+          const account = rawData.accounts.find((a: any) => a.accountId === selectedAccountId) || rawData.accounts[0];
+          const bal = account.balance;
+          
+          if (bal && typeof bal === 'object') {
+            console.log(`[AccountHeader] Mapping nested balance data for account ${account.accountId}`);
+            return {
+              balance: bal.balance,
+              available: bal.available,
+              margin: bal.deposit,
+              marginLevel: 100,
+              profitLoss: bal.profitLoss,
+            } as AccountData;
+          }
+        }
+        
+        if (rawData.accountInfo) {
+          console.log('[AccountHeader] Mapping from accountInfo');
+          return {
+            balance: rawData.accountInfo.balance,
+            available: rawData.accountInfo.available,
+            margin: rawData.accountInfo.deposit,
+            marginLevel: 100,
+            profitLoss: rawData.accountInfo.profitLoss,
+            } as AccountData;
+        }
+      }
+      
+      return {} as AccountData;
     },
     enabled: isAuthenticated,
-    refetchInterval: 10000, // Poll every 10 seconds
+    refetchInterval: 10000,
   });
 
-  const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+  const formatCurrency = (val: any) => {
+    const numericVal = Number(val);
+    if (isNaN(numericVal)) return '$0.00';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(numericVal);
+  };
 
   return (
     <div className="account-header">
@@ -38,20 +79,36 @@ export const AccountHeader: React.FC = () => {
           <>
             <div className="metric">
               <span className="label">EQUITY</span>
-              <span className="value">{isLoading ? '...' : formatCurrency(data?.equity || 0)}</span>
+              <span className="value">{isLoading ? '...' : formatCurrency(data?.balance)}</span>
             </div>
             <div className="metric">
               <span className="label">MARGIN</span>
-              <span className="value">{isLoading ? '...' : formatCurrency(data?.margin || 0)}</span>
+              <span className="value">{isLoading ? '...' : formatCurrency(data?.margin)}</span>
             </div>
             <div className="metric">
               <span className="label">AVAILABLE</span>
-              <span className="value">{isLoading ? '...' : formatCurrency(data?.available || 0)}</span>
+              <span className="value">{isLoading ? '...' : formatCurrency(data?.available)}</span>
             </div>
             <div className="metric">
               <span className="label">MARGIN LVL</span>
               <span className="value">{isLoading ? '...' : `${data?.marginLevel || 0}%`}</span>
             </div>
+            
+            <button 
+              className={`pnl-toggle ${showPnl ? 'active' : ''}`} 
+              onClick={() => setShowPnl(!showPnl)}
+            >
+              PnL {showPnl ? 'ON' : 'OFF'}
+            </button>
+
+            {showPnl && (
+              <div className="metric">
+                <span className="label">PnL</span>
+                <span className={`value pnl-value ${ (data?.profitLoss || 0) >= 0 ? 'pos' : 'neg'}`}>
+                  {isLoading ? '...' : formatCurrency(data?.profitLoss)}
+                </span>
+              </div>
+            )}
           </>
         ) : (
           <div className="metric">
@@ -95,6 +152,7 @@ export const AccountHeader: React.FC = () => {
         }
         .metrics {
           display: flex;
+          align-items: center;
           gap: 20px;
         }
         .metric {
@@ -111,6 +169,35 @@ export const AccountHeader: React.FC = () => {
           font-size: 12px;
           font-weight: 500;
           color: #eee;
+        }
+        .pnl-value.pos {
+          color: #00e676;
+        }
+        .pnl-value.neg {
+          color: #ff5252;
+        }
+        .pnl-toggle {
+          background: #222;
+          border: 1px solid #444;
+          color: #888;
+          font-size: 9px;
+          padding: 2px 6px;
+          cursor: pointer;
+          font-family: 'JetBrains Mono', monospace;
+          transition: all 0.2s ease;
+          border-radius: 2px;
+          height: fit-content;
+          align-self: center;
+          margin-top: 8px;
+        }
+        .pnl-toggle:hover {
+          border-color: #666;
+          color: #ccc;
+        }
+        .pnl-toggle.active {
+          border-color: #00f2ff;
+          color: #00f2ff;
+          box-shadow: 0 0 4px rgba(0, 242, 255, 0.2);
         }
       `}</style>
     </div>

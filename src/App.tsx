@@ -18,6 +18,7 @@ import { PlaybackBar } from './components/PlaybackBar';
 import { PlaybackManager } from './components/PlaybackManager';
 import { AccountHeader } from './components/AccountHeader';
 import { EnvToggle } from './components/EnvToggle';
+import { AccountSelector } from './components/AccountSelector';
 import { useSessionStore } from './store/useSessionStore';
 
 export default function App() {
@@ -123,7 +124,10 @@ export default function App() {
       <div className="main-content" style={{ position: 'relative' }}>
         <header className="terminal-header">
           <AccountHeader />
-          <EnvToggle login={login} isLoggingIn={isLoggingIn} />
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <AccountSelector />
+            <EnvToggle login={login} isLoggingIn={isLoggingIn} />
+          </div>
         </header>
 
         {isLoggingIn ? (
