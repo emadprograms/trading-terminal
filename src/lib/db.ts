@@ -1,18 +1,16 @@
-import type { RawBar } from "../types";
+import type { RawBar, Timeframe } from "../types";
+import { marketApi } from "../api/market";
+import { transformCapitalCandles } from "./data-adapter";
 
 type WorkerRequest = 
   | { type: 'INIT_DB'; id: string }
   | { type: 'LOAD_DB_FILE'; id: string; payload: { buffer: ArrayBuffer } }
-  | { type: 'FETCH_MARKET_DATA'; id: string; payload: { ticker: string; dateIso: string; daysBack?: number } }
-  | { type: 'FETCH_HISTORICAL_CHUNK'; id: string; payload: { ticker: string; endTimestamp: string; daysBack?: number } }
   | { type: 'FETCH_TICKERS'; id: string }
   | { type: 'ERROR'; id: string; payload: { message: string } };
 
 type WorkerResponse = 
   | { type: 'INIT_DB_RESPONSE'; id: string; payload: { success: boolean } }
   | { type: 'LOAD_DB_FILE_RESPONSE'; id: string; payload: { success: boolean } }
-  | { type: 'FETCH_MARKET_DATA_RESPONSE'; id: string; payload: RawBar[] }
-  | { type: 'FETCH_HISTORICAL_CHUNK_RESPONSE'; id: string; payload: RawBar[] }
   | { type: 'FETCH_TICKERS_RESPONSE'; id: string; payload: string[] }
   | { type: 'ERROR'; id: string; payload: { message: string } };
 
@@ -73,23 +71,12 @@ class DatabaseWorkerProxy {
     return result.success;
   }
 
-  async fetchMarketData(ticker: string, dateIso: string, daysBack = 30): Promise<RawBar[]> {
-    return this.sendRequest<RawBar[]>('FETCH_MARKET_DATA', { ticker, dateIso, daysBack });
-  }
-
-  async fetchHistoricalChunk(ticker: string, endTimestamp: string, daysBack = 30): Promise<RawBar[]> {
-    return this.sendRequest<RawBar[]>('FETCH_HISTORICAL_CHUNK', { ticker, endTimestamp, daysBack });
-  }
-
   async fetchTickers(): Promise<string[]> {
     return this.sendRequest<string[]>('FETCH_TICKERS');
   }
 
   isDBLoaded(): boolean {
-    // This is tricky since the worker owns the state.
-    // For simplicity, we can track this locally in the proxy or send a query.
-    // But since the original db.ts used a simple null check, let's maintain a local flag.
-    return true; // The worker manages its own internal state
+    return true;
   }
 
   terminate() {
@@ -99,10 +86,49 @@ class DatabaseWorkerProxy {
 
 export const db = new DatabaseWorkerProxy();
 
+// --- Market Data API Integration ---
+
+/**
+ * Calculates the number of candles to fetch based on daysBack and timeframe.
+ */
+function calculateMaxCandles(daysBack: number, tf: Timeframe): number {
+  const minsPerDay = 1440;
+  const tfMins = {
+    '1min': 1,
+    '5min': 5,
+    '15min': 15,
+    '30min': 30,
+    '1H': 60,
+    '1D': 1440,
+  }[tf];
+  
+  return Math.floor((daysBack * minsPerDay) / tfMins);
+}
+
+export const fetchMarketData = async (ticker: string, dateIso: string, daysBack = 30, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
+  try {
+    const max = calculateMaxCandles(daysBack, timeframe);
+    const candles = await marketApi.fetchCandles(ticker, timeframe, { to: dateIso, max });
+    return transformCapitalCandles(candles);
+  } catch (error) {
+    console.error(`[fetchMarketData] Error fetching data for ${ticker}:`, error);
+    return [];
+  }
+};
+
+export const fetchHistoricalChunk = async (ticker: string, endTimestamp: string, daysBack = 30, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
+  try {
+    const max = calculateMaxCandles(daysBack, timeframe);
+    const candles = await marketApi.fetchCandles(ticker, timeframe, { to: endTimestamp, max });
+    return transformCapitalCandles(candles);
+  } catch (error) {
+    console.error(`[fetchHistoricalChunk] Error fetching chunk for ${ticker}:`, error);
+    return [];
+  }
+};
+
 // Exporting individual functions for backward compatibility and ease of use
 export const initDB = () => db.initDB();
 export const loadDatabaseFromFile = (file: File) => db.loadDatabaseFromFile(file);
-export const fetchMarketData = (ticker: string, dateIso: string, daysBack = 30) => db.fetchMarketData(ticker, dateIso, daysBack);
-export const fetchHistoricalChunk = (ticker: string, endTimestamp: string, daysBack = 30) => db.fetchHistoricalChunk(ticker, endTimestamp, daysBack);
 export const fetchTickers = () => db.fetchTickers();
 export const isDBLoaded = () => db.isDBLoaded();
