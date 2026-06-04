@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 Completed
 
 ## Active Infrastructure
-- **Proxy URL**: https://bonus-fastest-shopping-purchasing.trycloudflare.com
+- **Proxy URL**: https://galleries-worker-repeated-cooler.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
