@@ -10,8 +10,8 @@
 
 ### Data Layer (DATA)
 
-- [ ] **DATA-01**: Integrate the Capital.com WebSocket API for direct-to-client streaming of real-time Bid/Ask ticks.
-- [ ] **DATA-02**: Implement REST API integration for fetching historical OHLVC candle data on chart initialization.
+- [x] **DATA-01**: Integrate the Capital.com WebSocket API for direct-to-client streaming of real-time Bid/Ask ticks.
+- [x] **DATA-02**: Implement REST API integration for fetching historical OHLVC candle data on chart initialization.
 - [x] **DATA-03**: Implement real-time account equity and margin synchronization to display available funds before trading.
 
 ### Execution Layer (EXEC)
@@ -55,8 +55,8 @@
 | AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 1 | Complete |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
+| DATA-01 | Phase 2 | Complete |
+| DATA-02 | Phase 2 | Complete |
 | DATA-03 | Phase 1 | Complete |
 | EXEC-01 | Phase 3 | Pending |
 | EXEC-02 | Phase 3 | Pending |
