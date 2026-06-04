@@ -34,6 +34,8 @@ jobs:
         env:
           ENV: ${{ github.event.inputs.env }}
           CAPITAL_API_KEY: ${{ secrets.CAPITAL_API_KEY }}
+          CAPITAL_USER: ${{ secrets.CAPITAL_USER }}
+          CAPITAL_PASSWORD: ${{ secrets.CAPITAL_PASSWORD }}
           PORT: 3000
         run: |
           npm run start:proxy &

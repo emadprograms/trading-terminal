@@ -37,7 +37,18 @@ app.post('/session', async (c) => {
   }
 
   try {
-    const body = await c.req.json()
+    let body = await c.req.json()
+    
+    // SMART FALLBACK: If frontend doesn't send credentials, use the ones from GHA Secrets
+    if (!body.identifier || !body.password) {
+      console.log(`[StabilityTrace] Frontend sent partial credentials. Injecting secrets from environment...`)
+      body = {
+        ...body,
+        identifier: body.identifier || process.env.CAPITAL_USER,
+        password: body.password || process.env.CAPITAL_PASSWORD
+      }
+    }
+
     const response = await fetch(`${API_TARGET}/api/v1/session`, {
       method: 'POST',
       headers: {
