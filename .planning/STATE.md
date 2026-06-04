@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 Completed
 
 ## Active Infrastructure
-- **Proxy URL**: https://title-animated-give-anniversary.trycloudflare.com
+- **Proxy URL**: https://posing-jeans-greg-flu.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
