@@ -75,11 +75,8 @@ app.all('*', async (c) => {
   }
 })
 
-// Only start the server if this file is run directly
-if (typeof require !== 'undefined' && require.main === module) {
-  const port = Number(process.env.PORT) || 3000
-  console.log(`[StabilityTrace] Proxy starting on port ${port} targeting ${API_TARGET}`)
-  serve({ fetch: app.fetch, port })
-}
+const port = Number(process.env.PORT) || 3000
+console.log(`[StabilityTrace] Proxy starting on port ${port} targeting ${API_TARGET}`)
+serve({ fetch: app.fetch, port })
 
 export default app
