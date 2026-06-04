@@ -5,7 +5,7 @@ export const api = ky.create({
   hooks: {
     beforeRequest: [
       ({ request }) => {
-        const { cst, securityToken, proxyUrl } = useSessionStore.getState()
+        const { cst, securityToken, proxyUrl, environment } = useSessionStore.getState()
 
         // 1. Prepare the base for rewriting
         let finalRequest = request
@@ -32,6 +32,9 @@ export const api = ky.create({
         }
         if (securityToken) {
           finalRequest.headers.set('X-SECURITY-TOKEN', securityToken)
+        }
+        if (environment) {
+          finalRequest.headers.set('X-Environment', environment)
         }
 
         return finalRequest

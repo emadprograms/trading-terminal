@@ -15,18 +15,24 @@ app.use('*', async (c, next) => {
 app.use('*', cors({
   origin: '*',
   exposeHeaders: ['CST', 'X-SECURITY-TOKEN'],
-  allowHeaders: ['Content-Type', 'CST', 'X-SECURITY-TOKEN'],
+  allowHeaders: ['Content-Type', 'CST', 'X-SECURITY-TOKEN', 'X-Environment'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }))
 
-const API_TARGET = process.env.ENV === 'LIVE' 
-  ? 'https://api-capital.backend-capital.com' 
-  : 'https://demo-api-capital.backend-capital.com'
+const getApiTarget = (envHeader?: string) => {
+  const env = envHeader || process.env.ENV || 'DEMO'
+  return env === 'LIVE' 
+    ? 'https://api-capital.backend-capital.com' 
+    : 'https://demo-api-capital.backend-capital.com'
+}
 
 app.get('/ping', (c) => c.json({ status: 'OK' }))
 
 app.post('/session', async (c) => {
   console.log(`[StabilityTrace] Handling /session request...`)
+  
+  const target = getApiTarget(c.req.header('X-Environment'))
+  console.log(`[StabilityTrace] Routing /session to: ${target}`)
   
   if (process.env.NODE_ENV === 'test') {
     return c.json({ accountType: 'CFD' }, 200, {
@@ -49,7 +55,7 @@ app.post('/session', async (c) => {
       }
     }
 
-    const response = await fetch(`${API_TARGET}/api/v1/session`, {
+    const response = await fetch(`${target}/api/v1/session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -95,7 +101,8 @@ app.post('/session', async (c) => {
 })
 
 app.all('*', async (c) => {
-  const targetUrl = `${API_TARGET}${c.req.path}`
+  const targetBase = getApiTarget(c.req.header('X-Environment'))
+  const targetUrl = `${targetBase}${c.req.path}`
   console.log(`[StabilityTrace] Proxying ${c.req.method} ${c.req.path} to ${targetUrl}`)
 
   if (process.env.NODE_ENV === 'test') {
@@ -134,7 +141,7 @@ app.all('*', async (c) => {
 })
 
 const port = Number(process.env.PORT) || 3000
-console.log(`[StabilityTrace] Proxy starting on port ${port} targeting ${API_TARGET}`)
+console.log(`[StabilityTrace] Proxy starting on port ${port}. Target determined dynamically via X-Environment header.`)
 serve({ fetch: app.fetch, port })
 
 export default app

@@ -4,7 +4,7 @@
 Phase 1: Auth & Infrastructure
 
 ## Status
-Completed
+IN PROGRESS (Blocker: Auth Handshake Reliability)
 
 ## Active Infrastructure
 - **Proxy URL**: https://gtk-drinks-worthy-electoral.trycloudflare.com
@@ -17,6 +17,6 @@ Completed
 ## Phase 1 Deliverables
 - [x] Ephemeral backend proxy (Hono)
 - [x] GHA tunnel setup (Cloudflare Tunnel)
-- [x] Frontend auth handshake (Ky + Zustand)
-- [x] Account state synchronization (Real-time polling)
+- [ ] Frontend auth handshake (Ky + Zustand) [CURRENT BLOCKER]
+- [ ] Account state synchronization (Real-time polling)
 - [x] Environment switching UI (Demo/Live)
