@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 IN PROGRESS (Blocker: Auth Handshake Reliability)
 
 ## Active Infrastructure
-- **Proxy URL**: https://gtk-drinks-worthy-electoral.trycloudflare.com
+- **Proxy URL**: https://thereby-reproduction-picture-fails.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
