@@ -24,7 +24,7 @@ COMPLETED (Real-time PnL sync carried over to Phase 2)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://thereby-reproduction-picture-fails.trycloudflare.com
+- **Proxy URL**: https://residents-better-itunes-beyond.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
