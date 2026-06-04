@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 IN PROGRESS (Blocker: Auth Handshake Reliability)
 
 ## Active Infrastructure
-- **Proxy URL**: https://transmitted-excessive-heart-normal.trycloudflare.com
+- **Proxy URL**: https://twelve-job-appears-overall.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
