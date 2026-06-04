@@ -7,6 +7,10 @@ on:
         description: 'Target Environment (DEMO/LIVE)'
         required: true
         default: 'DEMO'
+      duration:
+        description: 'Run Duration (minutes)'
+        required: true
+        default: '360'
 
 jobs:
   proxy:
