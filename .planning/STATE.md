@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 Completed
 
 ## Active Infrastructure
-- **Proxy URL**: (Updated by GHA workflow)
+- **Proxy URL**: https://commentary-cheats-seem-subsidiaries.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
