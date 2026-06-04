@@ -38,15 +38,23 @@ export const api = ky.create({
       }
     ],
     afterResponse: [
-      async ({ response }) => {
+      async ({ request, options, response }) => {
         try {
-          // 4. SECURE TOKEN CAPTURE
-          if (response.url.includes('/session') && response.ok) {
+          const url = response.url || ''
+          const isSession = url.includes('/session') || (options.url && String(options.url).includes('/session'))
+          
+          if (isSession) {
+            console.log(`[StabilityTrace] Capture check for ${url}: status=${response.status}`);
             const cst = response.headers.get('CST')
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
             
-            if (cst && securityToken) {
+            console.log(`[StabilityTrace] Headers - CST: ${cst ? 'Present' : 'MISSING'}, X-SECURITY-TOKEN: ${securityToken ? 'Present' : 'MISSING'}`);
+            
+            if (response.ok && cst && securityToken) {
+              console.log('[StabilityTrace] Tokens captured successfully. Updating store.');
               useSessionStore.getState().setTokens(cst, securityToken)
+            } else if (response.ok) {
+              console.warn('[StabilityTrace] Login succeeded but tokens are missing from headers.');
             }
           }
         } catch (e) {

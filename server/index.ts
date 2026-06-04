@@ -45,7 +45,13 @@ app.post('/session', async (c) => {
       body: JSON.stringify(body),
     })
 
-    return new Response(response.body, response)
+    // Explicitly copy headers to ensure they are forwarded correctly
+    const headers = new Headers(response.headers)
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    })
   } catch (error) {
     console.error(`[StabilityTrace] Session error:`, error)
     return c.json({ error: 'Internal Server Error' }, 500)
@@ -68,7 +74,13 @@ app.all('*', async (c) => {
       body: ['POST', 'PUT', 'PATCH'].includes(c.req.method) ? await c.req.blob() : undefined,
     })
 
-    return new Response(response.body, response)
+    // Explicitly copy headers to ensure they are forwarded correctly
+    const responseHeaders = new Headers(response.headers)
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    })
   } catch (error) {
     console.error(`[StabilityTrace] Proxy error for ${targetUrl}:`, error)
     return c.json({ error: 'Proxy Error' }, 502)
