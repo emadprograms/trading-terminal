@@ -7,23 +7,15 @@ export const api = ky.create({
       (request, options) => {
         const { cst, securityToken, proxyUrl } = useSessionStore.getState()
 
+        // 1. DYNAMIC PROXY ROUTING
+        // Instead of manual rewriting, we use prefixUrl. 
+        // Ky handles the joining of base + path automatically and safely.
         if (proxyUrl) {
-          try {
-            const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
-            const proxyBase = new URL(base)
-            
-            // In Ky, we modify options.url to change the target destination
-            const currentUrlStr = typeof options.url === 'string' ? options.url : request.url
-            if (currentUrlStr && currentUrlStr.startsWith('/') || currentUrlStr.startsWith(window.location.origin)) {
-              const currentUrl = new URL(currentUrlStr, window.location.origin)
-              const finalUrl = new URL(currentUrl.pathname + currentUrl.search, proxyBase)
-              options.url = finalUrl.toString()
-            }
-          } catch (e) {
-            console.error('[StabilityTrace] Proxy URL rewrite failed:', e)
-          }
+          options.prefixUrl = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
         }
 
+        // 2. AUTH HEADERS
+        // We use request.headers.set as it is standard and safe on the Request object.
         if (cst) {
           request.headers.set('CST', cst)
         }
@@ -35,8 +27,9 @@ export const api = ky.create({
     afterResponse: [
       async (request, options, response) => {
         try {
-          const url = request.url || options.url || ''
-          if (url.includes('/session') && response.ok) {
+          // 3. SECURE TOKEN CAPTURE
+          // We check the response.url which is always defined and reliable.
+          if (response.url.includes('/session') && response.ok) {
             const cst = response.headers.get('CST')
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
             
@@ -45,7 +38,7 @@ export const api = ky.create({
             }
           }
         } catch (e) {
-          console.error('[StabilityTrace] AfterResponse URL check failed:', e)
+          console.error('[StabilityTrace] Token capture failed:', e)
         }
       }
     ]
