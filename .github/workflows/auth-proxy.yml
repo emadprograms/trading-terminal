@@ -8,9 +8,9 @@ on:
         required: true
         default: 'DEMO'
       duration:
-        description: 'Run Duration (minutes)'
+        description: 'Run Duration (e.g., 1h, 30m, 6h)'
         required: true
-        default: '360'
+        default: '6h'
 
 jobs:
   proxy:
@@ -131,14 +131,32 @@ jobs:
 
       - name: Keep Alive
         run: |
+          INPUT_DURATION="${{ github.event.inputs.duration }}"
           echo "Proxy is running at $PROXY_URL"
-          echo "The proxy will remain active until the GitHub Action times out (max 6 hours)."
-          while true; do
+          
+          # Parse duration (e.g., 1h, 30m, or 360)
+          if [[ "$INPUT_DURATION" == *h ]]; then
+            MINS=${INPUT_DURATION%h}
+            TOTAL_MINS=$((MINS * 60))
+          elif [[ "$INPUT_DURATION" == *m ]]; then
+            TOTAL_MINS=${INPUT_DURATION%m}
+          else
+            TOTAL_MINS=$INPUT_DURATION
+          fi
+          
+          echo "The proxy will remain active for $TOTAL_MINS minutes ($INPUT_DURATION)."
+          
+          START_TIME=$(date +%s)
+          END_TIME=$((START_TIME + TOTAL_MINS * 60))
+          
+          while [ $(date +%s) -lt $END_TIME ]; do
             if curl -s http://localhost:3000/ping > /dev/null; then
-              echo "$(date): Proxy is still healthy..."
+              REMAINING=$(( (END_TIME - $(date +%s)) / 60 ))
+              echo "$(date): Proxy is still healthy... (Approx. $REMAINING min remaining)"
             else
               echo "$(date): Proxy health check failed! Exiting."
               exit 1
             fi
             sleep 60
           done
+          echo "Specified duration of $INPUT_DURATION reached. Shutting down proxy."
