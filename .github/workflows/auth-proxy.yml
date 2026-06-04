@@ -46,19 +46,45 @@ jobs:
           cloudflared tunnel --url http://localhost:3000 > tunnel.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
-          # Wait for URL to appear in logs
-          for i in {1..30}; do
-            URL=$(grep -o 'https://.*\.trycloudflare\.com' tunnel.log | head -n 1)
+          echo "Waiting for tunnel URL..."
+          for i in {1..60}; do
+            URL=$(grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' tunnel.log | head -n 1)
             if [ -n "$URL" ]; then
               echo "PROXY_URL=$URL" >> $GITHUB_ENV
               echo "::notice title=Proxy URL::$URL"
+              echo "Tunnel established: $URL"
               break
             fi
             sleep 2
           done
           
           if [ -z "$URL" ]; then
+            echo "Error: Tunnel failed to start within 120 seconds."
             cat tunnel.log
+            exit 1
+          fi
+
+      - name: Verify Capital.com Connectivity
+        run: |
+          echo "Testing proxy connectivity to Capital.com..."
+          # We send a request to /session. Since we don't provide credentials here, 
+          # the proxy will use GHA secrets (Credential Fallback).
+          # We expect a 200 (success) or 400 (invalid credentials but connection OK).
+          # A 5xx or connection error would indicate a failure.
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:3000/session \
+            -H "Content-Type: application/json" \
+            -d '{"identifier": "connectivity-test", "password": "connectivity-test"}')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Response Code: $HTTP_CODE"
+          echo "Response Body: $BODY"
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 500 ]; then
+            echo "✅ Connectivity Verified: Proxy can reach Capital.com"
+          else
+            echo "❌ Connectivity Failed: Proxy received $HTTP_CODE from Capital.com"
             exit 1
           fi
 
