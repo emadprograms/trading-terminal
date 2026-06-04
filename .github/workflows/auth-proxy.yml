@@ -122,6 +122,7 @@ jobs:
           
           git add .planning/STATE.md
           git commit -m "chore(infra): update ephemeral proxy URL [skip ci]"
+          git pull --rebase origin main
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || github.token }}
