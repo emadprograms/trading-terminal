@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 IN PROGRESS (Blocker: Auth Handshake Reliability)
 
 ## Active Infrastructure
-- **Proxy URL**: https://thereby-reproduction-picture-fails.trycloudflare.com
+- **Proxy URL**: https://transmitted-excessive-heart-normal.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
