@@ -12,11 +12,12 @@ export const api = ky.create({
             const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
             const proxyBase = new URL(base)
             
-            // If the request is relative to the current origin, rewrite it to use the proxyUrl
-            if (request.url.startsWith(window.location.origin)) {
-              const currentUrl = new URL(request.url)
+            // In Ky, we modify options.url to change the target destination
+            const currentUrlStr = typeof options.url === 'string' ? options.url : request.url
+            if (currentUrlStr && currentUrlStr.startsWith('/') || currentUrlStr.startsWith(window.location.origin)) {
+              const currentUrl = new URL(currentUrlStr, window.location.origin)
               const finalUrl = new URL(currentUrl.pathname + currentUrl.search, proxyBase)
-              request.url = finalUrl.toString()
+              options.url = finalUrl.toString()
             }
           } catch (e) {
             console.error('[StabilityTrace] Proxy URL rewrite failed:', e)
@@ -33,13 +34,18 @@ export const api = ky.create({
     ],
     afterResponse: [
       async (request, options, response) => {
-        if (request.url.includes('/session') && response.ok) {
-          const cst = response.headers.get('CST')
-          const securityToken = response.headers.get('X-SECURITY-TOKEN')
-          
-          if (cst && securityToken) {
-            useSessionStore.getState().setTokens(cst, securityToken)
+        try {
+          const url = request.url || options.url || ''
+          if (url.includes('/session') && response.ok) {
+            const cst = response.headers.get('CST')
+            const securityToken = response.headers.get('X-SECURITY-TOKEN')
+            
+            if (cst && securityToken) {
+              useSessionStore.getState().setTokens(cst, securityToken)
+            }
           }
+        } catch (e) {
+          console.error('[StabilityTrace] AfterResponse URL check failed:', e)
         }
       }
     ]
