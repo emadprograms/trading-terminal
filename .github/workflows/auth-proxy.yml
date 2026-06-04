@@ -10,7 +10,7 @@ on:
       duration:
         description: 'Run Duration (e.g., 1h, 30m, 6h)'
         required: true
-        default: '6h'
+        default: '2h'
 
 jobs:
   proxy:
