@@ -84,7 +84,7 @@ export function useChartData({
       else if (timeframe === '1H') daysBack = 120;
       else if (timeframe === '1D') daysBack = 365 * 2;
       
-      const data = await fetchMarketData(ticker, selectedDate, daysBack);
+      const data = await fetchMarketData(ticker, selectedDate, daysBack, timeframe);
       if (cancelled) return;
       
       console.log(`[useChartData] Fetched ${data?.length || 0} bars for ${ticker} at ${timeframe}`);
@@ -114,7 +114,7 @@ export function useChartData({
           const oldLogicalRange = timeScale.getVisibleLogicalRange();
           const currentChartBars = priceSeriesRef.current ? (priceSeriesRef.current.data() as CandlestickData[]) : [];
           
-          const chunk = await fetchHistoricalChunk(ticker, earliestLoadedDateRef.current, 30);
+          const chunk = await fetchHistoricalChunk(ticker, earliestLoadedDateRef.current, 30, timeframe);
           
           if (chunk && chunk.length > 0) {
             earliestLoadedDateRef.current = chunk[0].time;
@@ -136,7 +136,7 @@ export function useChartData({
     
     timeScale.subscribeVisibleLogicalRangeChange(onVisibleLogicalRangeChanged);
     return () => timeScale.unsubscribeVisibleLogicalRangeChange(onVisibleLogicalRangeChanged);
-  }, [localMasterData, isLoadingHistory, ticker, chartRef, priceSeriesRef]);
+  }, [localMasterData, isLoadingHistory, ticker, chartRef, priceSeriesRef, timeframe]);
 
   // Memoized Chart Data
   const chartData = useMemo(() => {
