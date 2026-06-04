@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 Completed
 
 ## Active Infrastructure
-- **Proxy URL**: https://commentary-cheats-seem-subsidiaries.trycloudflare.com
+- **Proxy URL**: https://bonus-fastest-shopping-purchasing.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
