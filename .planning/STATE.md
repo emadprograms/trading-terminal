@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 Completed
 
 ## Active Infrastructure
-- **Proxy URL**: https://galleries-worker-repeated-cooler.trycloudflare.com
+- **Proxy URL**: https://title-animated-give-anniversary.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
