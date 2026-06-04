@@ -8,16 +8,18 @@ export const api = ky.create({
         const { cst, securityToken, proxyUrl } = useSessionStore.getState()
 
         if (proxyUrl) {
-          const url = new URL(request.url)
-          // If the request is relative to the current origin, rewrite it to use the proxyUrl
-          if (url.origin === window.location.origin) {
+          try {
             const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
-            url.origin = new URL(base).origin
-            // Ensure the path starts with /
-            if (!url.pathname.startsWith('/')) {
-              url.pathname = '/' + url.pathname
+            const proxyBase = new URL(base)
+            
+            // If the request is relative to the current origin, rewrite it to use the proxyUrl
+            if (request.url.startsWith(window.location.origin)) {
+              const currentUrl = new URL(request.url)
+              const finalUrl = new URL(currentUrl.pathname + currentUrl.search, proxyBase)
+              request.url = finalUrl.toString()
             }
-            request.url = url.toString()
+          } catch (e) {
+            console.error('[StabilityTrace] Proxy URL rewrite failed:', e)
           }
         }
 

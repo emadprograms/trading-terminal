@@ -26,32 +26,39 @@ export const AccountHeader: React.FC = () => {
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
-  if (!isAuthenticated) return null;
-
   return (
     <div className="account-header">
       <div className="status-indicator">
-        <span className="dot" />
-        <span className="status-text">ONLINE</span>
+        <span className={`dot ${isAuthenticated ? 'status-online' : ''}`} />
+        <span className="status-text">{isAuthenticated ? 'ONLINE' : 'DISCONNECTED'}</span>
       </div>
       
       <div className="metrics">
-        <div className="metric">
-          <span className="label">EQUITY</span>
-          <span className="value">{isLoading ? '...' : formatCurrency(data?.equity || 0)}</span>
-        </div>
-        <div className="metric">
-          <span className="label">MARGIN</span>
-          <span className="value">{isLoading ? '...' : formatCurrency(data?.margin || 0)}</span>
-        </div>
-        <div className="metric">
-          <span className="label">AVAILABLE</span>
-          <span className="value">{isLoading ? '...' : formatCurrency(data?.available || 0)}</span>
-        </div>
-        <div className="metric">
-          <span className="label">MARGIN LVL</span>
-          <span className="value">{isLoading ? '...' : `${data?.marginLevel || 0}%`}</span>
-        </div>
+        {isAuthenticated ? (
+          <>
+            <div className="metric">
+              <span className="label">EQUITY</span>
+              <span className="value">{isLoading ? '...' : formatCurrency(data?.equity || 0)}</span>
+            </div>
+            <div className="metric">
+              <span className="label">MARGIN</span>
+              <span className="value">{isLoading ? '...' : formatCurrency(data?.margin || 0)}</span>
+            </div>
+            <div className="metric">
+              <span className="label">AVAILABLE</span>
+              <span className="value">{isLoading ? '...' : formatCurrency(data?.available || 0)}</span>
+            </div>
+            <div className="metric">
+              <span className="label">MARGIN LVL</span>
+              <span className="value">{isLoading ? '...' : `${data?.marginLevel || 0}%`}</span>
+            </div>
+          </>
+        ) : (
+          <div className="metric">
+            <span className="label">STATUS</span>
+            <span className="value" style={{ color: '#ef5350' }}>No Active Session</span>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -74,8 +81,11 @@ export const AccountHeader: React.FC = () => {
         .dot {
           width: 6px;
           height: 6px;
-          background: #00f2ff;
+          background: #666;
           border-radius: 50%;
+        }
+        .dot.status-online {
+          background: #00f2ff;
           box-shadow: 0 0 8px #00f2ff;
           animation: blink 2s infinite;
         }
