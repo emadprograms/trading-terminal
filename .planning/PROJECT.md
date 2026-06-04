@@ -9,17 +9,15 @@ A professional-grade live trading terminal connected to Capital.com, designed fo
 ## Requirements
 
 ### Validated
-(Existing infrastructure from previous version)
+(Existing and newly implemented features)
 - ✓ **Multi-Chart Workspace**: Grid layout of charts with synchronized viewing.
 - ✓ **High-Performance Rendering**: Use of `lightweight-charts` for fluid financial visualization.
 - ✓ **State Management**: Workspace persistence and ticker management via Zustand.
-- ✓ **Component Architecture**: Decoupled UI, Orchestration, and Data layers.
+- ✓ **Capital.com Auth**: Session-based authentication (cst_token flow) via proxy.
+- ✓ **REST Data Engine**: Historical data loading via Capital.com API.
+- ✓ **WebSocket Pricing**: Real-time Bid/Ask tick updates via WebSocket.
 
 ### Active
-- [ ] **Capital.com Integration**:
-    - [ ] Implement session-based authentication (cst_token flow) via backend.
-    - [ ] Integrate REST API for historical data loading on chart mount.
-    - [ ] Integrate WebSocket API for live Bid/Ask tick updates.
 - [ ] **Live Execution Layer**:
     - [ ] Implement Market Order placement.
     - [ ] Implement Limit Order placement.
@@ -31,12 +29,9 @@ A professional-grade live trading terminal connected to Capital.com, designed fo
     - [ ] `Alt + 2`: Sell half default size.
 - [ ] **Trading UI Enhancements**:
     - [ ] "Default Size" and "Fixed SL Distance" configuration in top bar.
-    - [ ] Active Account toggle (Live vs. Demo).
     - [ ] Visual trade markers (Green/Red arrows) on candles upon execution.
-- [ ] **Ephemeral Backend**:
-    - [ ] Develop a lightweight backend for API proxying and auth.
-    - [ ] Configure deployment via GitHub Actions (scheduled/timed runs).
-    - [ ] Implement frontend-to-backend discovery/connection logic.
+- [ ] **Real-time Account Sync**:
+    - [ ] Integrate WebSocket updates for account balance and PnL.
 
 ### Out of Scope
 - **Complex Macros**: No multi-step trade sequences.

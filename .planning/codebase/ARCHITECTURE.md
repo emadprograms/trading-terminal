@@ -1,7 +1,4 @@
-<!-- refreshed: 2025-06-03 -->
 # Architecture
-
-**Analysis Date:** 2025-06-03
 
 ## System Overview
 
@@ -21,14 +18,15 @@
          ▼                      ▼                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      Data & Logic Layer                      │
-│  `src/hooks/useChartData.ts` `src/lib/resampling.ts`         │
-│  `src/lib/db.ts` `src/lib/workers/db.worker.ts`             │
+│  `src/hooks/useChartData.ts` `src/lib/ws-manager.ts`         │
+│  `src/api/market.ts` `src/lib/data-adapter.ts`              │
 └────────┬──────────────────────┬──────────────────────┬───────┘
          │                      │                      │
          ▼                      ▼                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   State & Storage Layer                     │
-│  `src/store/useWorkspaceStore.ts` `src/store/usePlaybackStore.ts`
+│  `src/store/useWorkspaceStore.ts` `src/store/usePriceStore.ts`
+│  `src/store/useSessionStore.ts`                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,19 +38,19 @@
 | `ChartWorkspace` | Manages the grid layout of charts and resizing logic | `src/components/ChartWorkspace.tsx` |
 | `ChartUnit` | Encapsulates a single chart instance, its data, and lifecycle | `src/components/ChartUnit.tsx` |
 | `ChartCanvas` | Lightweight-charts rendering surface | `src/components/ChartCanvas.tsx` |
-| `ChartHeader` | Chart-specific controls (ticker, timeframe, drawings) | `src/components/ChartHeader.tsx` |
-| `PlaybackBar` | Global playback controls and PnL display | `src/components/PlaybackBar.tsx` |
-| `Sidebar` | Database management and session configuration | `src/components/Sidebar.tsx` |
+| `ChartHeader` | Chart-specific controls (ticker, timeframe, drawings) and Live Price display | `src/components/ChartHeader.tsx` |
+| `AccountHeader` | Global account metrics (Equity, Margin, PnL) | `src/components/AccountHeader.tsx` |
+| `Sidebar` | Layout selection and session configuration | `src/components/Sidebar.tsx` |
 
 ## Pattern Overview
 
-**Overall:** Layered Architecture with Hooks-based Orchestration.
+**Overall:** Live-Market Terminal with Hooks-based Orchestration and Real-time WebSocket updates.
 
 **Key Characteristics:**
-- **Centralized State:** Uses Zustand stores for global workspace and playback state.
-- **Decoupled Logic:** Business logic (resampling, DB access, timezones) is isolated in `src/lib/`.
-- **Lifecyle Management:** `useChartLifecycle` manages the complex interaction between React state and the imperative `lightweight-charts` API.
-- **Atomic Data Fetching:** Each `ChartUnit` manages its own data requirements via `useChartData`.
+- **Centralized State:** Uses Zustand stores for global workspace, live pricing, and session tokens.
+- **Decoupled Logic:** Market API interaction, WebSocket management, and data transformation are isolated in `src/api/` and `src/lib/`.
+- **Lifecyle Management:** `useChartLifecycle` manages the interaction between React state and the imperative `lightweight-charts` API.
+- **REST + WS Sync:** Historical data is fetched via REST on mount; real-time updates are pushed via WebSocket to a global price store.
 
 ## Layers
 
@@ -61,88 +59,71 @@
 - Location: `src/components/`
 - Contains: React components.
 - Depends on: Orchestration Layer (hooks).
-- Used by: `App.tsx`.
 
 **Orchestration Layer:**
 - Purpose: Bridge the gap between UI and data, managing state transitions and side effects.
 - Location: `src/hooks/`
 - Contains: Custom React hooks.
 - Depends on: Data Layer and State Layer.
-- Used by: UI Layer.
 
 **Data & Logic Layer:**
-- Purpose: Handle raw data processing, database queries, and mathematical transformations.
-- Location: `src/lib/`
-- Contains: Utility functions, DB clients, and Web Workers.
-- Depends on: External libraries.
-- Used by: Orchestration Layer.
+- Purpose: Handle API communication, WebSocket lifecycle, and data normalization.
+- Location: `src/api/` and `src/lib/`
+- Contains: `marketApi`, `wsManager`, and `data-adapter`.
+- Depends on: Ky (HTTP) and Native WebSockets.
 
 **State & Storage Layer:**
-- Purpose: Maintain global application state and persistence.
+- Purpose: Maintain global application state, price feeds, and authentication tokens.
 - Location: `src/store/`
-- Contains: Zustand stores.
+- Contains: Zustand stores (`useSessionStore`, `usePriceStore`, `useWorkspaceStore`).
 - Depends on: Browser LocalStorage.
-- Used by: Orchestration Layer and UI Layer.
 
 ## Data Flow
 
 ### Primary Request Path (Chart Loading)
 
 1. `ChartUnit` mounts and invokes `useChartData` (`src/hooks/useChartData.ts`).
-2. `useChartData` fetches raw bars from `fetchMarketData` in `src/lib/db.ts`.
-3. Raw data is filtered (REG vs ETH) and resampled using `resampleData` in `src/lib/resampling.ts`.
-4. `useChartLifecycle` receives the processed `chartData` and calls `priceSeries.setData()` on the `lightweight-charts` instance.
-5. UI updates to reflect the loaded chart.
+2. `useChartData` fetches historical bars from `marketApi.fetchCandles` via `src/lib/db.ts` (proxied to REST API).
+3. Data is transformed into the internal `RawBar` format via `src/lib/data-adapter.ts`.
+4. `useChartLifecycle` receives the processed `chartData` and updates the chart series.
 
-### Playback Flow
+### Real-time Update Flow
 
-1. `PlaybackBar` triggers `tick()` or `stepForward()` in `usePlaybackStore` (`src/store/usePlaybackStore.ts`).
-2. `usePlaybackStore` updates `currentTime`.
-3. All `useChartData` hooks observing `globalTime` re-filter their `localMasterData` to simulate a real-time feed.
-4. `useChartLifecycle` updates the chart series with the new filtered data.
-
-**State Management:**
-- **Workspace State:** Managed by `useWorkspaceStore` (persisted in LocalStorage). Controls tickers, groups, and active chart ID.
-- **Playback State:** Managed by `usePlaybackStore`. Controls current time, playback speed, and playback status.
+1. `wsManager` receives a price update for a subscribed epic.
+2. `wsManager` calls `usePriceStore.getState().updatePrice()`.
+3. `ChartHeader` (and other components) observing the price store re-render to show the live Bid/Ask.
+4. (Optional) Latest candle on the chart is updated with the new price tick.
 
 ## Key Abstractions
 
-**Chart Unit:**
-- Purpose: A self-contained trading chart with its own ticker, timeframe, and toolset.
-- Examples: `src/components/ChartUnit.tsx`
-- Pattern: Composite Component.
+**Market API:**
+- Purpose: Centralized gateway for all REST communication with Capital.com.
+- Location: `src/api/market.ts`
 
-**Chart Lifecycle:**
-- Purpose: Synchronizes the declarative React world with the imperative Lightweight Charts API.
-- Examples: `src/hooks/useChartLifecycle.ts`
-- Pattern: Lifecycle Bridge.
+**WebSocket Manager:**
+- Purpose: Singleton managing the lifecycle, authentication, and subscription of market data streams.
+- Location: `src/lib/ws-manager.ts`
+
+**Data Adapter:**
+- Purpose: Normalizes external API shapes (Capital.com) into the terminal's internal formats (`RawBar`, `FormattedBar`).
+- Location: `src/lib/data-adapter.ts`
 
 ## Entry Points
 
 **App Component:**
 - Location: `src/App.tsx`
-- Triggers: Page load.
-- Responsibilities: Initialize database, session management, and root layout.
+- Triggers: Page load / Authentication.
+- Responsibilities: Session handshake, global layout, and high-level routing (Splash -> SessionConfig -> Workspace).
 
 ## Architectural Constraints
 
-- **Imperative Chart API:** `lightweight-charts` requires manual DOM manipulation and method calls, necessitating the use of `useRef` and `useEffect` in `useChartLifecycle`.
-- **Data Volume:** Large historical datasets are handled via "Infinite Scroll" (fetching chunks) and a dedicated Web Worker (`src/lib/workers/db.worker.ts`) to prevent UI blocking.
-- **Global Time:** The playback system relies on a single source of truth (`currentTime`) that triggers re-renders across multiple chart units.
+- **Ephemeral Proxy:** The terminal depends on a healthy Proxy URL provided by the GHA Tunnel to bypass CORS and handle auth headers.
+- **WebSocket Throttling:** Subscriptions are managed per epic to avoid overloading the socket connection.
 
 ## Error Handling
 
-**Strategy:** Boundary-based isolation.
+**Strategy:** Boundary-based isolation and Stability Traces.
 
 **Patterns:**
-- `ErrorBoundary` is used around each `ChartUnit` in `ChartWorkspace.tsx` to prevent a single chart crash from taking down the entire workspace.
-
-## Cross-Cutting Concerns
-
-**Logging:** Standard `console.log` used for stability traces (`[StabilityTrace]`).
-**Validation:** Tickers are validated and sanitized in `useWorkspaceStore.ts`.
-**Authentication:** Not detected (client-side tool).
-
----
-
-*Architecture analysis: 2025-06-03*
+- `ErrorBoundary` around each `ChartUnit`.
+- `[StabilityTrace]` logs for critical auth and connection events.

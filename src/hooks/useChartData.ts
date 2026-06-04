@@ -160,9 +160,12 @@ export function useChartData({
     
     let filtered = (showEth && timeframe !== '1D') ? localMasterData : localMasterData.filter(d => d.session === 'REG');
     
+    // Legacy replay filtering disabled for Live Terminal
+    /*
     if (isReplayMode && globalTime) {
       filtered = filtered.filter(d => new Date(d.time.replace(' ', 'T') + 'Z').getTime() <= globalTime);
     }
+    */
     
     return resampleData(filtered, timeframe);
   }, [localMasterData, timeframe, showEth, isReplayMode, globalTime]);

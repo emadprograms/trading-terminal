@@ -137,16 +137,16 @@ A professional-grade live trading terminal connected to Capital.com, designed fo
 | `ChartWorkspace` | Manages the grid layout of charts and resizing logic | `src/components/ChartWorkspace.tsx` |
 | `ChartUnit` | Encapsulates a single chart instance, its data, and lifecycle | `src/components/ChartUnit.tsx` |
 | `ChartCanvas` | Lightweight-charts rendering surface | `src/components/ChartCanvas.tsx` |
-| `ChartHeader` | Chart-specific controls (ticker, timeframe, drawings) | `src/components/ChartHeader.tsx` |
-| `PlaybackBar` | Global playback controls and PnL display | `src/components/PlaybackBar.tsx` |
-| `Sidebar` | Database management and session configuration | `src/components/Sidebar.tsx` |
+| `ChartHeader` | Chart-specific controls (ticker, timeframe, drawings) and Live Price display | `src/components/ChartHeader.tsx` |
+| `AccountHeader` | Global account metrics (Equity, Margin, PnL) | `src/components/AccountHeader.tsx` |
+| `Sidebar` | Layout selection and session configuration | `src/components/Sidebar.tsx` |
 
 ## Pattern Overview
 
-- **Centralized State:** Uses Zustand stores for global workspace and playback state.
-- **Decoupled Logic:** Business logic (resampling, DB access, timezones) is isolated in `src/lib/`.
-- **Lifecyle Management:** `useChartLifecycle` manages the complex interaction between React state and the imperative `lightweight-charts` API.
-- **Atomic Data Fetching:** Each `ChartUnit` manages its own data requirements via `useChartData`.
+- **Centralized State**: Uses Zustand stores for workspace, pricing (`usePriceStore`), and sessions.
+- **Live Data Flow**: `useChartData` fetches from the Capital.com API via `marketApi` (REST).
+- **Real-time Updates**: `wsManager` handles WebSocket connections for tick data, updating the global price store.
+- **Ephemeral Infrastructure**: Backend proxy handles auth tokens and CORS bypass.
 
 ## Layers
 

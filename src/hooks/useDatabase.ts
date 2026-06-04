@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { initDB, fetchTickers, loadDatabaseFromFile } from '../lib/db';
 
 export function useDatabase() {
-  const [tickers, setTickers] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dbStatus, setDbStatus] = useState('Checking storage...');
-  const [isDbLoaded, setIsDbLoaded] = useState(false);
+  const [tickers, setTickers] = useState<string[]>(['S&P 500', 'AAPL', 'EURUSD', 'BTCUSD', 'ETHUSD']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState('Live Mode');
+  const [isDbLoaded, setIsDbLoaded] = useState(true);
 
   const loadMetaData = useCallback(async () => {
     try {
@@ -14,13 +14,9 @@ export function useDatabase() {
         setTickers(t);
         setIsDbLoaded(true);
         setDbStatus(`${t.length} Tickers active`);
-      } else {
-        setDbStatus('Database is empty (0 tickers found).');
-        setIsDbLoaded(false);
       }
     } catch (e) {
-      setDbStatus('Database error. Requires a valid file.');
-      setIsDbLoaded(false);
+      // Keep defaults
     }
   }, []);
 

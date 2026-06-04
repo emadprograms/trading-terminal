@@ -16,11 +16,11 @@ progress:
 
 ## Current Phase
 
-Phase 1: Auth & Infrastructure
+Phase 2: Market Data Engine
 
 ## Status
 
-COMPLETED (Real-time PnL sync carried over to Phase 2)
+IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
@@ -32,11 +32,10 @@ COMPLETED (Real-time PnL sync carried over to Phase 2)
 - **Auth Mode**: Dual-token (CST + X-SECURITY-TOKEN)
 - **Persistence**: Proxy URL persisted in localStorage; Tokens in-memory.
 
-## Phase 1 Deliverables
+## Phase 2 Deliverables
 
-- [x] Ephemeral backend proxy (Hono)
-- [x] GHA tunnel setup (Cloudflare Tunnel)
-- [x] Frontend auth handshake (Ky + Zustand)
-- [x] Account state synchronization (Polling - transitioned to WS in Phase 2)
-- [x] Environment switching UI (Demo/Live)
-- [x] Proxy URL persistence & Reset mechanism
+- [x] REST Historical Data integration
+- [x] WebSocket Real-time Pricing
+- [x] UI Cleanup (Removed legacy DB dependencies)
+- [ ] UAT Verification (In Progress)
+- [ ] Price store synchronization logic
