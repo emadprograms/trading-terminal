@@ -29,6 +29,8 @@ The goal of Phase 02 was to integrate live REST API and WebSocket data from Capi
 - [x] **Environment Switching**: `syncEnvironment` handles reconnecting the WebSocket when switching between Demo and Live environments.
 
 ## Validation Results
-- **Historical Data**: Verified that `useChartData` triggers `fetchMarketData` on ticker/timeframe change, populating the chart.
-- **Real-time Data**: Verified that `WebSocketManager` updates `usePriceStore`, which is observed by the `ChartHeader` component.
-- **Infinite Scroll**: `fetchHistoricalChunk` is implemented to support expanding history backward.
+- **Historical Data**: Verified that `useChartData` triggers `fetchMarketData` on ticker/timeframe change, populating the chart via REST API.
+- **Real-time Data**: Integrated `WebSocketManager` into `useSession` and `useChartData`. Verified that it correctly updates `usePriceStore`, which is observed by the `ChartHeader` component for live Bid/Ask updates.
+- **Environment Switching**: Integrated `wsManager.syncEnvironment()` into the environment toggle flow. Verified that the WebSocket reconnects to the correct endpoint (Demo/Live) when the environment is switched.
+- **Lifecycle Management**: Fixed WebSocket connection leaks by ensuring proper disconnect on unmount and token clearance.
+- **Bug Fixes**: Resolved `ReferenceError` in `ChartHeader` and `Invalid URL` errors in the API client during the UAT phase.

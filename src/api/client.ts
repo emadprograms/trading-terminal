@@ -8,25 +8,25 @@ export const api = ky.create({
         console.log(`[StabilityTrace] Outgoing Request: ${request.url}`);
         const { cst, securityToken, proxyUrl, environment } = useSessionStore.getState()
 
-        // 1. Prepare the base for rewriting
+        // 1. Determine the base URL for rewriting/absolutizing
+        const base = proxyUrl 
+          ? (proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`)
+          : (typeof window !== 'undefined' && window.location.origin !== 'null' ? window.location.origin : 'http://localhost:3000');
+
         let finalRequest = request
 
-        if (proxyUrl) {
-          try {
-            const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
-            // Use base as the second argument to handle relative request.url
-            const url = new URL(request.url, base)
-            
-            // Combine proxy base + the intended path (e.g. /session)
-            const finalUrl = new URL(url.pathname + url.search, base)
-            
-            // 2. CREATE A NEW REQUEST
-            // This bypasses the read-only 'options' object by creating a fresh Request
-            // that inherits from the original.
-            finalRequest = new Request(finalUrl.toString(), request)
-          } catch (e) {
-            console.error('[StabilityTrace] Request cloning failed:', e)
-          }
+        try {
+          // Use base as the second argument to handle relative request.url
+          const url = new URL(request.url, base)
+          
+          // Combine base + the intended path (e.g. /session)
+          const finalUrl = new URL(url.pathname + url.search, base)
+          
+          // 2. CREATE A NEW REQUEST
+          // This ensures we always have an absolute URL and allows header modification
+          finalRequest = new Request(finalUrl.toString(), request)
+        } catch (e) {
+          console.error('[StabilityTrace] Request cloning failed:', e)
         }
 
         // 3. APPLY AUTH HEADERS

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { wsManager } from '../../lib/ws-manager';
-import { useSessionStore } from '../../store/useSessionStore';
-import { usePriceStore } from '../../store/usePriceStore';
+import { wsManager } from '../../src/lib/ws-manager';
+import { useSessionStore } from '../../src/store/useSessionStore';
+import { usePriceStore } from '../../src/store/usePriceStore';
 
-vi.mock('../../store/useSessionStore');
-vi.mock('../../store/usePriceStore');
+vi.mock('../../src/store/useSessionStore');
+vi.mock('../../src/store/usePriceStore');
 
 describe('WebSocketManager', () => {
   beforeEach(() => {
@@ -17,7 +17,7 @@ describe('WebSocketManager', () => {
   });
 
   it('should initialize and connect to the correct URL', () => {
-    const connectSpy = vi.spyOn(global, 'WebSocket').mockImplementation(() => ({
+    const mockSocket = {
       send: vi.fn(),
       close: vi.fn(),
       readyState: 1,
@@ -25,10 +25,20 @@ describe('WebSocketManager', () => {
       set onmessage(fn: any) { },
       set onclose(fn: any) { },
       set onerror(fn: any) { },
-    } as any));
+    };
+    
+    class MockWebSocket {
+      constructor(public url: string) {
+        // We return the mockSocket object instead of the class instance
+        return mockSocket;
+      }
+    }
+    vi.stubGlobal('WebSocket', MockWebSocket);
 
+    const connectSpy = vi.spyOn(global, 'WebSocket');
     wsManager.connect();
     expect(connectSpy).toHaveBeenCalledWith('wss://api.capital.com/ws/demo/connect');
+    vi.unstubAllGlobals();
   });
 
   it('should send authentication payload on open', () => {
@@ -41,11 +51,18 @@ describe('WebSocketManager', () => {
       set onclose(fn: any) { },
       set onerror(fn: any) { },
     };
-    vi.spyOn(global, 'WebSocket').mockImplementation(() => mockSocket as any);
+    
+    class MockWebSocket {
+      constructor(public url: string) {
+        return mockSocket;
+      }
+    }
+    vi.stubGlobal('WebSocket', MockWebSocket);
 
     wsManager.connect();
     expect(mockSocket.send).toHaveBeenCalledWith(expect.stringContaining('"type":"auth"'));
     expect(mockSocket.send).toHaveBeenCalledWith(expect.stringContaining('"cst":"test-cst"'));
+    vi.unstubAllGlobals();
   });
 
   it('should update usePriceStore on marketData.update message', () => {
@@ -64,7 +81,13 @@ describe('WebSocketManager', () => {
       set onerror(fn: any) { },
       get _onmessage() { return this._onmessage; },
     };
-    vi.spyOn(global, 'WebSocket').mockImplementation(() => mockSocket as any);
+    
+    class MockWebSocket {
+      constructor(public url: string) {
+        return mockSocket;
+      }
+    }
+    vi.stubGlobal('WebSocket', MockWebSocket);
 
     wsManager.connect();
     
@@ -79,5 +102,6 @@ describe('WebSocketManager', () => {
     (mockSocket as any)._onmessage( { data: mockPayload } );
     
     expect(updatePriceSpy).toHaveBeenCalledWith('AAPL', 150.00, 150.10, expect.any(Number));
+    vi.unstubAllGlobals();
   });
 });

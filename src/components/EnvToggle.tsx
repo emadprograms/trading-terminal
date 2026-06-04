@@ -26,16 +26,18 @@ export const EnvToggle: React.FC<EnvToggleProps> = ({ login, isLoggingIn }) => {
         className={`env-btn ${environment === 'DEMO' ? 'active' : ''} ${isLoggingIn ? 'loading' : ''}`}
         onClick={() => handleToggle('DEMO')}
         disabled={isLoggingIn}
+        data-active={String(environment === 'DEMO')}
       >
-        {isLoggingIn && environment === 'DEMO' ? <Loader2 size={14} className="spin" /> : <FlaskConical size={14} />}
+        {isLoggingIn && environment === 'DEMO' ? <Loader2 size={14} className="spin" data-testid="loading-spinner" /> : <FlaskConical size={14} />}
         <span>DEMO</span>
       </button>
       <button 
         className={`env-btn ${environment === 'LIVE' ? 'active' : ''} ${isLoggingIn ? 'loading' : ''}`}
         onClick={() => handleToggle('LIVE')}
         disabled={isLoggingIn}
+        data-active={String(environment === 'LIVE')}
       >
-        {isLoggingIn && environment === 'LIVE' ? <Loader2 size={14} className="spin" /> : <Globe size={14} />}
+        {isLoggingIn && environment === 'LIVE' ? <Loader2 size={14} className="spin" data-testid="loading-spinner" /> : <Globe size={14} />}
         <span>LIVE</span>
       </button>
       <style jsx>{`

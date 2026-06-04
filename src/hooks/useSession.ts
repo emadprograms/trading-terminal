@@ -2,16 +2,35 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useSessionStore } from '../store/useSessionStore';
+import { wsManager } from '../lib/ws-manager';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
 export function useSession(tickers: string[]) {
-  const { cst, securityToken, proxyUrl, isAuthenticated, setTokens, clearTokens } = useSessionStore();
+  const { cst, securityToken, proxyUrl, isAuthenticated, setTokens, clearTokens, environment } = useSessionStore();
   
   const [selectedDate, setSelectedDate] = useState<string>(() => localStorage.getItem('lastUsedDate') || TODAY);
   const [sessionTicker, setSessionTicker] = useState<string>(() => localStorage.getItem('lastUsedTicker') || 'SPY');
   const [entryTime, setEntryTime] = useState('09:20');
   const [isSessionStarted, setIsSessionStarted] = useState(false);
+
+  // Initialize WebSocket on authentication
+  useEffect(() => {
+    if (isAuthenticated && cst && securityToken) {
+      console.log('[StabilityTrace] Initializing WebSocket connection...');
+      wsManager.connect();
+    }
+    return () => {
+      wsManager.disconnect();
+    };
+  }, [isAuthenticated, cst, securityToken]);
+
+  // Sync WebSocket on environment change
+  useEffect(() => {
+    if (isAuthenticated) {
+      wsManager.syncEnvironment();
+    }
+  }, [environment, isAuthenticated]);
 
   // Auth Mutation
   const loginMutation = useMutation({

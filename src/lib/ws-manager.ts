@@ -37,6 +37,15 @@ class WebSocketManager {
       console.log('[WSManager] Connection established');
       this.reconnectAttempts = 0;
       this.authenticate(cst, securityToken);
+      
+      // Auto-resubscribe to active epics upon reconnection
+      this.activeEpics.forEach(epic => {
+        console.log(`[WSManager] Auto-resubscribing to ${epic}`);
+        this.send({
+          type: 'marketData.subscribe',
+          epic,
+        });
+      });
     };
 
     this.socket.onmessage = (event) => {
@@ -122,7 +131,6 @@ class WebSocketManager {
       this.socket.close();
       this.socket = null;
     }
-    this.activeEpics.clear();
   }
 
   /**
@@ -133,7 +141,6 @@ class WebSocketManager {
     console.log('[WSManager] Syncing environment...');
     this.disconnect();
     this.connect();
-    this.activeEpics.forEach(epic => this.subscribe(epic));
   }
 }
 

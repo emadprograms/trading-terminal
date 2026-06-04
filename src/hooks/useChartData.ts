@@ -5,6 +5,7 @@ import { fetchMarketData, fetchHistoricalChunk } from '../lib/db';
 import { resampleData } from '../lib/resampling';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { wsManager } from '../lib/ws-manager';
 
 interface UseChartDataParams {
   initialTicker: string;
@@ -63,6 +64,20 @@ export function useChartData({
 
   const dataTimeframeRef = useRef(timeframe);
   const isFirstRender = useRef(true);
+
+  // WebSocket Subscription
+  useEffect(() => {
+    if (ticker) {
+      console.log(`[WSManager] Subscribing to ${ticker}`);
+      wsManager.subscribe(ticker);
+    }
+    return () => {
+      if (ticker) {
+        console.log(`[WSManager] Unsubscribing from ${ticker}`);
+        wsManager.unsubscribe(ticker);
+      }
+    };
+  }, [ticker]);
 
   // Report timeframe to parent
   useEffect(() => {

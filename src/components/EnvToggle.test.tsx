@@ -23,7 +23,7 @@ describe('EnvToggle', () => {
   const mockLogin = vi.fn()
   
   beforeEach(() => {
-    vi.clearAllMocks()
+    // vi.clearAllMocks()
     (useSession as any).mockReturnValue({
       login: mockLogin,
       isLoggingIn: false,

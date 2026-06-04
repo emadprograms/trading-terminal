@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Maximize2, Minimize2, Search, ChevronDown, Clock, Minus, Square, Trash2, Settings } from 'lucide-react';
 import { BORDER_COLORS, DrawType, GroupColor, Timeframe } from '../types';
+import { usePriceStore } from '../store/usePriceStore';
 
 interface ChartHeaderProps {
   ticker: string;

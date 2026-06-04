@@ -26,18 +26,19 @@ describe('AccountHeader', () => {
 
   it('should show offline state when not authenticated', () => {
     render(<AccountHeader />, { wrapper: Wrapper })
-    
-    expect(screen.getByText('Offline')).toBeInTheDocument()
-    expect(screen.getByTestId('online-indicator')).not.toHaveClass('status-online')
-  })
 
-  it('should show online state and account data when authenticated', async () => {
-    useSessionStore.getState().setTokens('mock-cst', 'mock-token')
-    
+    expect(screen.getByText('DISCONNECTED')).toBeInTheDocument()
+    expect(screen.getByTestId('online-indicator')).not.toHaveClass('status-online')
+    })
+
+    it('should show online state and account data when authenticated', async () => {
+    useSessionStore.getState().setTokens('test-cst', 'test-token')
+
     render(<AccountHeader />, { wrapper: Wrapper })
-    
-    expect(screen.getByText('Online')).toBeInTheDocument()
+
+    expect(screen.getByText('ONLINE')).toBeInTheDocument()
     expect(screen.getByTestId('online-indicator')).toHaveClass('status-online')
+
     
     // Wait for query to resolve (MSW handles the response)
     const balanceValue = await screen.findByText(/\$10,000\.00/i)

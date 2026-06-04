@@ -70,7 +70,7 @@ export const AccountHeader: React.FC = () => {
   return (
     <div className="account-header">
       <div className="status-indicator">
-        <span className={`dot ${isAuthenticated ? 'status-online' : ''}`} />
+        <span className={`dot ${isAuthenticated ? 'status-online' : ''}`} data-testid="online-indicator" />
         <span className="status-text">{isAuthenticated ? 'ONLINE' : 'DISCONNECTED'}</span>
         <button className="proxy-reset-btn" onClick={resetProxyUrl} title="Change Proxy URL">
           PROXY ⚙️
