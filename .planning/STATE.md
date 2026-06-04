@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 Completed
 
 ## Active Infrastructure
-- **Proxy URL**: https://posing-jeans-greg-flu.trycloudflare.com
+- **Proxy URL**: https://gtk-drinks-worthy-electoral.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
