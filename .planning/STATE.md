@@ -7,7 +7,7 @@ Phase 1: Auth & Infrastructure
 IN PROGRESS
 
 ## Active Infrastructure
-- **Proxy URL**: https://twelve-job-appears-overall.trycloudflare.com
+- **Proxy URL**: https://manufactured-perception-latex-personnel.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
