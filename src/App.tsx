@@ -16,6 +16,9 @@ import { SessionConfig } from './components/SessionConfig';
 import { ChartWorkspace } from './components/ChartWorkspace';
 import { PlaybackBar } from './components/PlaybackBar';
 import { PlaybackManager } from './components/PlaybackManager';
+import { AccountHeader } from './components/AccountHeader';
+import { EnvToggle } from './components/EnvToggle';
+import { useSessionStore } from './store/useSessionStore';
 
 export default function App() {
   const { 
@@ -36,8 +39,13 @@ export default function App() {
     isSessionStarted,
     startSession,
     endSession,
-    getUtcTimeFromEt
+    getUtcTimeFromEt,
+    login,
+    isLoggingIn
   } = useSession(tickers);
+
+  const proxyUrl = useSessionStore(state => state.proxyUrl);
+  const setProxyUrl = useSessionStore(state => state.setProxyUrl);
 
   const {
     layoutMode,
@@ -86,6 +94,18 @@ export default function App() {
     setStepMinutes(activeStepMinutes);
   }, [activeStepMinutes, setStepMinutes]);
 
+  const handleLaunch = async () => {
+    const url = prompt('Enter Proxy URL (e.g., https://my-proxy.workers.dev):');
+    if (url) {
+      setProxyUrl(url);
+      try {
+        await login();
+      } catch (err) {
+        console.error('Failed to login during launch:', err);
+      }
+    }
+  };
+
   return (
     <div className="app-container">
       <Sidebar 
@@ -101,13 +121,39 @@ export default function App() {
       />
 
       <div className="main-content" style={{ position: 'relative' }}>
-        {isLoading ? (
+        <header className="terminal-header">
+          <AccountHeader />
+          <EnvToggle login={login} isLoggingIn={isLoggingIn} />
+        </header>
+
+        {isLoggingIn ? (
           <main className="workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
              <Activity className="animate-pulse" size={48} />
           </main>
+        ) : !proxyUrl ? (
+          <main className="workspace splash-screen">
+            <div className="splash-content">
+              <Activity size={64} className="splash-logo" />
+              <h1>Awaiting Handshake...</h1>
+              <p>Connecting to ephemeral backend proxy via GitHub Actions.</p>
+              <div className="proxy-setup">
+                <p>Ensure GHA Tunnel is active and provide the Proxy URL to begin.</p>
+                <button className="btn-primary" onClick={handleLaunch}>
+                  Launch Terminal
+                </button>
+              </div>
+            </div>
+          </main>
         ) : !isDbLoaded ? (
           <main className="workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-             Please upload your database file on the left to begin.
+             {isLoading ? (
+               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                 <Activity className="animate-pulse" size={48} />
+                 <p>{dbStatus}</p>
+               </div>
+             ) : (
+               "Please upload your database file on the left to begin."
+             )}
           </main>
         ) : !isSessionStarted ? (
           <SessionConfig 

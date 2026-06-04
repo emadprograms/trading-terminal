@@ -1,69 +1,75 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { EnvToggle } from './EnvToggle';
-import { useSession } from '../hooks/useSession';
-import { useSessionStore } from '../store/useSessionStore';
+import { render, screen, fireEvent } from '@testing-library/react'
+import { EnvToggle } from './EnvToggle'
+import { useSessionStore } from '../store/useSessionStore'
+import { useSession } from '../hooks/useSession'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React from 'react'
 
-vi.mock('../hooks/useSession');
-vi.mock('../store/useSessionStore');
+vi.mock('../hooks/useSession', () => ({
+  useSession: vi.fn(),
+}))
+
+const Wrapper = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient()
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
 
 describe('EnvToggle', () => {
-  it('renders DEMO and LIVE buttons', () => {
+  const mockLogin = vi.fn()
+  
+  beforeEach(() => {
+    vi.clearAllMocks()
     (useSession as any).mockReturnValue({
-      login: vi.fn(),
+      login: mockLogin,
       isLoggingIn: false,
-    });
-    (useSessionStore as any).mockReturnValue({
-      environment: 'DEMO',
-    });
+    })
+    useSessionStore.getState().setEnvironment('DEMO')
+  })
 
-    render(<EnvToggle />);
-    expect(screen.getByText('DEMO')).toBeInTheDocument();
-    expect(screen.getByText('LIVE')).toBeInTheDocument();
-  });
-
-  it('highlights the active environment', () => {
-    (useSession as any).mockReturnValue({
-      login: vi.fn(),
-      isLoggingIn: false,
-    });
-    (useSessionStore as any).mockReturnValue({
-      environment: 'LIVE',
-    });
-
-    render(<EnvToggle />);
-    const liveButton = screen.getByText('LIVE').closest('button');
-    // We expect some visual indicator of being active
-    expect(liveButton).toHaveAttribute('data-active', 'true');
-  });
-
-  it('calls login with correct environment when clicked', async () => {
-    const loginMock = vi.fn();
-    (useSession as any).mockReturnValue({
-      login: loginMock,
-      isLoggingIn: false,
-    });
-    (useSessionStore as any).mockReturnValue({
-      environment: 'DEMO',
-    });
-
-    render(<EnvToggle />);
-    fireEvent.click(screen.getByText('LIVE'));
+  it('should display current environment as active', () => {
+    render(<EnvToggle />, { wrapper: Wrapper })
     
-    expect(loginMock).toHaveBeenCalledWith({ environment: 'LIVE' });
-  });
+    const demoBtn = screen.getByText('DEMO')
+    const liveBtn = screen.getByText('LIVE')
+    
+    expect(demoBtn).toHaveAttribute('data-active', 'true')
+    expect(liveBtn).toHaveAttribute('data-active', 'false')
+  })
 
-  it('shows loading state when logging in', () => {
+  it('should call login when toggling environment', () => {
+    render(<EnvToggle />, { wrapper: Wrapper })
+    
+    const liveBtn = screen.getByText('LIVE')
+    fireEvent.click(liveBtn)
+    
+    expect(mockLogin).toHaveBeenCalledWith({ environment: 'LIVE' })
+  })
+
+  it('should show loading spinner when isLoggingIn is true', () => {
     (useSession as any).mockReturnValue({
-      login: vi.fn(),
+      login: mockLogin,
       isLoggingIn: true,
-    });
-    (useSessionStore as any).mockReturnValue({
-      environment: 'DEMO',
-    });
+    })
+    
+    render(<EnvToggle />, { wrapper: Wrapper })
+    
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+  })
 
-    render(<EnvToggle />);
-    // Should show Activity icon or similar
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-  });
-});
+  it('should disable buttons when isLoggingIn is true', () => {
+    (useSession as any).mockReturnValue({
+      login: mockLogin,
+      isLoggingIn: true,
+    })
+    
+    render(<EnvToggle />, { wrapper: Wrapper })
+    
+    expect(screen.getByText('DEMO')).toBeDisabled()
+    expect(screen.getByText('LIVE')).toBeDisabled()
+  })
+})

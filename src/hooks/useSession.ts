@@ -16,15 +16,19 @@ export function useSession(tickers: string[]) {
   // Auth Mutation
   const loginMutation = useMutation({
     mutationFn: async (params?: { credentials?: { identifier: string; password: string }, environment?: 'DEMO' | 'LIVE' }) => {
-      const { proxyUrl, setEnvironment, clearTokens } = useSessionStore.getState();
+      const { setEnvironment, clearTokens, proxyUrl } = useSessionStore.getState();
       
       if (params?.environment) {
         setEnvironment(params.environment);
         clearTokens();
       }
 
-      console.log(`[StabilityTrace] Attempting login handshake at ${proxyUrl}...`);
-      const response = await api.post(`${proxyUrl}/session`, { 
+      if (!proxyUrl) {
+        throw new Error('No Proxy URL configured. Please use the Launch Terminal button.');
+      }
+
+      console.log(`[StabilityTrace] Attempting login handshake via ${proxyUrl}...`);
+      const response = await api.post('session', { 
         json: params?.credentials || { 
           identifier: import.meta.env.VITE_CAPITAL_USER, 
           password: import.meta.env.VITE_CAPITAL_PASSWORD 
@@ -55,8 +59,7 @@ export function useSession(tickers: string[]) {
 
     const interval = setInterval(async () => {
       try {
-        const { proxyUrl } = useSessionStore.getState();
-        await api.get(`${proxyUrl}/ping`);
+        await api.get('ping');
         console.log('[StabilityTrace] Session keep-alive ping successful.');
       } catch (error) {
         console.error('[StabilityTrace] Session keep-alive ping failed:', error);

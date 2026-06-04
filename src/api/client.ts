@@ -4,14 +4,21 @@ import { useSessionStore } from '../store/useSessionStore'
 export const api = ky.create({
   hooks: {
     beforeRequest: [
-      ({ request }) => {
+      (request, options) => {
         const { cst, securityToken, proxyUrl } = useSessionStore.getState()
-        
-        // Dynamically set prefixUrl from store if it's a relative URL
-        if (proxyUrl && !request.url.startsWith('http')) {
-          // This is tricky because request.url is already resolved by the browser/node
-          // In tests, 'session' becomes 'http://localhost:3000/session' if window.location is set
-          // But here it seems it's failing earlier.
+
+        if (proxyUrl) {
+          const url = new URL(request.url)
+          // If the request is relative to the current origin, rewrite it to use the proxyUrl
+          if (url.origin === window.location.origin) {
+            const base = proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
+            url.origin = new URL(base).origin
+            // Ensure the path starts with /
+            if (!url.pathname.startsWith('/')) {
+              url.pathname = '/' + url.pathname
+            }
+            request.url = url.toString()
+          }
         }
 
         if (cst) {
@@ -23,7 +30,7 @@ export const api = ky.create({
       }
     ],
     afterResponse: [
-      async ({ request, response }) => {
+      async (request, options, response) => {
         if (request.url.includes('/session') && response.ok) {
           const cst = response.headers.get('CST')
           const securityToken = response.headers.get('X-SECURITY-TOKEN')

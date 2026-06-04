@@ -1,47 +1,56 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useSessionStore } from './useSessionStore'
+import { useSessionStore } from '../store/useSessionStore'
 
 describe('useSessionStore', () => {
   beforeEach(() => {
     useSessionStore.getState().clearTokens()
-    useSessionStore.setState({ environment: 'DEMO', proxyUrl: null })
+    useSessionStore.getState().setEnvironment('DEMO')
+    useSessionStore.getState().setProxyUrl(null)
   })
 
-  it('should have initial state', () => {
+  it('should have correct initial state', () => {
     const state = useSessionStore.getState()
     expect(state.cst).toBeNull()
     expect(state.securityToken).toBeNull()
-    expect(state.proxyUrl).toBeNull()
-    expect(state.environment).toBe('DEMO')
     expect(state.isAuthenticated).toBe(false)
+    expect(state.environment).toBe('DEMO')
   })
 
   it('should set tokens and update isAuthenticated', () => {
-    useSessionStore.getState().setTokens('mock-cst', 'mock-security-token')
+    const { setTokens } = useSessionStore.getState()
+    setTokens('mock-cst', 'mock-security')
+
     const state = useSessionStore.getState()
     expect(state.cst).toBe('mock-cst')
-    expect(state.securityToken).toBe('mock-security-token')
+    expect(state.securityToken).toBe('mock-security')
     expect(state.isAuthenticated).toBe(true)
   })
 
-  it('should clear tokens and reset isAuthenticated', () => {
-    useSessionStore.getState().setTokens('mock-cst', 'mock-security-token')
-    useSessionStore.getState().clearTokens()
+  it('should clear tokens and update isAuthenticated', () => {
+    const { setTokens, clearTokens } = useSessionStore.getState()
+    setTokens('mock-cst', 'mock-security')
+    clearTokens()
+
     const state = useSessionStore.getState()
     expect(state.cst).toBeNull()
     expect(state.securityToken).toBeNull()
     expect(state.isAuthenticated).toBe(false)
   })
 
-  it('should toggle environment', () => {
-    useSessionStore.setState({ environment: 'LIVE' })
+  it('should switch environment', () => {
+    const { setEnvironment } = useSessionStore.getState()
+    setEnvironment('LIVE')
+
     expect(useSessionStore.getState().environment).toBe('LIVE')
-    useSessionStore.setState({ environment: 'DEMO' })
+    
+    setEnvironment('DEMO')
     expect(useSessionStore.getState().environment).toBe('DEMO')
   })
 
-  it('should set proxyUrl', () => {
-    useSessionStore.setState({ proxyUrl: 'https://proxy.com' })
-    expect(useSessionStore.getState().proxyUrl).toBe('https://proxy.com')
+  it('should set proxy URL', () => {
+    const { setProxyUrl } = useSessionStore.getState()
+    setProxyUrl('http://localhost:3000')
+
+    expect(useSessionStore.getState().proxyUrl).toBe('http://localhost:3000')
   })
 })

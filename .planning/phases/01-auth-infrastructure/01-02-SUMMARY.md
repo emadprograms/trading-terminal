@@ -1,33 +1,25 @@
----
-phase: 01-auth-infrastructure
-plan: 02
-status: complete
-date: 2026-06-03
----
+# Phase 01: Auth Infrastructure - Plan 02 Summary
 
-# Summary: 01-02 Implement Auth Handshake
+## Objective
+Implement the authentication handshake and session management logic on the frontend to securely acquire and use Capital.com session tokens.
 
-Implemented the authentication handshake and session management logic on the frontend. This ensures the terminal can securely acquire and use Capital.com session tokens.
-
-## Key Files Created/Modified
-- `src/store/useSessionStore.ts`: Zustand store for in-memory token management.
-- `src/api/client.ts`: Configured Ky client with dual-token handshake hooks.
-- `src/hooks/useSession.ts`: Extended hook with login, logout, and keep-alive logic.
-- `package.json`: Added `@tanstack/react-query`.
-
-## Tasks Completed
-- **Task 0: Package legitimacy audit check**: Approved by user. Verified `ky`, `zustand`, and `@tanstack/react-query` are reputable.
-- **Task 1: Create Session Store**: Implemented in-memory store with `isAuthenticated` and token management.
-- **Task 2: Configure Ky Client**: Implemented `beforeRequest` and `afterResponse` hooks for session header orchestration.
-- **Task 3: Implement useSession Hook**: Integrated login mutation and background heartbeat for session maintenance.
+## Completed Tasks
+- **Task 1: Create Session Store**: Verified `src/store/useSessionStore.ts` manages `cst`, `securityToken`, `proxyUrl`, `environment`, and `isAuthenticated` in-memory using Zustand.
+- **Task 2: Configure Ky Client**: Implemented `src/api/client.ts` with a custom Ky instance that:
+  - Dynamically resolves the `proxyUrl` from the session store in `beforeRequest`.
+  - Automatically injects `CST` and `X-SECURITY-TOKEN` headers into all requests.
+  - Captures `CST` and `X-SECURITY-TOKEN` from the response headers of `/session` calls to update the session store.
+- **Task 3: Implement useSession Hook**: Updated `src/hooks/useSession.ts` to:
+  - Provide `login()` and `logout()` functionality.
+  - Implement a 5-minute heartbeat `ping()` to maintain session activity.
+  - Use `@tanstack/react-query` for login mutations.
+  - Emit `[StabilityTrace]` logs for key auth lifecycle events.
 
 ## Verification Results
-- `src/api/client.test.ts`: PASSED
-- `src/hooks/useSession.test.tsx`: PASSED
-- `src/store/useSessionStore.test.ts`: PASSED
+- **Session Store**: State updates correctly upon token receipt.
+- **API Client**: Headers are injected and relative URLs are correctly proxied.
+- **Auth Hook**: Handshake and keep-alive logic are integrated with the API client and store.
 
-## Notable Deviations
-- Renamed `src/hooks/useSession.test.ts` to `.tsx` to support JSX in test wrappers.
-- Handled Ky v2.0.2 hook signature change (single object argument).
-
-## Self-Check: PASSED
+## Technical Notes
+- All session tokens are stored exclusively in RAM; no persistence to `localStorage` or `cookies` is implemented for security (D-05).
+- The API client uses a dynamic URL rewriting strategy in the `beforeRequest` hook to support a configurable `proxyUrl` without requiring a static `prefixUrl` at instantiation.

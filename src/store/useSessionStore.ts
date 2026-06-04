@@ -9,6 +9,7 @@ interface SessionState {
   setTokens: (cst: string, securityToken: string) => void
   clearTokens: () => void
   setEnvironment: (env: 'DEMO' | 'LIVE') => void
+  setProxyUrl: (url: string) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -33,4 +34,6 @@ export const useSessionStore = create<SessionState>((set) => ({
     }),
 
   setEnvironment: (environment) => set({ environment }),
+
+  setProxyUrl: (proxyUrl) => set({ proxyUrl }),
 }))

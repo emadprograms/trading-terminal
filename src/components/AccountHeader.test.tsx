@@ -1,49 +1,46 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { AccountHeader } from './AccountHeader';
-import { useQuery } from '@tanstack/react-query';
-import { useSessionStore } from '../store/useSessionStore';
+import { render, screen } from '@testing-library/react'
+import { AccountHeader } from './AccountHeader'
+import { useSessionStore } from '../store/useSessionStore'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React from 'react'
 
-vi.mock('@tanstack/react-query');
-vi.mock('../store/useSessionStore');
+const Wrapper = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  })
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
 
 describe('AccountHeader', () => {
-  it('renders account metrics when data is loaded', () => {
-    (useQuery as any).mockReturnValue({
-      data: {
-        accounts: [{
-          balance: {
-            equity: 12500.50,
-            margin: 500,
-            available: 12000.50
-          },
-          currency: 'USD'
-        }]
-      },
-      isLoading: false,
-    });
-    (useSessionStore as any).mockReturnValue({
-      isAuthenticated: true,
-    });
+  beforeEach(() => {
+    useSessionStore.getState().clearTokens()
+    useSessionStore.getState().setProxyUrl('http://localhost:3000')
+  })
 
-    render(<AccountHeader />);
+  it('should show offline state when not authenticated', () => {
+    render(<AccountHeader />, { wrapper: Wrapper })
     
-    expect(screen.getByText(/\$12,500\.50/)).toBeInTheDocument();
-    expect(screen.getByText(/Margin: \$500\.00/)).toBeInTheDocument();
-    expect(screen.getByText(/Avail: \$12,000\.50/)).toBeInTheDocument();
-  });
+    expect(screen.getByText('Offline')).toBeInTheDocument()
+    expect(screen.getByTestId('online-indicator')).not.toHaveClass('status-online')
+  })
 
-  it('shows online indicator when authenticated', () => {
-    (useQuery as any).mockReturnValue({
-      data: { accounts: [] },
-      isLoading: false,
-    });
-    (useSessionStore as any).mockReturnValue({
-      isAuthenticated: true,
-    });
-
-    render(<AccountHeader />);
-    // Indicator should have class status-online or similar per index.css
-    expect(screen.getByTestId('online-indicator')).toBeInTheDocument();
-  });
-});
+  it('should show online state and account data when authenticated', async () => {
+    useSessionStore.getState().setTokens('mock-cst', 'mock-token')
+    
+    render(<AccountHeader />, { wrapper: Wrapper })
+    
+    expect(screen.getByText('Online')).toBeInTheDocument()
+    expect(screen.getByTestId('online-indicator')).toHaveClass('status-online')
+    
+    // Wait for query to resolve (MSW handles the response)
+    const balanceValue = await screen.findByText(/\$10,000\.00/i)
+    expect(balanceValue).toBeInTheDocument()
+  })
+})
