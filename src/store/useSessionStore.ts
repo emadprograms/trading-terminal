@@ -12,6 +12,7 @@ interface SessionState {
   setEnvironment: (env: 'DEMO' | 'LIVE') => void
   setSelectedAccountId: (id: string | null) => void
   setProxyUrl: (url: string) => void
+  resetProxyUrl: () => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -44,5 +45,10 @@ export const useSessionStore = create<SessionState>((set) => ({
   setProxyUrl: (proxyUrl) => {
     localStorage.setItem('proxyUrl', proxyUrl || '');
     set({ proxyUrl });
+  },
+
+  resetProxyUrl: () => {
+    localStorage.removeItem('proxyUrl');
+    set({ proxyUrl: null });
   },
 }))

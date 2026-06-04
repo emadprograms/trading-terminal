@@ -12,7 +12,7 @@ interface AccountData {
 }
 
 export const AccountHeader: React.FC = () => {
-  const { isAuthenticated, selectedAccountId, environment } = useSessionStore();
+  const { isAuthenticated, selectedAccountId, environment, resetProxyUrl } = useSessionStore();
   const [showPnl, setShowPnl] = useState(true);
   console.log(`[AccountHeader] Rendering. isAuthenticated: ${isAuthenticated}`);
 
@@ -72,6 +72,9 @@ export const AccountHeader: React.FC = () => {
       <div className="status-indicator">
         <span className={`dot ${isAuthenticated ? 'status-online' : ''}`} />
         <span className="status-text">{isAuthenticated ? 'ONLINE' : 'DISCONNECTED'}</span>
+        <button className="proxy-reset-btn" onClick={resetProxyUrl} title="Change Proxy URL">
+          PROXY ⚙️
+        </button>
       </div>
       
       <div className="metrics">
@@ -133,6 +136,27 @@ export const AccountHeader: React.FC = () => {
           gap: 8px;
           font-size: 10px;
           font-weight: 700;
+          color: #00f2ff;
+        }
+        .status-text {
+          font-size: 10px;
+          font-weight: 700;
+          color: #00f2ff;
+        }
+        .proxy-reset-btn {
+          background: transparent;
+          border: 1px solid #333;
+          color: #666;
+          font-size: 8px;
+          padding: 1px 4px;
+          cursor: pointer;
+          font-family: 'JetBrains Mono', monospace;
+          margin-left: 8px;
+          transition: all 0.2s ease;
+          border-radius: 2px;
+        }
+        .proxy-reset-btn:hover {
+          border-color: #00f2ff;
           color: #00f2ff;
         }
         .dot {

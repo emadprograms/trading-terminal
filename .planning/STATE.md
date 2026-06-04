@@ -4,19 +4,20 @@
 Phase 1: Auth & Infrastructure
 
 ## Status
-IN PROGRESS
+COMPLETED (Real-time PnL sync carried over to Phase 2)
 
 ## Active Infrastructure
-- **Proxy URL**: https://manufactured-perception-latex-personnel.trycloudflare.com
+- **Proxy URL**: https://thereby-reproduction-picture-fails.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
 - **Auth Mode**: Dual-token (CST + X-SECURITY-TOKEN)
-- **Persistence**: In-memory only
+- **Persistence**: Proxy URL persisted in localStorage; Tokens in-memory.
 
 ## Phase 1 Deliverables
 - [x] Ephemeral backend proxy (Hono)
 - [x] GHA tunnel setup (Cloudflare Tunnel)
-- [ ] Frontend auth handshake (Ky + Zustand) [CURRENT BLOCKER]
-- [ ] Account state synchronization (Real-time polling)
+- [x] Frontend auth handshake (Ky + Zustand)
+- [x] Account state synchronization (Polling - transitioned to WS in Phase 2)
 - [x] Environment switching UI (Demo/Live)
+- [x] Proxy URL persistence & Reset mechanism
