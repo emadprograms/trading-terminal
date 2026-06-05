@@ -1,17 +1,16 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { TradeBadge } from './TradeBadge';
-import type { ActiveTrade } from '../types';
+import type { ChartMarker } from '../lib/TradePlugin';
 
 interface ChartCanvasProps {
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
   isDrawingMode: boolean;
   isAtEnd: boolean;
   scrollToRealTime: () => void;
-  activeTrade: ActiveTrade | null;
-  currentPrice: number;
-  tradeBadgeRef: React.RefObject<HTMLDivElement | null>;
-  onCloseTrade: () => void;
+  markers: ChartMarker[];
+  onRegisterBadge: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void;
+  onCloseTrade?: (id: string) => void;
   isHydrated: boolean;
 }
 
@@ -20,9 +19,8 @@ export function ChartCanvas({
   isDrawingMode,
   isAtEnd,
   scrollToRealTime,
-  activeTrade,
-  currentPrice,
-  tradeBadgeRef,
+  markers,
+  onRegisterBadge,
   onCloseTrade,
   isHydrated
 }: ChartCanvasProps) {
@@ -49,14 +47,34 @@ export function ChartCanvas({
         </button>
       )}
 
-      {activeTrade && (
-        <TradeBadge 
-          activeTrade={activeTrade}
-          currentPrice={currentPrice}
-          tradeBadgeRef={tradeBadgeRef}
-          onClose={onCloseTrade}
+      {markers.map((marker) => (
+        <BadgeWrapper 
+          key={marker.id} 
+          marker={marker} 
+          onRegister={onRegisterBadge} 
+          onClose={onCloseTrade ? () => onCloseTrade(marker.id) : undefined} 
         />
-      )}
+      ))}
     </div>
   );
 }
+
+// Internal wrapper to manage individual badge refs
+function BadgeWrapper({ 
+  marker, 
+  onRegister, 
+  onClose 
+}: { 
+  marker: ChartMarker, 
+  onRegister: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void,
+  onClose?: () => void
+}) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  
+  React.useEffect(() => {
+    onRegister(marker.id, ref);
+  }, [marker.id, onRegister]);
+
+  return <TradeBadge marker={marker} badgeRef={ref} onClose={onClose} />;
+}
+

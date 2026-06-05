@@ -9,16 +9,18 @@ interface PlaceOrderParams {
   direction: OrderDirection;
   type: OrderType;
   level?: number;
+  action?: 'OPEN' | 'CLOSE';
 }
 
 interface TradeState {
-  pendingOrders: Record<string, Order>;
+  pendingOrders: Record<string, Order & { action: 'OPEN' | 'CLOSE' }>;
   positions: Position[];
-  addPendingOrder: (dealReference: string, order: Order) => void;
+  addPendingOrder: (dealReference: string, order: Order & { action: 'OPEN' | 'CLOSE' }) => void;
   updateOrderStatus: (dealReference: string, status: OrderStatus, details?: Partial<Order>) => void;
   addPosition: (position: Position) => void;
   removePosition: (dealId: string) => void;
   clearOrders: () => void;
+  closePosition: (dealId: string) => Promise<string>;
   
   // Actions
   placeOrder: (params: PlaceOrderParams) => Promise<string>;
@@ -70,6 +72,52 @@ export const useTradeStore = create<TradeState>((set, get) => ({
       positions: [],
     })),
 
+  closePosition: async (dealId) => {
+    const position = get().positions.find(p => p.dealId === dealId);
+    if (!position) throw new Error(`Position ${dealId} not found`);
+
+    try {
+      const response = await tradeApi.closePosition(dealId);
+      const { dealReference } = response;
+      
+      toast.info(`Closing position ${dealId}...`, {
+        description: `Reference: ${dealReference}`,
+      });
+
+      const order: Order & { action: 'OPEN' | 'CLOSE' } = {
+        epic: position.epic,
+        size: position.size,
+        direction: position.direction === 'BUY' ? 'SELL' : 'BUY',
+        type: 'MARKET',
+        status: 'PENDING',
+        dealReference,
+        timestamp: Date.now(),
+        action: 'CLOSE',
+        dealId: dealId // Track which position is being closed
+      };
+
+      get().addPendingOrder(dealReference, order);
+
+      // Safeguard poll for close confirmation
+      setTimeout(async () => {
+        const stillExists = get().positions.some(p => p.dealId === dealId);
+        if (stillExists) {
+          try {
+            const confirmation = await tradeApi.getConfirmation(dealReference);
+            get().handleConfirmation(confirmation);
+          } catch (e) {
+            console.error('Safeguard poll for close failed:', e);
+          }
+        }
+      }, 5000);
+
+      return dealReference;
+    } catch (error) {
+      toast.error(`Failed to close position ${dealId}`);
+      throw error;
+    }
+  },
+
   /**
    * Orchestrates the order placement flow.
    * 1. Calls the REST API.
@@ -96,11 +144,12 @@ export const useTradeStore = create<TradeState>((set, get) => ({
 
     const { dealReference } = response;
 
-    const order: Order = {
+    const order: Order & { action: 'OPEN' | 'CLOSE' } = {
       ...params,
       status: 'PENDING',
       dealReference,
       timestamp: Date.now(),
+      action: params.action || 'OPEN'
     };
 
     get().addPendingOrder(dealReference, order);
@@ -126,22 +175,43 @@ export const useTradeStore = create<TradeState>((set, get) => ({
    * Handles incoming trade confirmations from WebSocket or polling.
    */
   handleConfirmation: (payload) => {
-    const { dealReference, status, dealId, reason, epic, size, direction, level } = payload;
+    const { dealReference, dealId, reason } = payload;
+    const dealStatus = payload.dealStatus || payload.status;
     
+    const pendingOrder = get().pendingOrders[dealReference];
+    if (!pendingOrder) {
+      console.warn(`[TradeStore] Confirmation for unknown order: ${dealReference}`);
+    }
+
+    const status: OrderStatus = dealStatus === 'ACCEPTED' ? 'ACCEPTED' : 'REJECTED';
     get().updateOrderStatus(dealReference, status, { dealId, reason });
 
-    if (status === 'ACCEPTED') {
-      toast.success(`Trade Success: ${direction} ${size} ${epic} at ${level}`, {
-        description: `Deal ID: ${dealId}`,
-      });
-      get().addPosition({
-        dealId,
-        epic,
-        size,
-        direction,
-        entryPrice: level,
-        timestamp: Date.now(),
-      });
+    const epic = payload.epic || pendingOrder?.epic || 'Unknown';
+    const direction = payload.direction || pendingOrder?.direction || 'BUY';
+    const size = payload.size || pendingOrder?.size || 0;
+    const level = payload.level || pendingOrder?.level || 0;
+
+    if (dealStatus === 'ACCEPTED') {
+      if (pendingOrder?.action === 'CLOSE') {
+        toast.success(`Position Closed: ${epic}`, {
+          description: `Size: ${size} at ${level}`,
+        });
+        if (pendingOrder.dealId) {
+          get().removePosition(pendingOrder.dealId);
+        }
+      } else {
+        toast.success(`Trade Success: ${direction} ${size} ${epic} at ${level}`, {
+          description: `Deal ID: ${dealId}`,
+        });
+        get().addPosition({
+          dealId,
+          epic,
+          size,
+          direction,
+          entryPrice: level,
+          timestamp: Date.now(),
+        });
+      }
     } else {
       toast.error(`Trade Rejected: ${epic}`, {
         description: reason || 'Unknown rejection reason',
@@ -149,3 +219,4 @@ export const useTradeStore = create<TradeState>((set, get) => ({
     }
   },
 }));
+

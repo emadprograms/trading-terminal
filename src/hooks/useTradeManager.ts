@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
+import { useTradeStore } from '../store/useTradeStore';
+import { usePriceStore } from '../store/usePriceStore';
 import type { ISeriesApi } from 'lightweight-charts';
-import type { ActiveTrade, ChartBar, TradeType } from '../types';
-import type { TradePlugin } from '../lib/TradePlugin';
+import type { ChartBar } from '../types';
+import type { TradePlugin, ChartMarker } from '../lib/TradePlugin';
 
 interface UseTradeManagerParams {
+  ticker: string;
   chartData: ChartBar[];
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
   priceSeriesRef: React.MutableRefObject<ISeriesApi<'Candlestick'> | null>;
@@ -11,172 +14,93 @@ interface UseTradeManagerParams {
 }
 
 export function useTradeManager({
+  ticker,
   chartData,
-  chartContainerRef,
   priceSeriesRef,
   tradePluginRef,
 }: UseTradeManagerParams) {
-  const [activeTrade, setActiveTrade] = useState<ActiveTrade | null>(null);
-  const [realizedPnL, setRealizedPnL] = useState(0);
-  const [tradeSize, setTradeSize] = useState(1);
-  const [dragTarget, setDragTarget] = useState<'sl' | 'tp' | null>(null);
-  const tradeBadgeRef = useRef<HTMLDivElement>(null);
+  const positions = useTradeStore((state) => state.positions);
+  const pendingOrders = useTradeStore((state) => state.pendingOrders);
+  const currentPrices = usePriceStore((state) => state.prices[ticker]);
 
-  // Calculate Unrealized PnL based on current price
-  const unrealizedPnL = React.useMemo(() => {
-    if (!activeTrade || !chartData || chartData.length === 0) return 0;
-    const currentPrice = chartData[chartData.length - 1].close;
-    const pnlPerUnit = activeTrade.type === 'long' 
-      ? currentPrice - activeTrade.entryPrice 
-      : activeTrade.entryPrice - currentPrice;
-    return pnlPerUnit * activeTrade.size;
-  }, [activeTrade, chartData]);
+  // Filter positions and orders for this ticker
+  const tickerPositions = useMemo(() => 
+    positions.filter(p => p.epic === ticker),
+    [positions, ticker]
+  );
 
-  const placeOrder = useCallback((type: TradeType) => {
-    try {
-      if (!chartData || chartData.length === 0) return;
-      const lastBar = chartData[chartData.length - 1];
-      const currentPrice = lastBar.close;
-      const offset = currentPrice * 0.01;
+  const tickerOrders = useMemo(() => 
+    Object.values(pendingOrders).filter(o => o.epic === ticker && o.status === 'PENDING'),
+    [pendingOrders, ticker]
+  );
 
-      setActiveTrade(prevTrade => {
-        if (!prevTrade) {
-          return {
-            type,
-            entryPrice: currentPrice,
-            slPrice: type === 'long' ? currentPrice - offset : currentPrice + offset,
-            tpPrice: type === 'long' ? currentPrice + offset : currentPrice - offset,
-            size: tradeSize,
-            entryTime: lastBar.time,
-          };
-        }
+  // Map to ChartMarkers
+  const markers = useMemo((): ChartMarker[] => {
+    const posMarkers: ChartMarker[] = tickerPositions.map(p => ({
+      id: p.dealId,
+      epic: p.epic,
+      price: p.entryPrice,
+      direction: p.direction,
+      size: p.size,
+      type: 'POSITION'
+    }));
 
-        if (prevTrade.type === type) {
-          const newSize = prevTrade.size + tradeSize;
-          const newEntryPrice = ((prevTrade.entryPrice * prevTrade.size) + (currentPrice * tradeSize)) / newSize;
-          
-          return {
-            ...prevTrade,
-            entryPrice: newEntryPrice,
-            slPrice: type === 'long' ? newEntryPrice - offset : newEntryPrice + offset,
-            tpPrice: type === 'long' ? newEntryPrice + offset : newEntryPrice - offset,
-            size: newSize,
-          };
-        } else {
-          // Calculate PnL for the amount being closed
-          const closedSize = Math.min(prevTrade.size, tradeSize);
-          const pnlPerUnit = prevTrade.type === 'long' 
-            ? currentPrice - prevTrade.entryPrice 
-            : prevTrade.entryPrice - currentPrice;
-          const closedPnL = pnlPerUnit * closedSize;
-          
-          setRealizedPnL(prev => prev + closedPnL);
+    const orderMarkers: ChartMarker[] = tickerOrders.map(o => {
+      let price = o.level || 0;
+      
+      // For Market orders, use current price while pending
+      if (o.type === 'MARKET' && !o.level && currentPrices) {
+        price = o.direction === 'BUY' ? currentPrices.ask : currentPrices.bid;
+      }
 
-          const netSize = prevTrade.size - tradeSize;
+      return {
+        id: o.dealReference,
+        epic: o.epic,
+        price,
+        direction: o.direction,
+        size: o.size,
+        type: 'ORDER',
+        label: o.type
+      };
+    });
 
-          if (netSize > 0) {
-            return {
-              ...prevTrade,
-              size: netSize,
-            };
-          } else if (netSize === 0) {
-            return null;
-          } else {
-            const flippedSize = Math.abs(netSize);
-            const flippedType = type;
-            
-            return {
-              type: flippedType,
-              entryPrice: currentPrice,
-              slPrice: flippedType === 'long' ? currentPrice - offset : currentPrice + offset,
-              tpPrice: flippedType === 'long' ? currentPrice + offset : currentPrice - offset,
-              size: flippedSize,
-              entryTime: lastBar.time,
-            };
-          }
-        }
-      });
-    } catch(err) {
-      console.error('placeOrder error:', err);
-    }
-  }, [chartData, tradeSize]);
+    return [...posMarkers, ...orderMarkers];
+  }, [tickerPositions, tickerOrders, currentPrices]);
 
+  // Update TradePlugin
   useEffect(() => {
     if (tradePluginRef.current) {
-      tradePluginRef.current.setTrade(activeTrade);
+      tradePluginRef.current.setItems(markers);
     }
-  }, [activeTrade, tradePluginRef]);
+  }, [markers, tradePluginRef]);
 
-  useEffect(() => {
-    const container = chartContainerRef.current;
-    if (!container || !priceSeriesRef.current) return;
+  // Register badge refs
+  const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {
+    if (tradePluginRef.current) {
+      tradePluginRef.current.registerBadgeRef(id, ref);
+    }
+  }, [tradePluginRef]);
 
-    const series = priceSeriesRef.current;
+  // Calculate Unrealized PnL for this ticker's positions
+  const unrealizedPnL = useMemo(() => {
+    if (!currentPrices) return 0;
+    
+    return tickerPositions.reduce((total, pos) => {
+      const currentPrice = pos.direction === 'BUY' ? currentPrices.bid : currentPrices.ask;
+      const pnlPerUnit = pos.direction === 'BUY' 
+        ? currentPrice - pos.entryPrice 
+        : pos.entryPrice - currentPrice;
+      return total + (pnlPerUnit * pos.size);
+    }, 0);
+  }, [tickerPositions, currentPrices]);
 
-    const handleMouseDown = (e: MouseEvent) => {
-      try {
-        if (!activeTrade) return;
-
-        const rect = container.getBoundingClientRect();
-        const mouseY = e.clientY - rect.top;
-
-        const ySL = series.priceToCoordinate(activeTrade.slPrice);
-        const yTP = series.priceToCoordinate(activeTrade.tpPrice);
-
-        if (ySL !== null && Math.abs(mouseY - ySL) < 10) {
-          setDragTarget('sl');
-        } else if (yTP !== null && Math.abs(mouseY - yTP) < 10) {
-          setDragTarget('tp');
-        }
-      } catch (err) {
-        console.error('handleMouseDown error:', err);
-      }
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      try {
-        if (!dragTarget) return;
-
-        const rect = container.getBoundingClientRect();
-        const mouseY = e.clientY - rect.top;
-        const newPrice = series.coordinateToPrice(mouseY);
-
-        if (newPrice !== null) {
-          setActiveTrade(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              [dragTarget === 'sl' ? 'slPrice' : 'tpPrice']: newPrice
-            };
-          });
-        }
-      } catch (err) {
-        console.error('handleMouseMove error:', err);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setDragTarget(null);
-    };
-
-    container.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      container.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [activeTrade, dragTarget, chartContainerRef, priceSeriesRef]);
+  // Realized PnL is currently not tracked per-ticker in the store, 
+  // but we can expose a placeholder or track it globally.
+  const realizedPnL = 0; 
 
   return {
-    activeTrade,
-    setActiveTrade,
-    tradeSize,
-    setTradeSize,
-    tradeBadgeRef,
-    placeOrder,
+    markers,
+    handleRegisterBadge,
     realizedPnL,
     unrealizedPnL,
   };

@@ -10,84 +10,76 @@ import type {
     SeriesAttachedParameter,
     Coordinate
 } from 'lightweight-charts';
-import type { ActiveTrade, TradeType, ChartTarget, ChartScope } from '../types';
+import type { OrderDirection } from '../types/trade';
 
-interface TradeRenderData {
-    yEntry: Coordinate;
-    ySL: Coordinate | null;
-    yTP: Coordinate | null;
-    type: TradeType;
+export interface ChartMarker {
+    id: string;
+    epic: string;
+    price: number;
+    direction: OrderDirection;
+    size: number;
+    type: 'POSITION' | 'ORDER';
+    label?: string;
+}
+
+interface TradeRenderItem {
+    y: Coordinate;
+    direction: OrderDirection;
+    id: string;
 }
 
 class TradeRenderer implements ISeriesPrimitivePaneRenderer {
-    _data: TradeRenderData | null;
-    _badgeRef: React.RefObject<HTMLDivElement | null> | null;
+    _items: TradeRenderItem[];
+    _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
 
-    constructor(data: TradeRenderData | null, badgeRef: React.RefObject<HTMLDivElement | null> | null) {
-        this._data = data;
-        this._badgeRef = badgeRef;
+    constructor(items: TradeRenderItem[], badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>) {
+        this._items = items;
+        this._badgeRefs = badgeRefs;
     }
 
-    draw(target: ChartTarget) {
+    draw(target: { useMediaCoordinateSpace: (callback: (scope: any) => void) => void }) {
         try {
-            target.useMediaCoordinateSpace((scope: ChartScope) => {
+            target.useMediaCoordinateSpace((scope: any) => {
                 const ctx = scope.context;
-                if (!this._data) return;
+                if (!this._items.length) return;
 
-                const { yEntry, ySL, yTP, type } = this._data;
                 const rightEdge = scope.mediaSize.width;
+                const canvasRect = scope.context.canvas.getBoundingClientRect();
 
                 ctx.save();
                 ctx.globalAlpha = 0.8;
 
-                const entryColor = type === 'long' ? '#26a69a' : '#ef5350';
-                ctx.strokeStyle = entryColor;
-                ctx.lineWidth = 2; 
+                this._items.forEach(item => {
+                    const { y, direction, id } = item;
+                    if (y === null) return;
 
-                let badgeStart = rightEdge;
-                let badgeEnd = rightEdge;
-                const gapPadding = 6; 
-
-                if (this._badgeRef && this._badgeRef.current) {
-                    const badgeRect = this._badgeRef.current.getBoundingClientRect();
-                    const canvasRect = scope.context.canvas.getBoundingClientRect();
-                    
-                    badgeStart = badgeRect.left - canvasRect.left - gapPadding;
-                    badgeEnd = badgeRect.right - canvasRect.left + gapPadding;
-                }
-
-                ctx.beginPath();
-                ctx.moveTo(0, yEntry);
-                ctx.lineTo(Math.max(0, badgeStart), yEntry);
-                ctx.stroke();
-
-                if (badgeEnd < rightEdge) {
-                    ctx.beginPath();
-                    ctx.moveTo(badgeEnd, yEntry);
-                    ctx.lineTo(rightEdge, yEntry);
-                    ctx.stroke();
-                }
-
-                const drawLine = (y: Coordinate | null, color: string, label: string) => {
-                    if (y === null || isNaN(y)) return;
+                    const color = direction === 'BUY' ? '#26a69a' : '#ef5350';
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([4, 4]);
+                    ctx.lineWidth = 2;
+
+                    let badgeStart = rightEdge;
+                    let badgeEnd = rightEdge;
+                    const gapPadding = 6;
+
+                    const ref = this._badgeRefs.get(id);
+                    if (ref && ref.current) {
+                        const badgeRect = ref.current.getBoundingClientRect();
+                        badgeStart = badgeRect.left - canvasRect.left - gapPadding;
+                        badgeEnd = badgeRect.right - canvasRect.left + gapPadding;
+                    }
+
                     ctx.beginPath();
                     ctx.moveTo(0, y);
-                    ctx.lineTo(rightEdge, y);
+                    ctx.lineTo(Math.max(0, badgeStart), y);
                     ctx.stroke();
 
-                    if (label) {
-                        ctx.fillStyle = color;
-                        ctx.font = 'bold 10px Inter, sans-serif';
-                        ctx.textAlign = 'right';
-                        ctx.fillText(label, rightEdge - 5, y - 5);
+                    if (badgeEnd < rightEdge) {
+                        ctx.beginPath();
+                        ctx.moveTo(badgeEnd, y);
+                        ctx.lineTo(rightEdge, y);
+                        ctx.stroke();
                     }
-                };
-
-                drawLine(ySL, '#ef5350', 'SL');
-                drawLine(yTP, '#26a69a', 'TP');
+                });
 
                 ctx.restore();
             });
@@ -110,11 +102,11 @@ class TradePaneView implements ISeriesPrimitivePaneView {
 
     renderer(): ISeriesPrimitivePaneRenderer {
         try {
-            const data = this._plugin._getViewData();
-            return new TradeRenderer(data, this._plugin._badgeRef);
+            const items = this._plugin._getViewData();
+            return new TradeRenderer(items, this._plugin._badgeRefs);
         } catch(e) {
             console.error('TradePaneView renderer error:', e);
-            return new TradeRenderer(null, null);
+            return new TradeRenderer([], new Map());
         }
     }
 }
@@ -124,26 +116,27 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
     _series: ISeriesApi<"Candlestick"> | null;
     _paneViews: TradePaneView[];
     _requestUpdate: () => void;
-    _trade: ActiveTrade | null;
-    _badgeRef: React.RefObject<HTMLDivElement | null> | null;
+    _items: ChartMarker[];
+    _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
 
     constructor() {
         this._chart = null;
         this._series = null;
         this._paneViews = [new TradePaneView(this)];
         this._requestUpdate = () => {};
-        this._trade = null;
-        this._badgeRef = null;
+        this._items = [];
+        this._badgeRefs = new Map();
     }
 
-    setTrade(trade: ActiveTrade | null) {
-        this._trade = trade;
+    setItems(items: ChartMarker[]) {
+        this._items = items;
         this._requestUpdate();
+        // Force a second update to ensure React has rendered the badges and getBoundingClientRect is accurate
         setTimeout(() => this._requestUpdate(), 0);
     }
 
-    setBadgeRef(ref: React.RefObject<HTMLDivElement | null>) {
-        this._badgeRef = ref;
+    registerBadgeRef(id: string, ref: React.RefObject<HTMLDivElement | null>) {
+        this._badgeRefs.set(id, ref);
     }
 
     attached({ chart, series, requestUpdate }: SeriesAttachedParameter<Time, "Candlestick">) {
@@ -165,37 +158,35 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
         return this._paneViews;
     }
 
-    _getViewData(): TradeRenderData | null {
+    _getViewData(): TradeRenderItem[] {
         try {
-            if (!this._trade || !this._series) {
-                if (this._badgeRef && this._badgeRef.current) {
-                    this._badgeRef.current.style.display = 'none';
-                }
-                return null;
+            if (!this._items.length || !this._series) {
+                return [];
             }
 
-            const { entryPrice, slPrice, tpPrice, type } = this._trade;
-
-            const yEntry = this._series.priceToCoordinate(entryPrice);
-            const ySL = slPrice ? this._series.priceToCoordinate(slPrice) : null;
-            const yTP = tpPrice ? this._series.priceToCoordinate(tpPrice) : null;
-
-            if (this._badgeRef && this._badgeRef.current) {
-                const badge = this._badgeRef.current;
-                if (yEntry === null) {
-                    badge.style.display = 'none';
-                } else {
-                    badge.style.display = 'flex';
-                    badge.style.top = `${yEntry}px`;
+            return this._items.map(item => {
+                const y = this._series!.priceToCoordinate(item.price);
+                
+                const ref = this._badgeRefs.get(item.id);
+                if (ref && ref.current) {
+                    if (y === null) {
+                        ref.current.style.display = 'none';
+                    } else {
+                        ref.current.style.display = 'flex';
+                        ref.current.style.top = `${y}px`;
+                    }
                 }
-            }
 
-            if (yEntry === null) return null;
-
-            return { yEntry, ySL, yTP, type };
+                return {
+                    y: y as Coordinate,
+                    direction: item.direction,
+                    id: item.id
+                };
+            }).filter(item => item.y !== null);
         } catch(e) {
             console.error('TradePlugin _getViewData error:', e);
-            return null;
+            return [];
         }
     }
 }
+

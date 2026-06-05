@@ -77,9 +77,6 @@ export default function ChartUnit({
     isSelected
   });
 
-  // 3. Trade badge ref (needed for chart lifecycle)
-  const tradeBadgeRef = useRef<HTMLDivElement>(null);
-
   // 4. Chart lifecycle
   const chart = useChartLifecycle({ 
     chartContainerRef,
@@ -100,15 +97,15 @@ export default function ChartUnit({
     setGhostPoint: keyboard.setGhostPoint,
     drawings: allDrawings[data.ticker] || { rays: [], rects: [] },
     onUpdateDrawings,
-    activeTrade: null, // handled inside trade manager and trade plugin directly
-    tradeBadgeRef,
     chartRef,
     priceSeriesRef,
     onFocus: () => setSelectedId(id.toString()),
   });
 
   // 5. Trade management
+
   const trade = useTradeManager({ 
+    ticker: data.ticker,
     chartData: data.chartData, 
     chartContainerRef, 
     priceSeriesRef, 
@@ -119,8 +116,6 @@ export default function ChartUnit({
   React.useEffect(() => {
     onPnLUpdate(id, trade.realizedPnL, trade.unrealizedPnL);
   }, [trade.realizedPnL, trade.unrealizedPnL, id, onPnLUpdate]);
-
-  const currentPrice = data.chartData[data.chartData.length - 1]?.close ?? 0;
 
   const hasExplicitSize = style.width || style.height;
   const mergedStyle = { 
@@ -179,12 +174,20 @@ export default function ChartUnit({
           isDrawingMode={keyboard.isDrawingMode}
           isAtEnd={chart.isAtEnd}
           scrollToRealTime={chart.scrollToRealTime}
-          activeTrade={trade.activeTrade}
-          currentPrice={currentPrice}
-          tradeBadgeRef={tradeBadgeRef}
-          onCloseTrade={() => trade.setActiveTrade(null)}
+          markers={trade.markers}
+          onRegisterBadge={trade.handleRegisterBadge}
+          onCloseTrade={(id) => {
+            const marker = trade.markers.find(m => m.id === id);
+            if (marker?.type === 'POSITION') {
+              useTradeStore.getState().closePosition(id);
+            } else {
+              // For orders, we might want a cancelOrder action in the future
+              console.log('Cancel order:', id);
+            }
+          }}
           isHydrated={chart.isHydrated}
         />
+
         
         <DrawingStatus 
           isDrawingMode={keyboard.isDrawingMode}

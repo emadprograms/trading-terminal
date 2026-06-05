@@ -13,7 +13,6 @@ interface UseChartPluginsParams {
   showEth: boolean;
   showVP: boolean;
   drawings: TickerDrawings;
-  tradeBadgeRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useChartPlugins({
@@ -22,7 +21,6 @@ export function useChartPlugins({
   showEth,
   showVP,
   drawings,
-  tradeBadgeRef,
 }: UseChartPluginsParams) {
   const shadingPluginRef = useRef<SessionShadingPlugin | null>(null);
   const vpPluginRef = useRef<VolumeProfilePlugin | null>(null);
@@ -49,11 +47,11 @@ export function useChartPlugins({
     series.attachPrimitive(rectPluginRef.current);
     
     tradePluginRef.current = new TradePlugin();
-    tradePluginRef.current.setBadgeRef(tradeBadgeRef);
     series.attachPrimitive(tradePluginRef.current);
     
     rayPluginRef.current.setRays(drawings.rays || []);
     rectPluginRef.current.setRects(drawings.rects || []);
+
 
     return () => {
         // Note: Lightweight Charts primitives are usually detached when series is removed, 

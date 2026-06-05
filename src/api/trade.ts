@@ -96,5 +96,26 @@ export const tradeApi = {
       }
       throw new Error(`Confirmation fetch failed: ${error.message}`);
     }
+  },
+
+  /**
+   * Closes an active position.
+   * @param dealId The ID of the position to close.
+   */
+  async closePosition(dealId: string): Promise<{ dealReference: string }> {
+    try {
+      const response = await api.delete(`positions/${dealId}`).json<{ dealReference: string }>();
+      return response;
+    } catch (error: any) {
+      if (error.response) {
+        try {
+          const details = await error.response.json();
+          throw new Error(`Close position failed: ${details?.errorCode || error.message}`);
+        } catch (e) {
+          // Fallback
+        }
+      }
+      throw new Error(`Close position failed: ${error.message}`);
+    }
   }
 };

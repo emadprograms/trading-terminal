@@ -51,8 +51,6 @@ interface UseChartLifecycleParams {
   setGhostPoint: React.Dispatch<React.SetStateAction<RectPoint | null>>;
   drawings: TickerDrawings;
   onUpdateDrawings: (ticker: string, type: 'rays' | 'rects', items: RayDrawing[] | RectDrawing[]) => void;
-  activeTrade: ActiveTrade | null;
-  tradeBadgeRef: React.RefObject<HTMLDivElement | null>;
   chartRef: React.MutableRefObject<IChartApi | null>;
   priceSeriesRef: React.MutableRefObject<ISeriesApi<'Candlestick'> | null>;
   onFocus?: () => void;
@@ -77,8 +75,6 @@ export function useChartLifecycle({
   setGhostPoint,
   drawings,
   onUpdateDrawings,
-  activeTrade,
-  tradeBadgeRef,
   chartRef,
   priceSeriesRef,
   onFocus,
@@ -110,8 +106,8 @@ export function useChartLifecycle({
     showEth,
     showVP,
     drawings,
-    tradeBadgeRef,
   });
+
 
   const {
     syncViewport,

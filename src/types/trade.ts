@@ -27,10 +27,11 @@ export interface Position {
 export interface TradeConfirmation {
   dealReference: string;
   dealId: string;
-  status: 'ACCEPTED' | 'REJECTED';
+  dealStatus: 'ACCEPTED' | 'REJECTED';
+  status?: 'ACCEPTED' | 'REJECTED';
   reason?: string;
-  epic: string;
-  level: number;
-  size: number;
-  direction: OrderDirection;
+  epic?: string;
+  level?: number;
+  size?: number;
+  direction?: OrderDirection;
 }
