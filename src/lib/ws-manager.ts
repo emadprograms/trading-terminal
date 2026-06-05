@@ -113,8 +113,7 @@ class WebSocketManager {
 
       if (message.destination === 'confirms' && message.payload) {
         console.log('[WSManager] Trade confirmation received:', message.payload.dealReference);
-        // @ts-ignore - handleConfirmation will be implemented in Task 3
-        useTradeStore.getState().handleConfirmation?.(message.payload);
+        useTradeStore.getState().handleConfirmation(message.payload);
       }
       
       if (message.status === 'ERROR' || message.type === 'error') {

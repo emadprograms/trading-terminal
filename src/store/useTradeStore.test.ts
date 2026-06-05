@@ -1,78 +1,132 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useTradeStore } from './useTradeStore';
-import { Order, Position } from '../types/trade';
+import { tradeApi } from '../api/trade';
+
+vi.mock('../api/trade', () => ({
+  tradeApi: {
+    placeMarketOrder: vi.fn(),
+    placeLimitOrder: vi.fn(),
+    getConfirmation: vi.fn(),
+  },
+}));
 
 describe('useTradeStore', () => {
   beforeEach(() => {
     useTradeStore.getState().clearOrders();
+    vi.clearAllMocks();
   });
 
-  it('should add a pending order', () => {
-    const order: Order = {
-      epic: 'IX.D.DAX.IFD.IP',
-      size: 1,
+  it('should place a market order and add to pendingOrders', async () => {
+    const dealReference = 'deal_123';
+    (tradeApi.placeMarketOrder as any).mockResolvedValue({ dealReference });
+
+    await useTradeStore.getState().placeOrder({
+      epic: 'AAPL',
       direction: 'BUY',
+      size: 1,
+      type: 'MARKET'
+    });
+
+    const state = useTradeStore.getState();
+    expect(state.pendingOrders[dealReference]).toBeDefined();
+    expect(state.pendingOrders[dealReference].status).toBe('PENDING');
+    expect(tradeApi.placeMarketOrder).toHaveBeenCalled();
+  });
+
+  it('should handle successful confirmation', () => {
+    const dealReference = 'deal_123';
+    const order = {
+      epic: 'AAPL',
+      direction: 'BUY',
+      size: 1,
       type: 'MARKET',
       status: 'PENDING',
-      dealReference: 'ref-123',
-      timestamp: Date.now(),
+      dealReference,
+      timestamp: Date.now()
     };
 
-    useTradeStore.getState().addPendingOrder('ref-123', order);
+    useTradeStore.getState().addPendingOrder(dealReference, order as any);
 
-    const state = useTradeStore.getState();
-    expect(state.pendingOrders['ref-123']).toEqual(order);
-  });
-
-  it('should update order status', () => {
-    const order: Order = {
-      epic: 'IX.D.DAX.IFD.IP',
+    useTradeStore.getState().handleConfirmation({
+      dealReference,
+      dealId: 'id_123',
+      status: 'ACCEPTED',
+      epic: 'AAPL',
       size: 1,
       direction: 'BUY',
+      level: 150
+    });
+
+    const state = useTradeStore.getState();
+    expect(state.pendingOrders[dealReference].status).toBe('ACCEPTED');
+    expect(state.positions).toHaveLength(1);
+    expect(state.positions[0].dealId).toBe('id_123');
+  });
+
+  it('should handle rejected confirmation', () => {
+    const dealReference = 'deal_123';
+    const order = {
+      epic: 'AAPL',
+      direction: 'BUY',
+      size: 1,
       type: 'MARKET',
       status: 'PENDING',
-      dealReference: 'ref-123',
-      timestamp: Date.now(),
+      dealReference,
+      timestamp: Date.now()
     };
 
-    useTradeStore.getState().addPendingOrder('ref-123', order);
-    useTradeStore.getState().updateOrderStatus('ref-123', 'ACCEPTED', { dealId: 'deal-456' });
+    useTradeStore.getState().addPendingOrder(dealReference, order as any);
 
-    const state = useTradeStore.getState();
-    expect(state.pendingOrders['ref-123'].status).toBe('ACCEPTED');
-    expect(state.pendingOrders['ref-123'].dealId).toBe('deal-456');
-  });
-
-  it('should add a position', () => {
-    const position: Position = {
-      dealId: 'deal-456',
-      epic: 'IX.D.DAX.IFD.IP',
+    useTradeStore.getState().handleConfirmation({
+      dealReference,
+      dealId: 'id_123',
+      status: 'REJECTED',
+      reason: 'INSUFFICIENT_FUNDS',
+      epic: 'AAPL',
       size: 1,
       direction: 'BUY',
-      entryPrice: 15000,
-      timestamp: Date.now(),
-    };
-
-    useTradeStore.getState().addPosition(position);
+      level: 150
+    });
 
     const state = useTradeStore.getState();
-    expect(state.positions).toContainEqual(position);
-  });
-
-  it('should remove a position', () => {
-    const position: Position = {
-      dealId: 'deal-456',
-      epic: 'IX.D.DAX.IFD.IP',
-      size: 1,
-      direction: 'BUY',
-      entryPrice: 15000,
-      timestamp: Date.now(),
-    };
-
-    useTradeStore.getState().addPosition(position);
-    useTradeStore.getState().removePosition('deal-456');
-
-    const state = useTradeStore.getState();
+    expect(state.pendingOrders[dealReference].status).toBe('REJECTED');
+    expect(state.pendingOrders[dealReference].reason).toBe('INSUFFICIENT_FUNDS');
     expect(state.positions).toHaveLength(0);
+  });
+
+  it('should poll for confirmation if not received within 5s', async () => {
+    vi.useFakeTimers();
+    const dealReference = 'deal_123';
+    (tradeApi.placeMarketOrder as any).mockResolvedValue({ dealReference });
+    (tradeApi.getConfirmation as any).mockResolvedValue({
+      dealReference,
+      dealId: 'id_123',
+      status: 'ACCEPTED',
+      epic: 'AAPL',
+      size: 1,
+      direction: 'BUY',
+      level: 150
+    });
+
+    await useTradeStore.getState().placeOrder({
+      epic: 'AAPL',
+      direction: 'BUY',
+      size: 1,
+      type: 'MARKET'
+    });
+
+    // Advance time by 5s
+    vi.advanceTimersByTime(5100);
+
+    expect(tradeApi.getConfirmation).toHaveBeenCalledWith(dealReference);
+    
+    // Wait for the async poll to complete
+    await vi.runAllTimersAsync();
+
+    const state = useTradeStore.getState();
+    expect(state.pendingOrders[dealReference].status).toBe('ACCEPTED');
+    expect(state.positions).toHaveLength(1);
+
+    vi.useRealTimers();
   });
 });
