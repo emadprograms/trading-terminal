@@ -113,8 +113,11 @@ app.all('*', async (c) => {
     path = `/api/v1${path}`
   }
   
-  const targetUrl = `${targetBase}${path}`
-  console.log(`[StabilityTrace] Proxying ${c.req.method} ${c.req.path} -> ${targetUrl}`)
+  // Use Hono's req.query() or explicitly rebuild from URL to ensure query params are preserved
+  const url = new URL(c.req.url)
+  const targetUrl = `${targetBase}${path}${url.search}`
+  
+  console.log(`[StabilityTrace] Proxying ${c.req.method} ${c.req.url} -> ${targetUrl}`)
 
   if (process.env.NODE_ENV === 'test') {
     return c.json({ success: true })
@@ -131,12 +134,15 @@ app.all('*', async (c) => {
   if (process.env.CAPITAL_API_KEY) {
     requestHeaders.set('X-CAP-API-KEY', process.env.CAPITAL_API_KEY)
   }
+
   try {
     const response = await fetch(targetUrl, {
       method: c.req.method,
       headers: requestHeaders,
       body: ['POST', 'PUT', 'PATCH'].includes(c.req.method) ? await c.req.blob() : undefined,
     })
+
+    console.log(`[StabilityTrace] Upstream ${targetUrl} responded with status: ${response.status}`)
 
     // DEBUG: Log account data to verify structure
     if (path.includes('accounts')) {

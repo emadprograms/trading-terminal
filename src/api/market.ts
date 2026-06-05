@@ -27,8 +27,8 @@ export const marketApi = {
     query.append('resolution', res);
     
     if (options.max) query.append('max', Math.min(options.max, 1000).toString());
-    if (options.from) query.append('from', options.from);
-    if (options.to) query.append('to', options.to);
+    if (options.from) query.append('from', options.from.replace(' ', 'T'));
+    if (options.to) query.append('to', options.to.replace(' ', 'T'));
 
     const response = await api.get(`api/v1/prices/${encodeURIComponent(epic)}`, {
       searchParams: query,

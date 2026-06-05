@@ -366,50 +366,58 @@ export function useChartLifecycle({
 
       const lastCandle = lastCandleRef.current;
 
-      if (lastCandle && lastCandle.time === bucketTime) {
-        // Update the existing candle
-        lastCandle.high = Math.max(lastCandle.high, tickPrice);
-        lastCandle.low = Math.min(lastCandle.low, tickPrice);
-        lastCandle.close = tickPrice;
+      if (lastCandle) {
+        // SAFETY GUARD: Lightweight-charts fails if we try to update a candle older than the latest one.
+        if (bucketTime < lastCandle.time) {
+          console.warn(`[StabilityTrace] Skipping out-of-order WebSocket tick: tickTime=${bucketTime}, lastCandleTime=${lastCandle.time}`);
+          return;
+        }
 
-        initPriceSeriesRef.current.update({
-          time: bucketTime as any,
-          open: lastCandle.open,
-          high: lastCandle.high,
-          low: lastCandle.low,
-          close: lastCandle.close,
-        });
+        if (lastCandle.time === bucketTime) {
+          // Update the existing candle
+          lastCandle.high = Math.max(lastCandle.high, tickPrice);
+          lastCandle.low = Math.min(lastCandle.low, tickPrice);
+          lastCandle.close = tickPrice;
 
-        initVolumeSeriesRef.current.update({
-          time: bucketTime as any,
-          value: lastCandle.volume,
-          color: lastCandle.close >= lastCandle.open ? '#26a69a' : '#ef5350',
-        });
-      } else {
-        // New candle bucket
-        const newCandle = {
-          time: bucketTime,
-          open: tickPrice,
-          high: tickPrice,
-          low: tickPrice,
-          close: tickPrice,
-          volume: 0,
-        };
-        lastCandleRef.current = newCandle;
+          initPriceSeriesRef.current.update({
+            time: bucketTime as any,
+            open: lastCandle.open,
+            high: lastCandle.high,
+            low: lastCandle.low,
+            close: lastCandle.close,
+          });
 
-        initPriceSeriesRef.current.update({
-          time: bucketTime as any,
-          open: newCandle.open,
-          high: newCandle.high,
-          low: newCandle.low,
-          close: newCandle.close,
-        });
+          initVolumeSeriesRef.current.update({
+            time: bucketTime as any,
+            value: lastCandle.volume,
+            color: lastCandle.close >= lastCandle.open ? '#26a69a' : '#ef5350',
+          });
+        } else {
+          // New candle bucket
+          const newCandle = {
+            time: bucketTime,
+            open: tickPrice,
+            high: tickPrice,
+            low: tickPrice,
+            close: tickPrice,
+            volume: 0,
+          };
+          lastCandleRef.current = newCandle;
 
-        initVolumeSeriesRef.current.update({
-          time: bucketTime as any,
-          value: 0,
-          color: '#26a69a',
-        });
+          initPriceSeriesRef.current.update({
+            time: bucketTime as any,
+            open: newCandle.open,
+            high: newCandle.high,
+            low: newCandle.low,
+            close: newCandle.close,
+          });
+
+          initVolumeSeriesRef.current.update({
+            time: bucketTime as any,
+            value: 0,
+            color: '#26a69a',
+          });
+        }
       }
     });
 

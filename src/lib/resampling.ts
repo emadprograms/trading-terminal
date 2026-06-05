@@ -27,7 +27,7 @@ export function resampleData(data: RawBar[], timeframe: Timeframe): RawBar[] {
       const yyyy = date.getUTCFullYear();
       const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
       const dd = String(date.getUTCDate()).padStart(2, '0');
-      bucketTimeStr = `${yyyy}-${mm}-${dd} 12:00:00`;
+      bucketTimeStr = `${yyyy}-${mm}-${dd} 00:00:00`;
     } else {
       const bucketStartMs = Math.floor(timestamp / (durationMin * 60000)) * (durationMin * 60000);
       const bucketDate = new Date(bucketStartMs);
