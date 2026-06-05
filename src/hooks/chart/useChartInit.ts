@@ -84,7 +84,12 @@ export function useChartInit({
     });
 
     const priceSeries = chart.addCandlestickSeries({
-      upColor: '#26a69a', downColor: '#ef5350', borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+      upColor: '#26a69a', 
+      downColor: '#ef5350', 
+      borderVisible: false, 
+      wickUpColor: '#26a69a', 
+      wickDownColor: '#ef5350',
+      lastValueVisible: false, // Hide default price label
     });
 
     const volumeSeries = chart.addHistogramSeries({
