@@ -16,8 +16,8 @@
 
 ### Execution Layer (EXEC)
 
-- [ ] **EXEC-01**: Implement Market Order execution with state tracking (Pending -> Accepted/Rejected).
-- [ ] **EXEC-02**: Implement Limit Order execution for precise entry points.
+- [x] **EXEC-01**: Implement Market Order execution with state tracking (Pending -> Accepted/Rejected).
+- [x] **EXEC-02**: Implement Limit Order execution for precise entry points.
 - [ ] **EXEC-03**: Implement "One-Click" position closing (Flatten) for instant exits from active trades.
 
 ### Professional UI & Risk (UI)
@@ -58,8 +58,8 @@
 | DATA-01 | Phase 2 | Complete |
 | DATA-02 | Phase 2 | Complete |
 | DATA-03 | Phase 1 | Complete |
-| EXEC-01 | Phase 3 | Pending |
-| EXEC-02 | Phase 3 | Pending |
+| EXEC-01 | Phase 3 | Complete |
+| EXEC-02 | Phase 3 | Complete |
 | EXEC-03 | Phase 4 | Pending |
 | UI-01 | Phase 5 | Pending |
 | UI-02 | Phase 4 | Pending |

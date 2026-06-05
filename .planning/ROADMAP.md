@@ -45,6 +45,7 @@
   3. Price feeds correctly switch between Demo and Live streams when the account toggle is flipped.
 
 **Plans**: 3 plans
+
 - [x] 02-00-PLAN.md — REST/WS Foundation
 - [x] 02-01-PLAN.md — Historical Data Integration
 - [x] 02-02-PLAN.md — WebSocket Integration & UI Refinement
@@ -55,6 +56,7 @@
 **Depends on**: Phase 2
 **Requirements**: DATA-01, DATA-02
 **Success Criteria** (what must be TRUE):
+
   1. No visual gaps appear when loading a chart (Handover from REST to WS is seamless).
   2. The system fetches missing "Bridge" data if the REST API lags behind the current time.
   3. WebSocket ticks are buffered during initial load to prevent out-of-order updates.
@@ -73,8 +75,9 @@
   3. Trade confirmation messages (Success/Failure) are visible to the user.
 
 **Plans**: 3 plans
-- [ ] 03-00-PLAN.md — Scaffolding & Store
-- [ ] 03-01-PLAN.md — API & WebSocket Integration
+
+- [x] 03-00-PLAN.md — Scaffolding & Store
+- [x] 03-01-PLAN.md — API & WebSocket Integration
 - [ ] 03-02-PLAN.md — UI Components & Feedback
 
 **UI hint**: yes
@@ -114,6 +117,6 @@
 | 1. Auth & Infrastructure | 4/4 | Completed | Yes |
 | 2. Market Data Engine | 3/3 | Completed | Yes |
 | 2.1 Market Data Sync | 3/3 | Completed | Yes |
-| 3. Order Execution Layer | 0/3 | Not started | - |
+| 3. Order Execution Layer | 2/3 | In Progress|  |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |

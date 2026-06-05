@@ -1,21 +1,13 @@
 ---
-status: testing
+status: completed
 phase: 02-market-data-engine
 source: 
   - .planning/phases/02-market-data-engine/02-00-SUMMARY.md
   - .planning/phases/02-market-data-engine/02-01-SUMMARY.md
   - .planning/phases/02-market-data-engine/02-02-SUMMARY.md
 started: 2026-06-04T10:00:00Z
-updated: 2026-06-04T10:15:00Z
+updated: 2026-06-05T12:00:00Z
 ---
-
-## Current Test
-
-number: 6
-name: Timeframe Switch
-expected: |
-  Changing the chart timeframe (e.g., 1m to 1h) triggers a new historical data fetch and refreshes the chart with candles of the selected resolution.
-awaiting: user response
 
 ## Tests
 
@@ -41,16 +33,16 @@ result: pass
 
 ### 6. Timeframe Switch
 expected: Changing the chart timeframe (e.g., 1m to 1h) triggers a new historical data fetch and refreshes the chart with candles of the selected resolution.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 6
-passed: 5
+passed: 6
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 
 ## Gaps
 
-[none yet]
+[none]
