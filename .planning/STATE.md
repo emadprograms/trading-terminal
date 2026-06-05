@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://immigrants-slots-findings-phd.trycloudflare.com
+- **Proxy URL**: https://poster-previous-climbing-cursor.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
