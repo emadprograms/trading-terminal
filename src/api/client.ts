@@ -1,46 +1,63 @@
 import ky from 'ky'
 import { useSessionStore } from '../store/useSessionStore'
 
+/**
+ * Get the base URL for the API requests.
+ * Called dynamically to always reflect the current proxy URL.
+ */
+const getBaseUrl = () => {
+  const { proxyUrl } = useSessionStore.getState()
+  if (proxyUrl) {
+    return proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
+  }
+  if (typeof window !== 'undefined' && window.location.origin !== 'null') {
+    return window.location.origin
+  }
+  return 'http://localhost:3000'
+}
+
+/**
+ * API client with dynamic proxy URL resolution.
+ */
 export const api = ky.create({
+  prefix: getBaseUrl(), // Use prefix, not prefixUrl for ky v2
   hooks: {
     beforeRequest: [
       ({ request }) => {
-        console.log(`[StabilityTrace] Outgoing Request: ${request.url}`);
-        const { cst, securityToken, proxyUrl, environment } = useSessionStore.getState()
-
-        // 1. Determine the base URL for rewriting/absolutizing
-        const base = proxyUrl 
-          ? (proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`)
-          : (typeof window !== 'undefined' && window.location.origin !== 'null' ? window.location.origin : 'http://localhost:3000');
-
-        let finalRequest = request
-
+        const currentBase = getBaseUrl()
+        let currentUrl;
         try {
-          // Use base as the second argument to handle relative request.url
-          const url = new URL(request.url, base)
-          
-          // Combine base + the intended path (e.g. /session)
-          const finalUrl = new URL(url.pathname + url.search, base)
-          
-          // 2. CREATE A NEW REQUEST
-          // This ensures we always have an absolute URL and allows header modification
-          finalRequest = new Request(finalUrl.toString(), request)
-        } catch (e) {
-          console.error('[StabilityTrace] Request cloning failed:', e)
+          currentUrl = new URL(request.url)
+        } catch(e) {
+          currentUrl = new URL(request.url, currentBase)
+        }
+        const currentBaseUrl = new URL(currentBase)
+
+        // Determine final URL (in case we need to rewrite to proxy)
+        let finalUrl = currentUrl.toString()
+        if (currentUrl.origin !== currentBaseUrl.origin) {
+          finalUrl = `${currentBaseUrl.origin}${currentUrl.pathname}${currentUrl.search}`
         }
 
-        // 3. APPLY AUTH HEADERS
-        if (cst) {
-          finalRequest.headers.set('CST', cst)
-        }
-        if (securityToken) {
-          finalRequest.headers.set('X-SECURITY-TOKEN', securityToken)
-        }
-        if (environment) {
-          finalRequest.headers.set('X-Environment', environment)
-        }
+        const newHeaders = new Headers(request.headers)
+        const { cst, securityToken } = useSessionStore.getState()
+        if (cst) newHeaders.set('CST', cst)
+        if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
 
-        return finalRequest
+        // Return a fresh Request object to guarantee header insertion is respected in all runtimes
+        return new Request(finalUrl, {
+          method: request.method,
+          headers: newHeaders,
+          body: ['POST', 'PUT', 'PATCH'].includes(request.method) ? request.body : undefined,
+          mode: request.mode,
+          credentials: request.credentials,
+          cache: request.cache,
+          redirect: request.redirect,
+          referrer: request.referrer,
+          integrity: request.integrity,
+          signal: request.signal,
+          duplex: 'half' as any,
+        })
       }
     ],
     afterResponse: [
@@ -50,17 +67,11 @@ export const api = ky.create({
           const isSession = url.includes('/session') || (options.url && String(options.url).includes('/session'))
           
           if (isSession) {
-            console.log(`[StabilityTrace] Capture check for ${url}: status=${response.status}`);
             const cst = response.headers.get('CST')
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
             
-            console.log(`[StabilityTrace] Headers - CST: ${cst ? 'Present' : 'MISSING'}, X-SECURITY-TOKEN: ${securityToken ? 'Present' : 'MISSING'}`);
-            
             if (response.ok && cst && securityToken) {
-              console.log('[StabilityTrace] Tokens captured successfully. Updating store.');
               useSessionStore.getState().setTokens(cst, securityToken)
-            } else if (response.ok) {
-              console.warn('[StabilityTrace] Login succeeded but tokens are missing from headers.');
             }
           }
         } catch (e) {

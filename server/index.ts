@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
+import dotenv from 'dotenv'
 
+// Load environment variables from .env.local or .env
+dotenv.config({ path: '.env.local' })
+dotenv.config()
 const app = new Hono()
 
 // [StabilityTrace] logging
@@ -116,9 +120,17 @@ app.all('*', async (c) => {
     return c.json({ success: true })
   }
 
-  const requestHeaders = new Headers(c.req.header())
-  requestHeaders.delete('host')
+  const requestHeaders = new Headers()
+  const allowedHeaders = ['cst', 'x-security-token', 'content-type', 'accept']
+  for (const [key, value] of Object.entries(c.req.header())) {
+    if (allowedHeaders.includes(key.toLowerCase())) {
+      requestHeaders.set(key, value)
+    }
+  }
   
+  if (process.env.CAPITAL_API_KEY) {
+    requestHeaders.set('X-CAP-API-KEY', process.env.CAPITAL_API_KEY)
+  }
   try {
     const response = await fetch(targetUrl, {
       method: c.req.method,

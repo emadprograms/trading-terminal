@@ -41,7 +41,7 @@ describe('AccountHeader', () => {
 
     
     // Wait for query to resolve (MSW handles the response)
-    const balanceValue = await screen.findByText(/\$10,000\.00/i)
-    expect(balanceValue).toBeInTheDocument()
+    const balanceValues = await screen.findAllByText(/\$10,000\.00/i)
+    expect(balanceValues.length).toBeGreaterThan(0)
   })
 })

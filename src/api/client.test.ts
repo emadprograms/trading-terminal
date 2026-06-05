@@ -11,8 +11,7 @@ describe('Ky Client', () => {
   })
 
   it('should capture tokens from /session response headers', async () => {
-    // We use an absolute URL to avoid ERR_INVALID_URL in Node
-    const response = await api.post(`${PROXY_URL}/session`, { json: { identifier: 'user', password: 'pass' } })
+    const response = await api.post('session', { json: { identifier: 'user', password: 'pass' } })
     expect(response.status).toBe(200)
     
     const state = useSessionStore.getState()
@@ -27,7 +26,7 @@ describe('Ky Client', () => {
     // MSW doesn't provide a direct way to see the request headers from the response 
     // unless we use a custom handler.
     
-    const response = await api.get(`${PROXY_URL}/ping`)
+    const response = await api.get('ping')
     expect(response.status).toBe(200)
   })
 })

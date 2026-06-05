@@ -12,8 +12,25 @@ interface AccountData {
 }
 
 export const AccountHeader: React.FC = () => {
-  const { isAuthenticated, selectedAccountId, environment, resetProxyUrl } = useSessionStore();
+  const { isAuthenticated, selectedAccountId, environment, proxyUrl, setProxyUrl } = useSessionStore();
   const [showPnl, setShowPnl] = useState(true);
+  const [proxyInputValue, setProxyInputValue] = useState(proxyUrl || '');
+
+  React.useEffect(() => {
+    setProxyInputValue(proxyUrl || '');
+  }, [proxyUrl]);
+
+  const handleProxyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      let url = proxyInputValue.trim();
+      if (url && !url.startsWith('http')) {
+        url = 'https://' + url;
+      }
+      setProxyUrl(url);
+      e.currentTarget.blur();
+    }
+  };
+
   console.log(`[AccountHeader] Rendering. isAuthenticated: ${isAuthenticated}`);
 
   const { data, isLoading, error } = useQuery<AccountData>({
@@ -72,9 +89,15 @@ export const AccountHeader: React.FC = () => {
       <div className="status-indicator">
         <span className={`dot ${isAuthenticated ? 'status-online' : ''}`} data-testid="online-indicator" />
         <span className="status-text">{isAuthenticated ? 'ONLINE' : 'DISCONNECTED'}</span>
-        <button className="proxy-reset-btn" onClick={resetProxyUrl} title="Change Proxy URL">
-          PROXY ⚙️
-        </button>
+        <input 
+          type="text"
+          className="proxy-input"
+          value={proxyInputValue}
+          onChange={(e) => setProxyInputValue(e.target.value)}
+          onKeyDown={handleProxyKeyDown}
+          placeholder="Proxy URL..."
+          title="Paste proxy URL and press Enter"
+        />
       </div>
       
       <div className="metrics">
@@ -142,22 +165,25 @@ export const AccountHeader: React.FC = () => {
           font-size: 10px;
           font-weight: 700;
           color: #00f2ff;
+          white-space: nowrap;
         }
-        .proxy-reset-btn {
+        .proxy-input {
           background: transparent;
           border: 1px solid #333;
-          color: #666;
+          color: #999;
           font-size: 8px;
-          padding: 1px 4px;
-          cursor: pointer;
+          padding: 2px 6px;
           font-family: 'JetBrains Mono', monospace;
           margin-left: 8px;
           transition: all 0.2s ease;
           border-radius: 2px;
+          width: 120px;
+          outline: none;
         }
-        .proxy-reset-btn:hover {
+        .proxy-input:focus {
           border-color: #00f2ff;
           color: #00f2ff;
+          width: 200px;
         }
         .dot {
           width: 6px;
