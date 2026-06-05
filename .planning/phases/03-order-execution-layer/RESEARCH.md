@@ -183,12 +183,12 @@ this.send({
 | A1 | WebSocket `confirms` destination name | Summary | Re-implementing polling if WS destination is different. |
 | A2 | Hedging mode behavior | Summary | Positions might aggregate unexpectedly. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Hedging Mode:** Does the terminal support multiple concurrent positions on the same epic? 
-   - *Recommendation:* Assume aggregation for MVP, but use `dealId` as the unique key to prepare for hedging support.
+   - *Resolution:* No. Assume aggregation for MVP to simplify position tracking, but use `dealId` as the unique key to prepare for future hedging support.
 2. **Guaranteed Stops:** Are they required?
-   - *Recommendation:* Keep optional; they cost extra and aren't available for all instruments.
+   - *Resolution:* No. They incur extra costs and are not available for all instruments. Standard stops are sufficient for Phase 3.
 
 ## Environment Availability
 

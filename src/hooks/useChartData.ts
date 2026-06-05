@@ -7,6 +7,7 @@ import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { wsManager } from '../lib/ws-manager';
 import { useSessionStore } from '../store/useSessionStore';
+import { syncCoordinator } from '../lib/sync-coordinator';
 
 interface UseChartDataParams {
   initialTicker: string;

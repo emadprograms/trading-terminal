@@ -11,10 +11,10 @@ updated: 2026-06-04T10:15:00Z
 
 ## Current Test
 
-number: 2
-name: Ticker Selection & Historical Data
+number: 3
+name: Real-time Price Display
 expected: |
-  Selecting a ticker (e.g., EURUSD) immediately populates the chart with historical OHLVC candles fetched from the REST API.
+  The Bid/Ask prices in the Chart Header update in real-time with sub-second latency via WebSocket.
 awaiting: user response
 
 ## Tests
@@ -25,7 +25,7 @@ result: pass
 
 ### 2. Ticker Selection & Historical Data
 expected: Selecting a ticker (e.g., EURUSD) immediately populates the chart with historical OHLVC candles fetched from the REST API.
-result: [pending]
+result: pass
 
 ### 3. Real-time Price Display
 expected: The Bid/Ask prices in the Chart Header update in real-time with sub-second latency via WebSocket.
@@ -46,9 +46,9 @@ result: [pending]
 ## Summary
 
 total: 6
-passed: 1
+passed: 2
 issues: 0
-pending: 5
+pending: 4
 skipped: 0
 
 ## Gaps
