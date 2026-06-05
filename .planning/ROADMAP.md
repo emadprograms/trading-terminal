@@ -2,8 +2,9 @@
 
 ## Phases
 
-- [ ] **Phase 1: Auth & Infrastructure** - Secure backend proxy, dual-token handshake, and account state synchronization.
-- [x] **Phase 2: Market Data Engine** - Real-time Bid/Ask streaming via WebSocket and historical candle data integration. (completed 2026-06-04)
+- [x] **Phase 1: Auth & Infrastructure** - Secure backend proxy, dual-token handshake, and account state synchronization.
+- [x] **Phase 2: Market Data Engine** - Real-time Bid/Ask streaming via WebSocket and historical candle data integration. (completed 2026-06-04)
+- [x] **Phase 2.1: Market Data Synchronization** - Eliminate gaps between REST history and live WebSocket streams with atomic buffering and bridging. (completed 2026-06-05)
 
 - [ ] **Phase 3: Order Execution Layer** - Implementation of market and limit order execution with state tracking.
 - [ ] **Phase 4: Risk & Position Management** - Position flattening and automated stop-loss placement logic.
@@ -43,8 +44,22 @@
   2. Live Bid/Ask price ticks are streamed via WebSocket and update the UI with sub-second latency.
   3. Price feeds correctly switch between Demo and Live streams when the account toggle is flipped.
 
+**Plans**: 3 plans
+- [x] 02-00-PLAN.md — REST/WS Foundation
+- [x] 02-01-PLAN.md — Historical Data Integration
+- [x] 02-02-PLAN.md — WebSocket Integration & UI Refinement
+
+### Phase 2.1: Market Data Synchronization
+
+**Goal**: Eliminate the "Data Gap" between historical REST data and live WebSocket streams.
+**Depends on**: Phase 2
+**Requirements**: DATA-01, DATA-02
+**Success Criteria** (what must be TRUE):
+  1. No visual gaps appear when loading a chart (Handover from REST to WS is seamless).
+  2. The system fetches missing "Bridge" data if the REST API lags behind the current time.
+  3. WebSocket ticks are buffered during initial load to prevent out-of-order updates.
+
 **Plans**: TBD
-**UI hint**: yes
 
 ### Phase 3: Order Execution Layer
 
@@ -57,7 +72,11 @@
   2. Order state is tracked and displayed (e.g., Pending -> Accepted or Rejected).
   3. Trade confirmation messages (Success/Failure) are visible to the user.
 
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 03-01-PLAN.md — Scaffolding & Store
+- [ ] 03-02-PLAN.md — API & WebSocket Integration
+- [ ] 03-03-PLAN.md — UI Components & Feedback
+
 **UI hint**: yes
 
 ### Phase 4: Risk & Position Management
@@ -93,7 +112,8 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth & Infrastructure | 4/4 | Completed | Yes |
-| 2. Market Data Engine | 3/3 | In Progress | - |
-| 3. Order Execution Layer | 0/0 | Not started | - |
+| 2. Market Data Engine | 3/3 | Completed | Yes |
+| 2.1 Market Data Sync | 3/3 | Completed | Yes |
+| 3. Order Execution Layer | 0/3 | Not started | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |

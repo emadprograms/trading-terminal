@@ -6,6 +6,7 @@ import { resampleData } from '../lib/resampling';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { wsManager } from '../lib/ws-manager';
+import { syncCoordinator } from '../lib/sync-coordinator';
 
 interface UseChartDataParams {
   initialTicker: string;
@@ -65,15 +66,13 @@ export function useChartData({
   const dataTimeframeRef = useRef(timeframe);
   const isFirstRender = useRef(true);
 
-  // WebSocket Subscription
+  // WebSocket Subscription (Now handled by SyncCoordinator for initial load, 
+  // but we still need to cleanup on unmount or ticker change)
   useEffect(() => {
-    if (ticker) {
-      console.log(`[WSManager] Subscribing to ${ticker}`);
-      wsManager.subscribe(ticker);
-    }
+    // Note: syncTicker handles the initial subscribe
     return () => {
       if (ticker) {
-        console.log(`[WSManager] Unsubscribing from ${ticker}`);
+        console.log(`[useChartData] Cleanup: Unsubscribing from ${ticker}`);
         wsManager.unsubscribe(ticker);
       }
     };
@@ -84,32 +83,21 @@ export function useChartData({
     if (onTimeframeChange) onTimeframeChange(id, timeframe);
   }, [timeframe, id, onTimeframeChange]);
 
-  // Initial data fetch
+  // Initial data fetch + Sync
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLocalMasterData([]);
       setIsLoadingHistory(true);
       
-      // Calculate daysBack to aim for ~1000 candles based on timeframe
-      const tfMins: Record<Timeframe, number> = {
-        '1min': 1,
-        '5min': 5,
-        '15min': 15,
-        '30min': 30,
-        '1H': 60,
-        '1D': 1440,
-      };
-      
       const targetCandles = 1000;
-      const minsPerDay = 1440;
-      const daysBack = (targetCandles * tfMins[timeframe]) / minsPerDay;
       
-      console.log(`[useChartData] Requesting data: ticker=${ticker}, timeframe=${timeframe}, to=${selectedDate}, targetCandles=${targetCandles}`);
-      const data = await fetchMarketData(ticker, selectedDate, targetCandles, timeframe);
+      console.log(`[useChartData] Syncing ${ticker} at ${timeframe}`);
+      const data = await syncCoordinator.syncTicker(ticker, timeframe, selectedDate, targetCandles);
+      
       if (cancelled) return;
       
-      console.log(`[useChartData] Fetched ${data?.length || 0} bars for ${ticker} at ${timeframe} (daysBack: ${daysBack.toFixed(2)})`);
+      console.log(`[useChartData] Synced ${data?.length || 0} bars for ${ticker}`);
       if (data && data.length > 0) {
         earliestLoadedDateRef.current = data[0].time;
       }

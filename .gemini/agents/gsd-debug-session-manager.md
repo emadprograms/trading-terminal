@@ -10,6 +10,7 @@ description: Manages multi-cycle /gsd:debug checkpoint and continuation loop in 
 tools:
   - read_file
   - write_file
+  - replace
   - run_shell_command
   - search_file_content
   - glob

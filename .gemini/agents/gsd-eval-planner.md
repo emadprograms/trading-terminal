@@ -10,6 +10,7 @@ description: Designs a structured evaluation strategy for an AI phase. Identifie
 tools:
   - read_file
   - write_file
+  - replace
   - run_shell_command
   - search_file_content
   - glob
@@ -21,7 +22,7 @@ Turn domain rubric ingredients into measurable, tooled evaluation criteria. Writ
 </role>
 
 <required_reading>
-Read `C:/Users/Emad/Documents/GitHub/trading-terminal/.gemini/get-shit-done/references/ai-evals.md` before planning. This is your evaluation framework.
+Read `C:/Users/Emad/Documents/GitHub/trading-terminal/.gemini/gsd-core/references/ai-evals.md` before planning. This is your evaluation framework.
 </required_reading>
 
 <input>

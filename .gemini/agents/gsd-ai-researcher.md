@@ -10,6 +10,7 @@ description: Researches a chosen AI framework's official docs to produce impleme
 tools:
   - read_file
   - write_file
+  - replace
   - run_shell_command
   - search_file_content
   - glob
@@ -46,7 +47,7 @@ works via Bash and produces equivalent output.
 </documentation_lookup>
 
 <required_reading>
-Read `C:/Users/Emad/Documents/GitHub/trading-terminal/.gemini/get-shit-done/references/ai-frameworks.md` for framework profiles and known pitfalls before fetching docs.
+Read `C:/Users/Emad/Documents/GitHub/trading-terminal/.gemini/gsd-core/references/ai-frameworks.md` for framework profiles and known pitfalls before fetching docs.
 </required_reading>
 
 <input>

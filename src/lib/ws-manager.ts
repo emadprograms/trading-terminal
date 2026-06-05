@@ -5,6 +5,8 @@ class WebSocketManager {
   private static instance: WebSocketManager;
   private socket: WebSocket | null = null;
   private activeEpics: Set<string> = new Set();
+  private bufferedTicks: Map<string, any[]> = new Map();
+  private bufferingEpics: Set<string> = new Set();
   private reconnectAttempts: number = 0;
   private maxReconnectDelay = 30000;
   private baseReconnectDelay = 1000;
@@ -80,7 +82,15 @@ class WebSocketManager {
       
       if (message.destination === 'quote' && message.payload) {
         const { epic, bid, ofr, timestamp } = message.payload;
-        usePriceStore.getState().updatePrice(epic, bid, ofr, timestamp);
+        
+        if (this.bufferingEpics.has(epic)) {
+          const buffer = this.bufferedTicks.get(epic) || [];
+          buffer.push({ bid, ofr, timestamp });
+          this.bufferedTicks.set(epic, buffer);
+          console.log(`[WSManager] Buffered tick for ${epic}: ${bid} @ ${timestamp}`);
+        } else {
+          usePriceStore.getState().updatePrice(epic, bid, ofr, timestamp);
+        }
       }
       
       if (message.status === 'ERROR' || message.type === 'error') {
@@ -91,7 +101,27 @@ class WebSocketManager {
     }
   }
 
-  public subscribe(epic: string): void {
+  public setBuffering(epic: string, enabled: boolean): void {
+    if (enabled) {
+      this.bufferingEpics.add(epic);
+      this.bufferedTicks.set(epic, []);
+      console.log(`[WSManager] Buffering enabled for ${epic}`);
+    } else {
+      this.bufferingEpics.delete(epic);
+      console.log(`[WSManager] Buffering disabled for ${epic}`);
+    }
+  }
+
+  public getAndClearBuffer(epic: string): any[] {
+    const buffer = this.bufferedTicks.get(epic) || [];
+    this.bufferedTicks.delete(epic);
+    return buffer;
+  }
+
+  public subscribe(epic: string, bufferFirst = false): void {
+    if (bufferFirst) {
+      this.setBuffering(epic, true);
+    }
     this.activeEpics.add(epic);
     if (this.socket?.readyState === WebSocket.OPEN) {
       const { cst, securityToken } = this.getTokens();
