@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://watt-administration-fitted-twenty.trycloudflare.com
+- **Proxy URL**: https://grace-generic-striking-karaoke.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
