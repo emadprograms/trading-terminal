@@ -6,7 +6,7 @@ import { resampleData } from '../lib/resampling';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { wsManager } from '../lib/ws-manager';
-import { syncCoordinator } from '../lib/sync-coordinator';
+import { useSessionStore } from '../store/useSessionStore';
 
 interface UseChartDataParams {
   initialTicker: string;
@@ -66,6 +66,8 @@ export function useChartData({
   const dataTimeframeRef = useRef(timeframe);
   const isFirstRender = useRef(true);
 
+  const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
+
   // WebSocket Subscription (Now handled by SyncCoordinator for initial load, 
   // but we still need to cleanup on unmount or ticker change)
   useEffect(() => {
@@ -85,6 +87,11 @@ export function useChartData({
 
   // Initial data fetch + Sync
   useEffect(() => {
+    if (!isAuthenticated) {
+      console.log(`[useChartData] Waiting for authentication before syncing ${ticker}...`);
+      return;
+    }
+
     let cancelled = false;
     async function load() {
       setLocalMasterData([]);
@@ -107,7 +114,7 @@ export function useChartData({
     }
     load();
     return () => { cancelled = true; };
-  }, [ticker, selectedDate, timeframe]);
+  }, [ticker, selectedDate, timeframe, isAuthenticated]);
 
   // Infinite Scroll Listener
   useEffect(() => {
