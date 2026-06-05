@@ -1,5 +1,6 @@
 import { useSessionStore } from '../store/useSessionStore';
 import { usePriceStore } from '../store/usePriceStore';
+import { useTradeStore } from '../store/useTradeStore';
 
 class WebSocketManager {
   private static instance: WebSocketManager;
@@ -40,6 +41,9 @@ class WebSocketManager {
       this.reconnectAttempts = 0;
       this.authenticate(cst, securityToken);
       
+      // Subscribe to confirmations
+      this.subscribeToConfirmations();
+
       // Auto-resubscribe to active epics upon reconnection
       this.activeEpics.forEach(epic => {
         console.log(`[WSManager] Auto-resubscribing to ${epic}`);
@@ -76,6 +80,20 @@ class WebSocketManager {
     this.send(authPayload);
   }
 
+  private subscribeToConfirmations(): void {
+    const { cst, securityToken } = this.getTokens();
+    if (!cst || !securityToken) return;
+
+    console.log('[WSManager] Subscribing to trade confirmations');
+    this.send({
+      destination: 'confirms.subscribe',
+      correlationId: crypto.randomUUID(),
+      cst,
+      securityToken,
+      payload: {}
+    });
+  }
+
   private handleMessage(data: string): void {
     try {
       const message = JSON.parse(data);
@@ -91,6 +109,12 @@ class WebSocketManager {
         } else {
           usePriceStore.getState().updatePrice(epic, bid, ofr, timestamp);
         }
+      }
+
+      if (message.destination === 'confirms' && message.payload) {
+        console.log('[WSManager] Trade confirmation received:', message.payload.dealReference);
+        // @ts-ignore - handleConfirmation will be implemented in Task 3
+        useTradeStore.getState().handleConfirmation?.(message.payload);
       }
       
       if (message.status === 'ERROR' || message.type === 'error') {
