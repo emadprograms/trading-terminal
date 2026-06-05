@@ -1,13 +1,26 @@
 import React from 'react';
 import type { TradeType } from '../types';
+import { usePriceStore } from '../store/usePriceStore';
 
 interface TradeControlsProps {
+  ticker: string;
   tradeSize: number;
   setTradeSize: (size: number) => void;
   placeOrder: (type: TradeType) => void;
 }
 
-export function TradeControls({ tradeSize, setTradeSize, placeOrder }: TradeControlsProps) {
+export function TradeControls({ ticker, tradeSize, setTradeSize, placeOrder }: TradeControlsProps) {
+  const priceData = usePriceStore((state) => state.prices[ticker]);
+  const bid = priceData?.bid;
+  const ask = priceData?.ask;
+
+  // Format price helper
+  const formatPrice = (p?: number) => {
+    if (p === undefined || p === null) return '---';
+    // Use 5 decimal places for forex, or whatever is appropriate
+    return p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 });
+  };
+
   return (
     <div className="trade-controls" style={{
       position: 'absolute', top: '0px', left: '0px', zIndex: 20,
@@ -15,17 +28,18 @@ export function TradeControls({ tradeSize, setTradeSize, placeOrder }: TradeCont
       color: '#fff', fontFamily: 'Inter, system-ui, sans-serif',
       paddingTop: '10px', paddingLeft: '10px'
     }}>
+      {/* SELL BUTTON (BID PRICE) - RED */}
       <button 
-        onClick={() => placeOrder('long')}
+        onClick={() => placeOrder('short')}
         style={{ 
-          background: '#26a69a', color: '#fff', border: 'none', borderRadius: '4px', 
+          background: '#ef5350', color: '#fff', border: 'none', borderRadius: '4px', 
           padding: '4px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
-          transition: 'filter 0.2s'
+          transition: 'filter 0.2s', minWidth: '80px'
         }}
         onMouseOver={e => e.currentTarget.style.filter = 'brightness(1.2)'}
         onMouseOut={e => e.currentTarget.style.filter = 'brightness(1)'}
       >
-        BUY
+        {formatPrice(bid)}
       </button>
       
       <input 
@@ -38,17 +52,18 @@ export function TradeControls({ tradeSize, setTradeSize, placeOrder }: TradeCont
         }} 
       />
       
+      {/* BUY BUTTON (ASK PRICE) - GREEN */}
       <button 
-        onClick={() => placeOrder('short')}
+        onClick={() => placeOrder('long')}
         style={{ 
-          background: '#ef5350', color: '#fff', border: 'none', borderRadius: '4px', 
+          background: '#26a69a', color: '#fff', border: 'none', borderRadius: '4px', 
           padding: '4px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
-          transition: 'filter 0.2s'
+          transition: 'filter 0.2s', minWidth: '80px'
         }}
         onMouseOver={e => e.currentTarget.style.filter = 'brightness(1.2)'}
         onMouseOut={e => e.currentTarget.style.filter = 'brightness(1)'}
       >
-        SELL
+        {formatPrice(ask)}
       </button>
     </div>
   );
