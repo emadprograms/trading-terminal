@@ -105,7 +105,8 @@ export function useChartData({
       const minsPerDay = 1440;
       const daysBack = (targetCandles * tfMins[timeframe]) / minsPerDay;
       
-      const data = await fetchMarketData(ticker, selectedDate, daysBack, timeframe);
+      console.log(`[useChartData] Requesting data: ticker=${ticker}, timeframe=${timeframe}, to=${selectedDate}, targetCandles=${targetCandles}`);
+      const data = await fetchMarketData(ticker, selectedDate, targetCandles, timeframe);
       if (cancelled) return;
       
       console.log(`[useChartData] Fetched ${data?.length || 0} bars for ${ticker} at ${timeframe} (daysBack: ${daysBack.toFixed(2)})`);
@@ -202,5 +203,4 @@ export function useChartData({
     isLoadingHistory,
     pendingHistoryPrependRef,
   };
-}
 }
