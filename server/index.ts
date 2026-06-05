@@ -113,7 +113,6 @@ app.all('*', async (c) => {
     path = `/api/v1${path}`
   }
   
-  // Use Hono's req.query() or explicitly rebuild from URL to ensure query params are preserved
   const url = new URL(c.req.url)
   const targetUrl = `${targetBase}${path}${url.search}`
   
@@ -124,16 +123,37 @@ app.all('*', async (c) => {
   }
 
   const requestHeaders = new Headers()
-  const allowedHeaders = ['cst', 'x-security-token', 'content-type', 'accept']
+  
+  // Headers to IGNORE (let fetch/undici handle these)
+  const skipHeaders = ['host', 'connection', 'content-length', 'expect']
+  
+  // Forward almost all headers from client
   for (const [key, value] of Object.entries(c.req.header())) {
-    if (allowedHeaders.includes(key.toLowerCase())) {
-      requestHeaders.set(key, value)
+    if (!skipHeaders.includes(key.toLowerCase())) {
+      // Force common tokens to uppercase for Capital.com compatibility
+      if (key.toLowerCase() === 'cst') {
+        requestHeaders.set('CST', value)
+      } else if (key.toLowerCase() === 'x-security-token') {
+        requestHeaders.set('X-SECURITY-TOKEN', value)
+      } else {
+        requestHeaders.set(key, value)
+      }
     }
   }
   
+  // Inject API Key
   if (process.env.CAPITAL_API_KEY) {
     requestHeaders.set('X-CAP-API-KEY', process.env.CAPITAL_API_KEY)
+  } else {
+    console.warn(`[StabilityTrace] WARNING: CAPITAL_API_KEY is missing in proxy environment!`)
   }
+
+  // DEBUG: Log sent headers (redacted)
+  const logHeaders: Record<string, string> = {}
+  requestHeaders.forEach((v, k) => {
+    logHeaders[k] = (k === 'CST' || k === 'X-SECURITY-TOKEN' || k === 'X-CAP-API-KEY') ? '[REDACTED]' : v
+  })
+  console.log(`[StabilityTrace] Upstream Headers:`, JSON.stringify(logHeaders))
 
   try {
     const response = await fetch(targetUrl, {
@@ -144,17 +164,10 @@ app.all('*', async (c) => {
 
     console.log(`[StabilityTrace] Upstream ${targetUrl} responded with status: ${response.status}`)
 
-    // DEBUG: Log account data to verify structure
-    if (path.includes('accounts')) {
-      const clonedRes = response.clone()
-      clonedRes.text().then(text => {
-        console.log(`[StabilityTrace] Account Response Body: ${text}`)
-      }).catch(e => console.error(`[StabilityTrace] Failed to log account body: ${e}`))
-    }
-
     const clientHeaders = new Headers()
     response.headers.forEach((value, key) => {
-      if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
+      // Strip encoding headers to prevent compression issues
+      if (!['content-encoding', 'transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
         clientHeaders.set(key, value)
       }
     })
@@ -162,6 +175,11 @@ app.all('*', async (c) => {
     clientHeaders.set('Access-Control-Allow-Origin', '*')
     clientHeaders.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN, Content-Type')
     
+    // Log response headers for auth debugging
+    if (path.includes('session')) {
+      console.log(`[StabilityTrace] Session Response Headers:`, JSON.stringify(Object.fromEntries(response.headers.entries())))
+    }
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
