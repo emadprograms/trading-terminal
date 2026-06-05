@@ -88,27 +88,9 @@ export const db = new DatabaseWorkerProxy();
 
 // --- Market Data API Integration ---
 
-/**
- * Calculates the number of candles to fetch based on daysBack and timeframe.
- */
-function calculateMaxCandles(daysBack: number, tf: Timeframe): number {
-  const minsPerDay = 1440;
-  const tfMins = {
-    '1min': 1,
-    '5min': 5,
-    '15min': 15,
-    '30min': 30,
-    '1H': 60,
-    '1D': 1440,
-  }[tf];
-  
-  return Math.floor((daysBack * minsPerDay) / tfMins);
-}
-
-export const fetchMarketData = async (ticker: string, dateIso: string, daysBack = 30, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
+export const fetchMarketData = async (ticker: string, dateIso: string, maxCandles = 1000, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
   try {
-    const max = calculateMaxCandles(daysBack, timeframe);
-    const candles = await marketApi.fetchCandles(ticker, timeframe, { to: dateIso, max });
+    const candles = await marketApi.fetchCandles(ticker, timeframe, { to: dateIso, max: maxCandles });
     return transformCapitalCandles(candles);
   } catch (error) {
     console.error(`[fetchMarketData] Error fetching data for ${ticker}:`, error);
@@ -116,10 +98,9 @@ export const fetchMarketData = async (ticker: string, dateIso: string, daysBack 
   }
 };
 
-export const fetchHistoricalChunk = async (ticker: string, endTimestamp: string, daysBack = 30, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
+export const fetchHistoricalChunk = async (ticker: string, endTimestamp: string, maxCandles = 1000, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
   try {
-    const max = calculateMaxCandles(daysBack, timeframe);
-    const candles = await marketApi.fetchCandles(ticker, timeframe, { to: endTimestamp, max });
+    const candles = await marketApi.fetchCandles(ticker, timeframe, { to: endTimestamp, max: maxCandles });
     return transformCapitalCandles(candles);
   } catch (error) {
     console.error(`[fetchHistoricalChunk] Error fetching chunk for ${ticker}:`, error);

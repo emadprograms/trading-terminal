@@ -12,20 +12,41 @@ export function transformCapitalCandleToRawBar(candle: CapitalCandle, useAsk = f
   const date = new Date(candle.snapshotTime);
   const time = date.toISOString().replace('T', ' ').replace(/\..+Z$/, '');
 
+  // The REST API uses 'ask' but the WebSocket API uses 'ofr'
+  const getPrice = (priceObj: any, defaultKey: string) => {
+    if (!priceObj) return 0;
+    if (useAsk) {
+      return priceObj.ask ?? priceObj.ofr ?? priceObj.bid ?? 0;
+    }
+    return priceObj.bid ?? 0;
+  };
+
   return {
     time,
-    open: candle.openPrice[priceKey],
-    high: candle.highPrice[priceKey],
-    low: candle.lowPrice[priceKey],
-    close: candle.closePrice[priceKey],
-    volume: 0, // Volume not provided by the historical candles endpoint
+    open: getPrice(candle.openPrice, priceKey),
+    high: getPrice(candle.highPrice, priceKey),
+    low: getPrice(candle.lowPrice, priceKey),
+    close: getPrice(candle.closePrice, priceKey),
+    volume: candle.lastTradedVolume ?? 0, // Fallback to 0 if not provided
     session: 'REG',
   };
 }
 
-/**
- * Batch transforms an array of Capital candles.
- */
 export function transformCapitalCandles(candles: CapitalCandle[], useAsk = false): RawBar[] {
-  return candles.map(c => transformCapitalCandleToRawBar(c, useAsk));
+  const transformed = candles.map(c => transformCapitalCandleToRawBar(c, useAsk));
+  
+  // Sort in ascending order by time string (which is lexicographically sortable)
+  transformed.sort((a, b) => a.time.localeCompare(b.time));
+
+  // Deduplicate by time string to prevent lightweight-charts duplicate timestamp assertions
+  const unique: RawBar[] = [];
+  const seen = new Set<string>();
+  for (const bar of transformed) {
+    if (!seen.has(bar.time)) {
+      seen.add(bar.time);
+      unique.push(bar);
+    }
+  }
+
+  return unique;
 }

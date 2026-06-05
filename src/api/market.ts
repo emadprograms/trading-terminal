@@ -26,14 +26,33 @@ export const marketApi = {
     const query = new URLSearchParams();
     query.append('resolution', res);
     
-    if (options.max) query.append('max', options.max.toString());
+    if (options.max) query.append('max', Math.min(options.max, 1000).toString());
     if (options.from) query.append('from', options.from);
     if (options.to) query.append('to', options.to);
 
-    const response = await api.get(`/api/v1/prices/${encodeURIComponent(epic)}`, {
+    const response = await api.get(`api/v1/prices/${encodeURIComponent(epic)}`, {
       searchParams: query,
+      throwHttpErrors: false, // Allow custom handling
     });
 
-    return await response.json<CapitalCandle[]>();
+    const responseData = await response.json() as any;
+    
+    // DEBUG LOGGING
+    console.log(`[MarketAPI] URL: ${response.url}`);
+    console.log(`[MarketAPI] Response Status: ${response.status}`);
+    console.log(`[MarketAPI] Candles received: ${responseData.prices?.length ?? 0}`);
+
+    if (!response.ok) {
+      throw new Error(`API Error ${response.status}: ${JSON.stringify(responseData)}`);
+    }
+
+    // Capital.com wraps historical candles in a "prices" array
+    const data = responseData.prices;
+
+    if (!Array.isArray(data)) {
+      throw new Error(`Expected array of candles but received: ${typeof data}`);
+    }
+
+    return data as CapitalCandle[];
   },
 };

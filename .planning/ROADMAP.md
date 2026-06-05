@@ -93,7 +93,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth & Infrastructure | 4/4 | Completed | Yes |
-| 2. Market Data Engine | 3/3 | Complete    | 2026-06-04 |
+| 2. Market Data Engine | 3/3 | In Progress | - |
 | 3. Order Execution Layer | 0/0 | Not started | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |

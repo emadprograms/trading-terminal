@@ -26,9 +26,9 @@ class WebSocketManager {
       return;
     }
 
-    const url = environment === 'LIVE' 
-      ? 'wss://api.capital.com/ws/live/connect' 
-      : 'wss://api.capital.com/ws/demo/connect';
+    // Note: Capital.com uses a shared streaming URL for both Demo and Live, but we separate them if the environment requires it.
+    // The authentication payload specifies the actual session.
+    const url = 'wss://api-streaming-capital.backend-capital.com/connect';
 
     console.log(`[WSManager] Connecting to ${url}...`);
     this.socket = new WebSocket(url);
@@ -41,10 +41,7 @@ class WebSocketManager {
       // Auto-resubscribe to active epics upon reconnection
       this.activeEpics.forEach(epic => {
         console.log(`[WSManager] Auto-resubscribing to ${epic}`);
-        this.send({
-          type: 'marketData.subscribe',
-          epic,
-        });
+        this.subscribe(epic);
       });
     };
 
@@ -62,9 +59,15 @@ class WebSocketManager {
     };
   }
 
+  private getTokens() {
+    const { cst, securityToken } = useSessionStore.getState();
+    return { cst, securityToken };
+  }
+
   private authenticate(cst: string, securityToken: string): void {
     const authPayload = {
-      type: 'auth',
+      destination: 'ping',
+      correlationId: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
       cst,
       securityToken,
     };
@@ -75,13 +78,13 @@ class WebSocketManager {
     try {
       const message = JSON.parse(data);
       
-      if (message.type === 'marketData.update') {
-        const { epic, bid, ask, timestamp } = message;
-        usePriceStore.getState().updatePrice(epic, bid, ask, timestamp);
+      if (message.destination === 'quote' && message.payload) {
+        const { epic, bid, ofr, timestamp } = message.payload;
+        usePriceStore.getState().updatePrice(epic, bid, ofr, timestamp);
       }
       
-      if (message.type === 'error') {
-        console.error('[WSManager] API Error:', message.message);
+      if (message.status === 'ERROR' || message.type === 'error') {
+        console.error('[WSManager] API Error:', message.errorCode || message.message);
       }
     } catch (e) {
       console.error('[WSManager] Failed to parse message:', e);
@@ -91,9 +94,16 @@ class WebSocketManager {
   public subscribe(epic: string): void {
     this.activeEpics.add(epic);
     if (this.socket?.readyState === WebSocket.OPEN) {
+      const { cst, securityToken } = this.getTokens();
+      if (!cst || !securityToken) return;
       this.send({
-        type: 'marketData.subscribe',
-        epic,
+        destination: 'marketData.subscribe',
+        correlationId: crypto.randomUUID(),
+        cst,
+        securityToken,
+        payload: {
+          epics: [epic]
+        }
       });
     }
   }
@@ -101,9 +111,16 @@ class WebSocketManager {
   public unsubscribe(epic: string): void {
     this.activeEpics.delete(epic);
     if (this.socket?.readyState === WebSocket.OPEN) {
+      const { cst, securityToken } = this.getTokens();
+      if (!cst || !securityToken) return;
       this.send({
-        type: 'marketData.unsubscribe',
-        epic,
+        destination: 'marketData.unsubscribe',
+        correlationId: crypto.randomUUID(),
+        cst,
+        securityToken,
+        payload: {
+          epics: [epic]
+        }
       });
     }
   }

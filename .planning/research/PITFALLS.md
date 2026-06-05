@@ -1,72 +1,50 @@
-# Domain Pitfalls: Capital.com Trading Terminal
+# Known Pitfalls and Debugging Notes
 
-**Domain:** Live Trading Integration
-**Researched:** 2025-06-03
-**Confidence:** HIGH
+**Analysis Date:** 2026-06-05
 
-## Critical Pitfalls
+## Chart Data Not Populating (API Parsing)
 
-Mistakes that cause financial loss, account lockouts, or major system rewrites.
+**Issue:** Charts do not populate with data, returning empty or throwing errors. Console shows `candles.map is not a function` or similar.
 
-### Pitfall 1: Silent Session Expiration (The "Zombie Terminal")
-**What goes wrong:** Capital.com sessions (`CST` and `X-SECURITY-TOKEN`) expire after **10 minutes of inactivity**. If the user leaves the tab open and then attempts a "fast-execution" shortcut (e.g., `Ctrl+1`), the order fails silently or with a `401 Unauthorized` after the price has already moved.
-**Why it happens:** Failing to implement a background heartbeat (ping) or failing to detect/respond to `401` errors with an immediate re-auth.
-**Consequences:** Missed entries, frustrated users, and potential for "stuck" UI states where the app thinks it's connected but orders won't fire.
-**Prevention:** 
-1. Implement a **heartbeat** every 5 minutes (e.g., fetch account summary).
-2. Use an **Axios Interceptor** to catch `401` errors and trigger a transparent re-authentication flow if a valid API key is available.
-**Detection:** Monitor for `401` status codes in logs; UI warning banner when WebSocket connectivity drops.
+**Root Causes:**
 
-### Pitfall 2: The "Stale Price" Race Condition
-**What goes wrong:** A user fires a market order based on a price seen on the chart. In the ~200ms it takes for the request to hit the API, the market moves. If the order is a Limit/Stop, it might be rejected as "Invalid Price" because it's now too close to the current price.
-**Why it happens:** High-frequency price updates vs. network latency. 
-**Consequences:** Rejection of critical "panic" exits or high-conviction entries.
-**Prevention:** 
-1. Use **Slippage Tolerance** parameters if supported by the API.
-2. Implement **Market Orders** for entries where speed > price precision.
-3. Validate `minNormalStopOrLimitDistance` from the `GET /markets/{epic}` endpoint before firing orders.
-**Detection:** Log `error.security.stop-location-invalid` errors; compare execution price vs. chart price at trigger time.
+1.  **Response Wrapper:** The Capital.com `/api/v1/prices/{epic}` REST API returns historical data wrapped in a `prices` object (e.g., `{ prices: [...] }`). The code must extract the array from the wrapper (e.g., `const pricesArray = responseData.prices`) before mapping over it.
+2.  **Date Range Limits:** The API enforces strict limits on the number of bars that can be returned per request, depending on the `resolution`. Exceeding these limits results in a 400 Bad Request.
+    *   `MINUTE`: Max ~16 hours
+    *   `MINUTE_5`: Max ~3 days
+    *   `MINUTE_15`: Max ~7 days
+    *   `MINUTE_30`: Max ~14 days
+    *   `HOUR`: Max ~60 days
+    *   `DAY`: Max ~5 years
+    *   Always cap the `max` parameter to 1000.
+3.  **`ky` Client Configuration:** When using the `ky` HTTP client (v2+), use `prefixUrl` (not `prefix` or `baseUrl`) to prepend a base URL to requests, and ensure the requested endpoint path does *not* start with a leading slash (e.g., `api.get('api/v1/prices/...')`).
+4.  **WebSocket Field Naming:** The WebSocket `marketData.update` / `quote` payload uses the field `ofr` for the ask/offer price, whereas the REST API `prices` endpoint uses the field `ask`. Ensure the data adapter correctly maps these to internal types.
 
-### Pitfall 3: Shortcut Spamming & Rate Limits
-**What goes wrong:** A user hammers `Ctrl+1` multiple times in a second. Capital.com strictly limits order placement to **1 request per 0.1 seconds**.
-**Why it happens:** Lack of client-side debouncing or rate-limiting on execution hooks.
-**Consequences:** `429 Too Many Requests` errors; accidental "double-sizing" (opening two positions instead of one).
-**Prevention:** 
-1. Implement **client-side debouncing** on trading shortcuts (e.g., ignore subsequent presses for 500ms).
-2. Show a "Processing..." state in the UI to prevent double-clicking.
-**Detection:** Monitor for `429` status codes specifically on the `/positions` endpoint.
+## Session and Authentication
 
-## Moderate Pitfalls
+**Issue:** Sessions expire unexpectedly or "zombie" states occur where the UI seems connected but orders fail.
 
-### Pitfall 1: "Lot Size" vs "Share Count" Confusion
-**What goes wrong:** User intends to buy 10 shares but the API interprets the `size` as a "Contract Unit" which might differ by asset class (e.g., Forex vs. Stocks).
-**Prevention:** Always normalize the `size` parameter based on the instrument's `scalingFactor` and `lotSize` returned by the Market Details API. Use a "shares" label in UI for stocks and "units" for Forex.
+**Root Causes & Mitigations:**
 
-### Pitfall 2: WebSocket Subscription Overload
-**What goes wrong:** User opens a workspace with 50 charts. Capital.com limits WebSocket subscriptions to **40 instruments** per connection.
-**Prevention:** Implement a subscription manager that prioritizes the most recently viewed/active charts and unsubscribes from hidden or "bottom-of-the-pile" charts.
+*   **10-Minute Timeout:** Capital.com `CST` and `X-SECURITY-TOKEN` tokens expire after 10 minutes of inactivity.
+*   **Mitigation:** Implement a periodic "heartbeat" ping (e.g., fetching account info every 5 minutes) to keep the session alive. Ensure API clients gracefully handle 401 Unauthorized errors by clearing the session state or prompting re-authentication.
 
-## Minor Pitfalls
+## Rate Limiting
 
-### Pitfall 1: Demo vs. Live URL Mismatch
-**What goes wrong:** Trading on Demo with Live API keys or vice versa.
-**Prevention:** Enforce environment-specific base URLs (`demo-api-...` vs `api-...`) based on the active account toggle in the UI.
+**Issue:** Frequent order rejections or API blocks (429 Too Many Requests).
 
-### Pitfall 2: Hardcoded API Secrets in Frontend
-**What goes wrong:** API key is leaked in the client-side bundle.
-**Prevention:** **Mandatory** use of the Ephemeral Backend as a proxy for all authenticated requests. The frontend should never touch the `API_SECRET`.
+**Root Causes & Mitigations:**
 
-## Phase-Specific Warnings
+*   **Order Throttling:** Capital.com restricts order placements to 1 request per 0.1 seconds.
+*   **Mitigation:** Implement client-side debouncing or a queue for rapid actions like keyboard shortcut trading.
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| **Phase 1: Auth** | Session Timeout (10min) | Implement heartbeat/ping logic immediately. |
-| **Phase 2: Ticks** | WS Subscription Limit (40) | Limit default workspace size or implement LRU subscription caching. |
-| **Phase 3: Execution**| Rate Limiting (1 req/0.1s) | Client-side debouncing on all trading shortcuts. |
-| **Phase 3: Execution**| Min Stop Distance | Fetch and cache market details (`stopLevel`) before allowing trade execution. |
+## Real-time Execution
 
-## Sources
+**Issue:** Market orders fail due to "Invalid Price" or slippage limits.
 
-- [Capital.com API Documentation: Session Management](https://capital.com/api-development-guide)
-- [Capital.com API Reference: Rate Limits](https://capital.com/api-reference)
-- [Common Trading System Race Conditions (Community Research)](https://algocademy.com/blog/trading-system-pitfalls/)
+**Root Causes & Mitigations:**
+
+*   **Stale Data:** Executing orders based on delayed chart data instead of the latest live WebSocket tick.
+*   **Mitigation:** Always use the most recent bid/ask tick from the WebSocket for execution logic, not the last closed candle.
+
+*Updated: 2026-06-05*

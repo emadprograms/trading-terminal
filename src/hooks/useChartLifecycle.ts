@@ -7,6 +7,29 @@ import { useChartInit } from './chart/useChartInit';
 import { useChartPlugins } from './chart/useChartPlugins';
 import { useChartDrawings } from './chart/useChartDrawings';
 import { useChartViewport } from './chart/useChartViewport';
+import { usePriceStore } from '../store/usePriceStore';
+
+const getBucketTime = (timestampMs: number, tf: Timeframe): number => {
+  const date = new Date(timestampMs);
+  
+  if (tf === '1D') {
+    const startOfDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return Math.floor(startOfDay / 1000);
+  }
+  
+  const tfMap: Record<Timeframe, number> = {
+    '1min': 1,
+    '5min': 5,
+    '15min': 15,
+    '30min': 30,
+    '1H': 60,
+    '1D': 1440
+  };
+  
+  const durationMin = tfMap[tf] || 1;
+  const bucketStartMs = Math.floor(timestampMs / (durationMin * 60000)) * (durationMin * 60000);
+  return Math.floor(bucketStartMs / 1000);
+};
 
 
 interface UseChartLifecycleParams {
@@ -130,6 +153,7 @@ export function useChartLifecycle({
 
   const lastDataCountRef = useRef(0);
   const priceLineRef = useRef<IPriceLine | null>(null);
+  const lastCandleRef = useRef<{ time: number; open: number; high: number; low: number; close: number; volume: number } | null>(null);
   const lastTickerRef = useRef(ticker);
   const lastTfRef = useRef(timeframe);
   const lastEthRef = useRef(showEth);
@@ -323,6 +347,91 @@ export function useChartLifecycle({
       }
     };
   }, [globalTime, timeframe, ticker, localMasterData]);
+
+  // 7. Live Tick Updates from WebSocket
+  useEffect(() => {
+    if (!initPriceSeriesRef.current || !initVolumeSeriesRef.current) return;
+
+    const unsubscribe = usePriceStore.subscribe((state) => {
+      const priceData = state.prices[ticker];
+      // Guard: Only update if we have price data, series are ready, AND the chart is hydrated
+      if (!priceData || !initPriceSeriesRef.current || !initVolumeSeriesRef.current || !isHydrated) return;
+
+      const { bid, timestamp } = priceData;
+      const tickPrice = bid;
+      if (!tickPrice || tickPrice <= 0) return;
+
+      // Compute the candle bucket time for this tick
+      const bucketTime = getBucketTime(timestamp, timeframe);
+
+      const lastCandle = lastCandleRef.current;
+
+      if (lastCandle && lastCandle.time === bucketTime) {
+        // Update the existing candle
+        lastCandle.high = Math.max(lastCandle.high, tickPrice);
+        lastCandle.low = Math.min(lastCandle.low, tickPrice);
+        lastCandle.close = tickPrice;
+
+        initPriceSeriesRef.current.update({
+          time: bucketTime as any,
+          open: lastCandle.open,
+          high: lastCandle.high,
+          low: lastCandle.low,
+          close: lastCandle.close,
+        });
+
+        initVolumeSeriesRef.current.update({
+          time: bucketTime as any,
+          value: lastCandle.volume,
+          color: lastCandle.close >= lastCandle.open ? '#26a69a' : '#ef5350',
+        });
+      } else {
+        // New candle bucket
+        const newCandle = {
+          time: bucketTime,
+          open: tickPrice,
+          high: tickPrice,
+          low: tickPrice,
+          close: tickPrice,
+          volume: 0,
+        };
+        lastCandleRef.current = newCandle;
+
+        initPriceSeriesRef.current.update({
+          time: bucketTime as any,
+          open: newCandle.open,
+          high: newCandle.high,
+          low: newCandle.low,
+          close: newCandle.close,
+        });
+
+        initVolumeSeriesRef.current.update({
+          time: bucketTime as any,
+          value: 0,
+          color: '#26a69a',
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [ticker, timeframe, initPriceSeriesRef.current, initVolumeSeriesRef.current, isHydrated]);
+
+  // 7b. Seed lastCandleRef from chart data so ticks extend the latest historical candle
+  useEffect(() => {
+    if (chartData.length > 0) {
+      const last = chartData[chartData.length - 1];
+      const isoString = last.time.replace(' ', 'T') + 'Z';
+      const bucketTime = Math.floor(new Date(isoString).getTime() / 1000);
+      lastCandleRef.current = {
+        time: bucketTime,
+        open: last.open,
+        high: last.high,
+        low: last.low,
+        close: last.close,
+        volume: last.volume,
+      };
+    }
+  }, [chartData]);
 
   return {
     volumeSeriesRef: initVolumeSeriesRef,
