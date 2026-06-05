@@ -1,46 +1,49 @@
 ---
 phase: 03-order-execution-layer
 plan: 00
-subsystem: trade-state
-tags: [trading, zustand, types, msw]
-requires: []
-provides: [trade-foundation]
-affects: [store, types, api]
-tech-stack: [zustand, vitest, msw]
-key-files: [src/types/trade.ts, src/store/useTradeStore.ts, src/store/useTradeStore.test.ts, src/api/trade.test.ts]
+subsystem: order-execution
+tags: [state-management, testing, types]
+dependency-graph:
+  requires: []
+  provides: [trade-state, trade-types, trade-mocks]
+  affects: [trade-api-implementation]
+tech-stack:
+  added: [zustand, msw]
+  patterns: [asynchronous-order-confirmation, global-state-store]
+key-files:
+  - src/types/trade.ts
+  - src/store/useTradeStore.ts
+  - src/store/useTradeStore.test.ts
+  - src/api/trade.test.ts
 decisions:
-  - Global Zustand store for trade lifecycle management.
-  - Asynchronous order tracking using dealReference.
+  - "Use a Record<string, Order> for pendingOrders in useTradeStore to allow O(1) updates via dealReference."
+  - "Separate Order and Position types to distinguish between requests-in-flight and active holdings."
+  - "Implement MSW handlers in a dedicated test file to provide a reliable mock environment for subsequent API development."
 metrics:
-  duration: 15m
-  completed_date: 2026-06-05
+  duration: "15m"
+  completed_date: "2026-06-05"
 ---
 
-# Phase 03 Plan 00: Scaffolding & Store Summary
+# Phase 03 Plan 00: Trade Foundation Summary
 
-Established the foundational types, global state management, and testing infrastructure for the order execution layer.
+Established the global state management and testing foundation for the order execution layer.
 
-## Key Changes
+## Completed Tasks
 
-### Trade Domain Models
-- Created `src/types/trade.ts` defining `Order`, `Position`, and `TradeConfirmation` interfaces.
-- Implemented `OrderStatus`, `OrderType`, and `OrderDirection` enums.
-
-### Global Trade Store
-- Implemented `useTradeStore` using Zustand to manage `pendingOrders` and `positions`.
-- Added actions for adding pending orders, updating order status, and managing active positions.
-- Verified state transitions with unit tests in `src/store/useTradeStore.test.ts`.
-
-### Testing Infrastructure
-- Setup `src/api/trade.test.ts` with MSW handlers to mock Capital.com's `/positions`, `/workingorders`, and `/confirms` endpoints.
-- Verified that the `api` client correctly interacts with these mocked endpoints.
+| Task | Name | Result |
+|------|------|--------|
+| 1 | Define Trade Types | Created `src/types/trade.ts` with comprehensive domain models. |
+| 2 | Implement useTradeStore | Implemented Zustand store with TDD; passes all state transition tests. |
+| 3 | Setup Trade Test Scaffolding | Created `src/api/trade.test.ts` with MSW mocks for Capital.com flow. |
 
 ## Deviations from Plan
 
 None - plan executed exactly as written.
 
 ## Self-Check: PASSED
-- [x] `src/types/trade.ts` exists and contains defined types.
-- [x] `src/store/useTradeStore.ts` passes unit tests.
-- [x] `src/api/trade.test.ts` passes MSW integration tests.
-- [x] All changes committed with proper prefixes.
+
+- [x] `src/types/trade.ts` exists and exports correct types.
+- [x] `src/store/useTradeStore.ts` implements required actions.
+- [x] `src/store/useTradeStore.test.ts` passes.
+- [x] `src/api/trade.test.ts` successfully mocks order flow.
+- [x] All changes committed.
