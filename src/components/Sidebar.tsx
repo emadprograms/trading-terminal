@@ -1,5 +1,6 @@
-import React from 'react';
-import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft } from 'lucide-react';
+import { TradeLog } from './TradeLog';
 
 interface SidebarProps {
   dbStatus: string;
@@ -39,34 +40,76 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setLayoutMode,
   onLaunch
 }) => {
+  const [showTradeLog, setShowTradeLog] = useState(false);
+
   return (
-    <aside className="sidebar">
-      <div className="logo" title="Trading Terminal">
-        <Activity size={24} color="var(--accent-green)" />
-      </div>
+    <>
+      <aside className="sidebar">
+        <div className="logo" title="Trading Terminal">
+          <Activity size={24} color="var(--accent-green)" />
+        </div>
 
-      <button className="btn-icon" onClick={onLaunch} title="Connect Proxy">
-        <ExternalLink size={20} color="var(--accent-green)" />
-      </button>
+        <button className="btn-icon" onClick={onLaunch} title="Connect Proxy">
+          <ExternalLink size={20} color="var(--accent-green)" />
+        </button>
 
-      <div style={{ flex: 1 }}></div>
+        <button 
+          className={`btn-icon ${showTradeLog ? 'active' : ''}`} 
+          onClick={() => setShowTradeLog(!showTradeLog)} 
+          title="Trade Log"
+          style={{ 
+            color: showTradeLog ? 'var(--accent-green)' : 'var(--text-secondary)',
+            background: showTradeLog ? 'rgba(38, 166, 154, 0.1)' : 'transparent'
+          }}
+        >
+          <ClipboardList size={20} />
+        </button>
 
-      <div className="layout-selector" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 4px', marginBottom: 'auto', alignItems: 'center' }}>
-        {LAYOUTS.map(l => (
-          <div 
-            key={l.id} 
-            className={`layout-icon ${l.class} ${layoutMode === l.id ? 'active' : ''}`}
-            onClick={() => setLayoutMode(l.id)}
-            title={`Layout ${l.id.toUpperCase()}`}
-          >
-            {l.id === '1' && <div />}
-            {l.id === '2v' && <><div/><div/></>}
-            {l.id === '2h' && <><div/><div/></>}
-            {l.id.startsWith('3') && <><div/><div/><div/></>}
-            {l.id === '4' && <><div/><div/><div/><div/></>}
+        <div style={{ flex: 1 }}></div>
+
+        <div className="layout-selector" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 4px', marginBottom: 'auto', alignItems: 'center' }}>
+          {LAYOUTS.map(l => (
+            <div 
+              key={l.id} 
+              className={`layout-icon ${l.class} ${layoutMode === l.id ? 'active' : ''}`}
+              onClick={() => setLayoutMode(l.id)}
+              title={`Layout ${l.id.toUpperCase()}`}
+            >
+              {l.id === '1' && <div />}
+              {l.id === '2v' && <><div/><div/></>}
+              {l.id === '2h' && <><div/><div/></>}
+              {l.id.startsWith('3') && <><div/><div/><div/></>}
+              {l.id === '4' && <><div/><div/><div/><div/></>}
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      {showTradeLog && (
+        <div className="sidebar-panel" style={{
+          width: '320px',
+          background: 'rgba(0, 0, 0, 0.9)',
+          backdropFilter: 'var(--glass-blur)',
+          borderRight: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 90
+        }}>
+          <div style={{ 
+            padding: '16px', 
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Execution Log</h3>
+            <button className="btn-icon" onClick={() => setShowTradeLog(false)}>
+              <ChevronLeft size={18} />
+            </button>
           </div>
-        ))}
-      </div>
-    </aside>
+          <TradeLog />
+        </div>
+      )}
+    </>
   );
 };
