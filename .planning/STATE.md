@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://residents-better-itunes-beyond.trycloudflare.com
+- **Proxy URL**: https://immigrants-slots-findings-phd.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
