@@ -26,9 +26,18 @@ export const marketApi = {
     const query = new URLSearchParams();
     query.append('resolution', res);
     
+    const sanitizeDate = (d: string) => {
+      let cleaned = d.replace(' ', 'T');
+      // If it's just YYYY-MM-DD, append T12:00:00 (midday is safer for timezone shifts)
+      if (cleaned.length === 10) {
+        cleaned += 'T12:00:00';
+      }
+      return cleaned;
+    };
+
     if (options.max) query.append('max', Math.min(options.max, 1000).toString());
-    if (options.from) query.append('from', options.from.replace(' ', 'T'));
-    if (options.to) query.append('to', options.to.replace(' ', 'T'));
+    if (options.from) query.append('from', sanitizeDate(options.from));
+    if (options.to) query.append('to', sanitizeDate(options.to));
 
     const response = await api.get(`api/v1/prices/${encodeURIComponent(epic)}`, {
       searchParams: query,
