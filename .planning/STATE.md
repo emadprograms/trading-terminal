@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://rear-soup-traditional-mold.trycloudflare.com
+- **Proxy URL**: https://die-delhi-coming-sauce.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
