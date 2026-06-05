@@ -315,7 +315,7 @@ export function useChartLifecycle({
       const priceData = state.prices[ticker];
       if (!priceData || !initPriceSeriesRef.current) return;
 
-      const { bid, ofr: ask } = priceData;
+      const { bid, ask } = priceData;
       
       // Update Bid Line
       if (bid) {
