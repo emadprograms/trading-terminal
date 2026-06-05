@@ -73,9 +73,9 @@
   3. Trade confirmation messages (Success/Failure) are visible to the user.
 
 **Plans**: 3 plans
-- [ ] 03-01-PLAN.md — Scaffolding & Store
-- [ ] 03-02-PLAN.md — API & WebSocket Integration
-- [ ] 03-03-PLAN.md — UI Components & Feedback
+- [ ] 03-00-PLAN.md — Scaffolding & Store
+- [ ] 03-01-PLAN.md — API & WebSocket Integration
+- [ ] 03-02-PLAN.md — UI Components & Feedback
 
 **UI hint**: yes
 

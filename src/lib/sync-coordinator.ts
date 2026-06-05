@@ -34,17 +34,21 @@ export class SyncCoordinator {
     wsManager.subscribe(ticker, true);
 
     // 2. Fetch initial history
+    console.log(`[SyncCoordinator] DEBUG: Fetching history for ${ticker} to ${toIso}`);
     let history = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
     
     if (!history || history.length === 0) {
+      console.warn(`[SyncCoordinator] DEBUG: History fetch returned EMPTY for ${ticker}`);
       wsManager.setBuffering(ticker, false);
       return [];
     }
 
+    console.log(`[SyncCoordinator] DEBUG: History fetch successful. Count: ${history.length}`);
     const lastRestCandle = history[history.length - 1];
     const lastRestTimeMs = new Date(lastRestCandle.time.replace(' ', 'T') + 'Z').getTime();
     
     console.log(`[SyncCoordinator] DEBUG: Last REST candle time: ${lastRestCandle.time} (${lastRestTimeMs}ms)`);
+    console.log(`[SyncCoordinator] DEBUG: System current time: ${new Date().toISOString()} (${Date.now()}ms)`);
 
     // 3. Check for buffered ticks to find the "Live Start"
     const buffer = wsManager.getAndClearBuffer(ticker);
