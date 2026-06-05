@@ -1,55 +1,89 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../tests/setup';
-import { api } from './client';
+import { tradeApi } from './trade';
+import { useSessionStore } from '../store/useSessionStore';
 
-describe('Trade API Scaffolding', () => {
-  it('should mock position placement', async () => {
-    server.use(
-      http.post('*/positions', () => {
-        return HttpResponse.json({ dealReference: 'mock-pos-ref' });
-      })
-    );
+const server = setupServer(
+  http.post('http://localhost:3000/positions', async ({ request }) => {
+    const body = await request.json() as any;
+    if (!body.epic || !body.direction || !body.size) {
+      return new HttpResponse(null, { status: 400 });
+    }
+    return HttpResponse.json({ dealReference: 'deal_ref_123' });
+  }),
+  http.post('http://localhost:3000/workingorders', async ({ request }) => {
+    const body = await request.json() as any;
+    if (!body.epic || !body.direction || !body.size || !body.level) {
+      return new HttpResponse(null, { status: 400 });
+    }
+    return HttpResponse.json({ dealReference: 'deal_ref_456' });
+  }),
+  http.get('http://localhost:3000/confirms/:dealReference', async ({ params }) => {
+    const { dealReference } = params;
+    if (dealReference === 'deal_ref_123') {
+      return HttpResponse.json({
+        dealReference: 'deal_ref_123',
+        dealId: 'deal_id_123',
+        status: 'ACCEPTED',
+        epic: 'AAPL',
+        level: 150,
+        size: 1,
+        direction: 'BUY'
+      });
+    }
+    return new HttpResponse(null, { status: 404 });
+  })
+);
 
-    const response = await api.post('positions', {
-      json: { epic: 'EURUSD', direction: 'BUY', size: 1 }
-    }).json<{ dealReference: string }>();
+beforeEach(() => {
+  useSessionStore.getState().setProxyUrl('http://localhost:3000');
+  server.listen();
+});
 
-    expect(response.dealReference).toBe('mock-pos-ref');
+afterEach(() => {
+  server.resetHandlers();
+  server.close();
+});
+
+describe('tradeApi', () => {
+  it('should place a market order and return dealReference', async () => {
+    const result = await tradeApi.placeMarketOrder({
+      epic: 'AAPL',
+      direction: 'BUY',
+      size: 1
+    });
+    expect(result.dealReference).toBe('deal_ref_123');
   });
 
-  it('should mock working order placement', async () => {
-    server.use(
-      http.post('*/workingorders', () => {
-        return HttpResponse.json({ dealReference: 'mock-order-ref' });
-      })
-    );
-
-    const response = await api.post('workingorders', {
-      json: { epic: 'EURUSD', direction: 'BUY', size: 1, level: 1.1, type: 'LIMIT' }
-    }).json<{ dealReference: string }>();
-
-    expect(response.dealReference).toBe('mock-order-ref');
+  it('should place a limit order and return dealReference', async () => {
+    const result = await tradeApi.placeLimitOrder({
+      epic: 'AAPL',
+      direction: 'BUY',
+      size: 1,
+      level: 145,
+      type: 'LIMIT'
+    });
+    expect(result.dealReference).toBe('deal_ref_456');
   });
 
-  it('should mock trade confirmation', async () => {
+  it('should get confirmation for a deal reference', async () => {
+    const result = await tradeApi.getConfirmation('deal_ref_123');
+    expect(result.dealId).toBe('deal_id_123');
+    expect(result.status).toBe('ACCEPTED');
+  });
+
+  it('should throw error on failed market order', async () => {
     server.use(
-      http.get('*/confirms/mock-ref', () => {
-        return HttpResponse.json({
-          dealReference: 'mock-ref',
-          dealId: 'deal-123',
-          status: 'ACCEPTED',
-          epic: 'EURUSD',
-          level: 1.05,
-          size: 1,
-          direction: 'BUY'
+      http.post('http://localhost:3000/positions', () => {
+        return new HttpResponse(JSON.stringify({ errorCode: 'error.invalid-size' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
         });
       })
     );
 
-    const response = await api.get('confirms/mock-ref').json<{ dealId: string; status: string }>();
-
-    expect(response.status).toBe('ACCEPTED');
-    expect(response.dealId).toBe('deal-123');
+    await expect(tradeApi.placeMarketOrder({ epic: 'AAPL', direction: 'BUY', size: 0 }))
+      .rejects.toThrow(/Market order failed/);
   });
 });
