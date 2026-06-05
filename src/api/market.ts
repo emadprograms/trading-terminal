@@ -27,8 +27,14 @@ export const marketApi = {
     query.append('resolution', res);
     
     const sanitizeDate = (d: string) => {
-      let cleaned = d.replace(' ', 'T');
-      // If it's just YYYY-MM-DD, append T12:00:00 (midday is safer for timezone shifts)
+      // Capital.com expects "YYYY-MM-DDTHH:MM:SS"
+      // Remove everything after the seconds part (milliseconds and Z)
+      let cleaned = d.replace(' ', 'T').split('.')[0];
+      if (cleaned.endsWith('Z')) {
+        cleaned = cleaned.slice(0, -1);
+      }
+      
+      // If it's just YYYY-MM-DD, append T12:00:00
       if (cleaned.length === 10) {
         cleaned += 'T12:00:00';
       }

@@ -11,10 +11,10 @@ updated: 2026-06-04T10:15:00Z
 
 ## Current Test
 
-number: 3
-name: Real-time Price Display
+number: 5
+name: Environment Toggle
 expected: |
-  The Bid/Ask prices in the Chart Header update in real-time with sub-second latency via WebSocket.
+  Switching between Demo and Live environments triggers a WebSocket reconnection/subscription change, and price feeds update to reflect the selected environment.
 awaiting: user response
 
 ## Tests
@@ -29,11 +29,11 @@ result: pass
 
 ### 3. Real-time Price Display
 expected: The Bid/Ask prices in the Chart Header update in real-time with sub-second latency via WebSocket.
-result: [pending]
+result: pass
 
 ### 4. Live Candle Progression
 expected: The most recent candle on the chart updates its price/wick dynamically as new WebSocket ticks arrive.
-result: [pending]
+result: pass
 
 ### 5. Environment Toggle
 expected: Switching between Demo and Live environments triggers a WebSocket reconnection/subscription change, and price feeds update to reflect the selected environment.
@@ -46,9 +46,9 @@ result: [pending]
 ## Summary
 
 total: 6
-passed: 2
+passed: 4
 issues: 0
-pending: 4
+pending: 2
 skipped: 0
 
 ## Gaps
