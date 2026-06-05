@@ -26,8 +26,8 @@ app.use('*', cors({
 const getApiTarget = (envHeader?: string) => {
   const env = envHeader || process.env.ENV || 'DEMO'
   return env === 'LIVE' 
-    ? 'https://api-capital.backend-capital.com' 
-    : 'https://demo-api-capital.backend-capital.com'
+    ? { target: 'https://api-capital.backend-capital.com', key: process.env.CAPITAL_API_KEY_LIVE || process.env.CAPITAL_API_KEY }
+    : { target: 'https://demo-api-capital.backend-capital.com', key: process.env.CAPITAL_API_KEY_DEMO || process.env.CAPITAL_API_KEY }
 }
 
 app.get('/ping', (c) => c.json({ status: 'OK' }))
@@ -35,7 +35,7 @@ app.get('/ping', (c) => c.json({ status: 'OK' }))
 app.post('/session', async (c) => {
   console.log(`[StabilityTrace] Handling /session request...`)
   
-  const target = getApiTarget(c.req.header('X-Environment'))
+  const { target, key } = getApiTarget(c.req.header('X-Environment'))
   console.log(`[StabilityTrace] Routing /session to: ${target}`)
   
   if (process.env.NODE_ENV === 'test') {
@@ -63,7 +63,7 @@ app.post('/session', async (c) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CAP-API-KEY': process.env.CAPITAL_API_KEY || '',
+        'X-CAP-API-KEY': key || '',
       },
       body: JSON.stringify(body),
     })
@@ -105,7 +105,7 @@ app.post('/session', async (c) => {
 })
 
 app.all('*', async (c) => {
-  const targetBase = getApiTarget(c.req.header('X-Environment'))
+  const { target: targetBase, key } = getApiTarget(c.req.header('X-Environment'))
   
   // Rewrite path to include /api/v1 if it's missing
   let path = c.req.path
@@ -142,10 +142,10 @@ app.all('*', async (c) => {
   }
   
   // Inject API Key
-  if (process.env.CAPITAL_API_KEY) {
-    requestHeaders.set('X-CAP-API-KEY', process.env.CAPITAL_API_KEY)
+  if (key) {
+    requestHeaders.set('X-CAP-API-KEY', key)
   } else {
-    console.warn(`[StabilityTrace] WARNING: CAPITAL_API_KEY is missing in proxy environment!`)
+    console.warn(`[StabilityTrace] WARNING: API Key is missing for target ${targetBase}`)
   }
 
   // DEBUG: Log sent headers (redacted)
