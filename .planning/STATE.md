@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://die-delhi-coming-sauce.trycloudflare.com
+- **Proxy URL**: https://watt-administration-fitted-twenty.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
