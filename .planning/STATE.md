@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://poster-previous-climbing-cursor.trycloudflare.com
+- **Proxy URL**: https://rear-soup-traditional-mold.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
