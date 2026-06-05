@@ -194,9 +194,6 @@ export default function ChartUnit({
         
         <TradeControls 
           ticker={data.ticker}
-          tradeSize={trade.tradeSize}
-          setTradeSize={trade.setTradeSize}
-          placeOrder={trade.placeOrder}
         />
         
         {/* KEYBOARD ACTION MODAL */}

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
 import { Order, Position, OrderStatus, TradeConfirmation, OrderDirection, OrderType } from '../types/trade';
 import { tradeApi } from '../api/trade';
 
@@ -130,6 +131,9 @@ export const useTradeStore = create<TradeState>((set, get) => ({
     get().updateOrderStatus(dealReference, status, { dealId, reason });
 
     if (status === 'ACCEPTED') {
+      toast.success(`Trade Success: ${direction} ${size} ${epic} at ${level}`, {
+        description: `Deal ID: ${dealId}`,
+      });
       get().addPosition({
         dealId,
         epic,
@@ -137,6 +141,10 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         direction,
         entryPrice: level,
         timestamp: Date.now(),
+      });
+    } else {
+      toast.error(`Trade Rejected: ${epic}`, {
+        description: reason || 'Unknown rejection reason',
       });
     }
   },
