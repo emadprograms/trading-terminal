@@ -24,7 +24,7 @@ IN PROGRESS (UAT Testing)
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://grace-generic-striking-karaoke.trycloudflare.com
+- **Proxy URL**: https://attempted-sir-ethnic-faculty.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
