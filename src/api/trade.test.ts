@@ -1,78 +1,68 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupServer } from 'msw/node';
-import { http, HttpResponse } from 'msw';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { tradeApi } from './trade';
+import { api } from './client';
 
-// Define the MSW server to mock Capital.com endpoints
-const server = setupServer(
-  // Mock POST /positions (Market Order)
-  http.post('*/api/v1/positions', () => {
-    return HttpResponse.json({
-      dealReference: 'mock-deal-ref-market',
-    });
-  }),
+vi.mock('./client', () => ({
+  api: {
+    post: vi.fn(),
+    get: vi.fn(),
+  },
+}));
 
-  // Mock POST /workingorders (Limit/Stop Order)
-  http.post('*/api/v1/workingorders', () => {
-    return HttpResponse.json({
-      dealReference: 'mock-deal-ref-working',
-    });
-  }),
-
-  // Mock GET /confirms/{dealReference}
-  http.get('*/api/v1/confirms/:dealReference', ({ params }) => {
-    const { dealReference } = params;
-    
-    if (dealReference === 'mock-deal-ref-market') {
-      return HttpResponse.json({
-        dealReference: 'mock-deal-ref-market',
-        status: 'ACCEPTED',
-        dealId: 'mock-deal-id-123',
-        epic: 'AAPL',
-        size: 0.1,
-        entryPrice: 150.0,
-        timestamp: Date.now(),
-      });
-    }
-    
-    return HttpResponse.json({
-      dealReference,
-      status: 'REJECTED',
-      reason: 'INVALID_PARAMS',
-      timestamp: Date.now(),
-    });
-  }),
-);
-
-beforeAll(() => server.listen());
-afterAll(() => server.close());
-
-describe('Trade API Scaffolding', () => {
-  it('should mock a successful market order placement flow', async () => {
-    // This is a scaffold test. In a real scenario, we would call the actual tradeApi.openPosition
-    // For now, we verify that the MSW handlers are responding as expected.
-    
-    const response = await fetch('http://api.capital.com/api/v1/positions', {
-      method: 'POST',
-      body: JSON.stringify({ epic: 'AAPL', direction: 'BUY', size: 0.1 }),
-    });
-    const data = await response.json();
-    
-    expect(data.dealReference).toBe('mock-deal-ref-market');
-
-    const confirmResponse = await fetch(`http://api.capital.com/api/v1/confirms/${data.dealReference}`);
-    const confirmData = await confirmResponse.json();
-    
-    expect(confirmData.status).toBe('ACCEPTED');
-    expect(confirmData.dealId).toBe('mock-deal-id-123');
+describe('tradeApi', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('should mock a limit order placement', async () => {
-    const response = await fetch('http://api.capital.com/api/v1/workingorders', {
-      method: 'POST',
-      body: JSON.stringify({ epic: 'AAPL', direction: 'BUY', size: 0.1, level: 145.0, type: 'LIMIT' }),
+  it('placeMarketOrder should call POST /positions and return dealReference', async () => {
+    const mockResponse = { dealReference: 'DR12345' };
+    (api.post as any).mockImplementation(() => ({
+      json: () => Promise.resolve(mockResponse),
+    }));
+
+    const params = { epic: 'AAPL', size: 1, direction: 'BUY' };
+    const result = await tradeApi.placeMarketOrder(params);
+
+    expect(api.post).toHaveBeenCalledWith('/positions', { json: params });
+    expect(result).toBe('DR12345');
+  });
+
+  it('placeLimitOrder should call POST /workingorders and return dealReference', async () => {
+    const mockResponse = { dealReference: 'DR67890' };
+    (api.post as any).mockImplementation(() => ({
+      json: () => Promise.resolve(mockResponse),
+    }));
+
+    const params = { epic: 'AAPL', size: 1, direction: 'BUY', level: 150.0 };
+    const result = await tradeApi.placeLimitOrder(params);
+
+    expect(api.post).toHaveBeenCalledWith('/workingorders', { json: params });
+    expect(result).toBe('DR67890');
+  });
+
+  it('getConfirmation should call GET /confirms/{dealReference}', async () => {
+    const mockResponse = { status: 'ACCEPTED', dealId: 'D123' };
+    (api.get as any).mockImplementation(() => ({
+      json: () => Promise.resolve(mockResponse),
+    }));
+
+    const dealReference = 'DR12345';
+    const result = await tradeApi.getConfirmation(dealReference);
+
+    expect(api.get).toHaveBeenCalledWith(`/confirms/${dealReference}`);
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should throw human-readable error on 400/401 responses', async () => {
+    (api.post as any).mockImplementation(() => {
+      throw {
+        response: {
+          status: 400,
+          body: { message: 'Invalid parameters' },
+        },
+      };
     });
-    const data = await response.json();
-    
-    expect(data.dealReference).toBe('mock-deal-ref-working');
+
+    await expect(tradeApi.placeMarketOrder({})).rejects.toThrow('Trade API Error: Invalid parameters');
   });
 });

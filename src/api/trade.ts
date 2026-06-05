@@ -1,121 +1,66 @@
 import { api } from './client';
-import { OrderDirection, OrderType, TradeConfirmation } from '../types/trade';
+import { OrderDirection, OrderType } from '../types/trade';
 
-export interface MarketOrderParams {
+interface MarketOrderParams {
   epic: string;
-  direction: OrderDirection;
   size: number;
+  direction: OrderDirection;
 }
 
-export interface LimitOrderParams {
-  epic: string;
-  direction: OrderDirection;
-  size: number;
+interface LimitOrderParams extends MarketOrderParams {
   level: number;
-  type: 'LIMIT' | 'STOP';
+  type: OrderType;
 }
 
-/**
- * Trade API for Capital.com integration.
- * Handles market orders, working orders (limit/stop), and execution confirmations.
- */
 export const tradeApi = {
   /**
-   * Places a market order (opens a position).
-   * @returns The deal reference for tracking.
+   * Place a market order.
+   * Returns the dealReference from the API response.
    */
-  async placeMarketOrder(params: MarketOrderParams): Promise<{ dealReference: string }> {
+  async placeMarketOrder(params: MarketOrderParams): Promise<string> {
     try {
-      const response = await api.post('positions', {
-        json: {
-          ...params,
-          guaranteedStop: false,
-          forceOpen: true, // Default to true for terminal behavior
-        }
-      }).json<{ dealReference: string }>();
-      
-      return response;
-    } catch (error: any) {
-      if (error.response) {
-        try {
-          const details = await error.response.json();
-          throw new Error(`Market order failed: ${details?.errorCode || error.message}`);
-        } catch (e) {
-          // Fallback if JSON parsing fails
-        }
+      const response = await api.post('/positions', { json: params }).json();
+      if (!response.dealReference) {
+        throw new Error('API response missing dealReference');
       }
-      throw new Error(`Market order failed: ${error.message}`);
+      return response.dealReference;
+    } catch (error: any) {
+      this.handleApiError(error);
     }
   },
 
   /**
-   * Places a working order (LIMIT or STOP).
-   * @returns The deal reference for tracking.
+   * Place a limit or stop order.
    */
-  async placeLimitOrder(params: LimitOrderParams): Promise<{ dealReference: string }> {
+  async placeLimitOrder(params: LimitOrderParams): Promise<string> {
     try {
-      const response = await api.post('workingorders', {
-        json: {
-          ...params,
-          guaranteedStop: false,
-          forceOpen: true,
-          timeInForce: 'GOOD_TILL_CANCELLED'
-        }
-      }).json<{ dealReference: string }>();
-
-      return response;
-    } catch (error: any) {
-      if (error.response) {
-        try {
-          const details = await error.response.json();
-          throw new Error(`Limit order failed: ${details?.errorCode || error.message}`);
-        } catch (e) {
-          // Fallback
-        }
+      const response = await api.post('/workingorders', { json: params }).json();
+      if (!response.dealReference) {
+        throw new Error('API response missing dealReference');
       }
-      throw new Error(`Limit order failed: ${error.message}`);
+      return response.dealReference;
+    } catch (error: any) {
+      this.handleApiError(error);
     }
   },
 
   /**
-   * Polls for trade confirmation using a deal reference.
-   * Fallback for when WebSocket fails or as a safeguard.
+   * Get confirmation for a specific deal.
+   * Used as a fallback when WebSocket messages are missed.
    */
-  async getConfirmation(dealReference: string): Promise<TradeConfirmation> {
+  async getConfirmation(dealReference: string): Promise<any> {
     try {
-      const response = await api.get(`confirms/${dealReference}`).json<TradeConfirmation>();
-      return response;
+      return await api.get(`/confirms/${dealReference}`).json();
     } catch (error: any) {
-      if (error.response) {
-        try {
-          const details = await error.response.json();
-          throw new Error(`Confirmation fetch failed: ${details?.errorCode || error.message}`);
-        } catch (e) {
-          // Fallback
-        }
-      }
-      throw new Error(`Confirmation fetch failed: ${error.message}`);
+      this.handleApiError(error);
     }
   },
 
   /**
-   * Closes an active position.
-   * @param dealId The ID of the position to close.
+   * Centralized error handler for trade API calls.
    */
-  async closePosition(dealId: string): Promise<{ dealReference: string }> {
-    try {
-      const response = await api.delete(`positions/${dealId}`).json<{ dealReference: string }>();
-      return response;
-    } catch (error: any) {
-      if (error.response) {
-        try {
-          const details = await error.response.json();
-          throw new Error(`Close position failed: ${details?.errorCode || error.message}`);
-        } catch (e) {
-          // Fallback
-        }
-      }
-      throw new Error(`Close position failed: ${error.message}`);
-    }
-  }
+  handleApiError(error: any): never {
+    const message = error.response?.body?.message || error.message || 'Unknown error';
+    throw new Error(`Trade API Error: ${message}`);
+  },
 };
