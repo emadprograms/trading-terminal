@@ -3,24 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-last_updated: "2026-06-04T19:20:58.408Z"
+last_updated: "2026-06-05T22:15:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 40
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 10
+  percent: 60
 ---
 
 # Project State
 
 ## Current Phase
 
-Phase 2: Market Data Engine
+Phase 3: Order Execution Layer
 
 ## Status
 
-IN PROGRESS (UAT Testing)
+READY TO PLAN
 
 ## Active Infrastructure
 
@@ -32,10 +32,11 @@ IN PROGRESS (UAT Testing)
 - **Auth Mode**: Dual-token (CST + X-SECURITY-TOKEN)
 - **Persistence**: Proxy URL persisted in localStorage; Tokens in-memory.
 
-## Phase 2 Deliverables
+## Phase 2.1 Deliverables
 
-- [x] REST Historical Data integration
-- [x] WebSocket Real-time Pricing
-- [x] UI Cleanup (Removed legacy DB dependencies)
-- [ ] UAT Verification (In Progress)
-- [ ] Price store synchronization logic
+- [x] WebSocket tick buffering
+- [x] Gap detection logic (1x timeframe threshold)
+- [x] Bridge fetching for missing historical data
+- [x] Atomic handover and tick replay logic
+- [x] Date sanitization for Capital.com API compliance
+- [x] Auth-gated chart initialization

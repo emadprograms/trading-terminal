@@ -11,10 +11,10 @@ updated: 2026-06-04T10:15:00Z
 
 ## Current Test
 
-number: 5
-name: Environment Toggle
+number: 6
+name: Timeframe Switch
 expected: |
-  Switching between Demo and Live environments triggers a WebSocket reconnection/subscription change, and price feeds update to reflect the selected environment.
+  Changing the chart timeframe (e.g., 1m to 1h) triggers a new historical data fetch and refreshes the chart with candles of the selected resolution.
 awaiting: user response
 
 ## Tests
@@ -37,7 +37,7 @@ result: pass
 
 ### 5. Environment Toggle
 expected: Switching between Demo and Live environments triggers a WebSocket reconnection/subscription change, and price feeds update to reflect the selected environment.
-result: [pending]
+result: pass
 
 ### 6. Timeframe Switch
 expected: Changing the chart timeframe (e.g., 1m to 1h) triggers a new historical data fetch and refreshes the chart with candles of the selected resolution.
@@ -46,9 +46,9 @@ result: [pending]
 ## Summary
 
 total: 6
-passed: 4
+passed: 5
 issues: 0
-pending: 2
+pending: 1
 skipped: 0
 
 ## Gaps
