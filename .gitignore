@@ -7,7 +7,7 @@ dist-ssr/
 
 # Assets
 sql-wasm.wasm
-
+public/sql-wasm.wasm
 
 # Python
 venv/
@@ -16,6 +16,8 @@ __pycache__/
 
 # Local Database (Avoid 100MB limit issues)
 backend/**/*.db
+*.sqlite
+*.db
 
 # Env
 .env
@@ -29,8 +31,23 @@ backend/**/__pycache__/
 backend/**/venv/
 scratch.py
 
-# System
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System & IDE
 .DS_Store
-.antigravitycli/4293a9f9-20d1-4191-99ff-428733621050.json
+.vscode/
+.idea/
+.antigravitycli/
 vscode_cli.tar.gz
 code
+
+# Gemini CLI
+.gemini/
+.gemini/*
+.planning/debug/
+.planning/research/
+MEMORY.md
