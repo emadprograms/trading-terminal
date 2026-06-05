@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Activity } from 'lucide-react';
+import { Toaster } from 'sonner';
 
 // Hooks
 import { useDatabase } from './hooks/useDatabase';
@@ -146,6 +147,7 @@ export default function App() {
         )}
 
       </div>
+      <Toaster theme="dark" position="top-right" richColors />
     </div>
   );
 }
