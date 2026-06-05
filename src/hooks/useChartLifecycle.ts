@@ -152,7 +152,9 @@ export function useChartLifecycle({
   }, [initChartRef.current, initPriceSeriesRef.current, chartRef, priceSeriesRef]);
 
   const lastDataCountRef = useRef(0);
-  const priceLineRef = useRef<IPriceLine | null>(null);
+  const bidLineRef = useRef<IPriceLine | null>(null);
+  const askLineRef = useRef<IPriceLine | null>(null);
+  const replayPriceLineRef = useRef<IPriceLine | null>(null);
   const lastCandleRef = useRef<{ time: number; open: number; high: number; low: number; close: number; volume: number } | null>(null);
   const lastTickerRef = useRef(ticker);
   const lastTfRef = useRef(timeframe);
@@ -305,7 +307,65 @@ export function useChartLifecycle({
     };
   }, [initChartRef.current, onFocus]);
 
-  // 6. Live Price Line for 1D chart (Extended Hours)
+  // 6. Live Price Lines for Bid and Ask
+  useEffect(() => {
+    if (!initPriceSeriesRef.current || !isHydrated) return;
+
+    const unsubscribe = usePriceStore.subscribe((state) => {
+      const priceData = state.prices[ticker];
+      if (!priceData || !initPriceSeriesRef.current) return;
+
+      const { bid, ofr: ask } = priceData;
+      
+      // Update Bid Line
+      if (bid) {
+        if (!bidLineRef.current) {
+          bidLineRef.current = initPriceSeriesRef.current.createPriceLine({
+            price: bid,
+            color: '#ef5350', // Red for bid (sell price)
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+            title: 'BID',
+          });
+        } else {
+          bidLineRef.current.applyOptions({ price: bid });
+        }
+      }
+
+      // Update Ask Line
+      if (ask) {
+        if (!askLineRef.current) {
+          askLineRef.current = initPriceSeriesRef.current.createPriceLine({
+            price: ask,
+            color: '#26a69a', // Teal for ask (buy price)
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+            title: 'ASK',
+          });
+        } else {
+          askLineRef.current.applyOptions({ price: ask });
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (initPriceSeriesRef.current) {
+        if (bidLineRef.current) {
+          try { initPriceSeriesRef.current.removePriceLine(bidLineRef.current); } catch(_) {}
+          bidLineRef.current = null;
+        }
+        if (askLineRef.current) {
+          try { initPriceSeriesRef.current.removePriceLine(askLineRef.current); } catch(_) {}
+          askLineRef.current = null;
+        }
+      }
+    };
+  }, [ticker, isHydrated]);
+
+  // 6b. Replay Price Line for 1D chart or Replay Mode
   useEffect(() => {
     if (!initPriceSeriesRef.current) return;
 
@@ -321,29 +381,29 @@ export function useChartLifecycle({
       }
 
       if (lastPrice !== null) {
-        if (!priceLineRef.current) {
-          priceLineRef.current = initPriceSeriesRef.current.createPriceLine({
+        if (!replayPriceLineRef.current) {
+          replayPriceLineRef.current = initPriceSeriesRef.current.createPriceLine({
             price: lastPrice,
             color: 'rgba(255, 210, 0, 0.6)',
             lineWidth: 1,
             lineStyle: 2,
             axisLabelVisible: true,
-            title: 'Live',
+            title: 'Replay',
           });
         } else {
-          priceLineRef.current.applyOptions({ price: lastPrice });
+          replayPriceLineRef.current.applyOptions({ price: lastPrice });
         }
       }
-    } else if (priceLineRef.current && initPriceSeriesRef.current) {
-      initPriceSeriesRef.current.removePriceLine(priceLineRef.current);
-      priceLineRef.current = null;
+    } else if (replayPriceLineRef.current && initPriceSeriesRef.current) {
+      initPriceSeriesRef.current.removePriceLine(replayPriceLineRef.current);
+      replayPriceLineRef.current = null;
     }
     
     return () => {
-      if (priceLineRef.current && initPriceSeriesRef.current) {
+      if (replayPriceLineRef.current && initPriceSeriesRef.current) {
         try {
-          initPriceSeriesRef.current.removePriceLine(priceLineRef.current);
-          priceLineRef.current = null;
+          initPriceSeriesRef.current.removePriceLine(replayPriceLineRef.current);
+          replayPriceLineRef.current = null;
         } catch(_) {}
       }
     };
