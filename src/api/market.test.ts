@@ -61,6 +61,16 @@ describe('marketApi', () => {
     expect(spy).toHaveBeenCalled();
   });
 
+  it('should throw an error when the API returns a 400 Bad Request', async () => {
+    server.use(
+      http.get('*/api/v1/prices/*', () => {
+        return new HttpResponse(null, { status: 400 });
+      })
+    );
+
+    await expect(marketApi.fetchCandles('AAPL', '1min')).rejects.toThrow();
+  });
+
   it('should apply max, from, and to query parameters', async () => {
     let capturedParams: URLSearchParams | null = null;
     

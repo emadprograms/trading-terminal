@@ -34,6 +34,13 @@ export const marketApi = {
       searchParams: query,
     });
 
-    return await response.json<CapitalCandle[]>();
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => 'Unknown error');
+      throw new Error(`API Error ${response.status}: ${errorBody}`);
+    }
+
+    const data = await response.json<CapitalCandle[]>();
+    console.log(`[marketApi.fetchCandles] Response for ${epic}: status=${response.status}, data=`, data);
+    return data;
   },
 };
