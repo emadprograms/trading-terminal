@@ -1,37 +1,54 @@
+/**
+ * Trade types for the Order Execution Layer.
+ * Based on Capital.com API specifications.
+ */
+
 export type OrderType = 'MARKET' | 'LIMIT' | 'STOP';
 export type OrderDirection = 'BUY' | 'SELL';
 export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
 
+/**
+ * Represents a working or pending order.
+ * These are orders that have been placed but not necessarily filled yet.
+ */
 export interface Order {
+  dealReference: string;
   epic: string;
   size: number;
-  direction: OrderDirection;
+  level?: number; // Required for LIMIT and STOP orders
   type: OrderType;
-  level?: number;
+  direction: OrderDirection;
   status: OrderStatus;
-  dealReference: string;
-  reason?: string;
-  dealId?: string;
   timestamp: number;
+  dealId?: string; // Filled when status becomes ACCEPTED
+  reason?: string; // Rejection reason if status is REJECTED
 }
 
+/**
+ * Represents an active open trade (a filled order).
+ */
 export interface Position {
   dealId: string;
   epic: string;
   size: number;
-  direction: OrderDirection;
   entryPrice: number;
+  direction: OrderDirection;
   timestamp: number;
+  unrealizedPnL?: number;
+  currentPrice?: number;
 }
 
+/**
+ * The payload received from /confirms/{dealReference} or WebSocket stream.
+ * This is used to transition an Order to a Position or mark it as REJECTED.
+ */
 export interface TradeConfirmation {
   dealReference: string;
-  dealId: string;
-  dealStatus: 'ACCEPTED' | 'REJECTED';
-  status?: 'ACCEPTED' | 'REJECTED';
+  status: OrderStatus;
+  dealId?: string;
+  epic: string;
+  size: number;
+  entryPrice?: number;
+  timestamp: number;
   reason?: string;
-  epic?: string;
-  level?: number;
-  size?: number;
-  direction?: OrderDirection;
 }
