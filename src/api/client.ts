@@ -40,9 +40,10 @@ export const api = ky.create({
         }
 
         const newHeaders = new Headers(request.headers)
-        const { cst, securityToken } = useSessionStore.getState()
+        const { cst, securityToken, environment } = useSessionStore.getState()
         if (cst) newHeaders.set('CST', cst)
         if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
+        if (environment) newHeaders.set('X-Environment', environment)
 
         // Return a fresh Request object to guarantee header insertion is respected in all runtimes
         return new Request(finalUrl, {
