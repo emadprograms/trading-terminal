@@ -3,46 +3,44 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-last_updated: "2026-06-06T18:59:46.507Z"
+last_updated: "2026-06-06T20:33:21.154Z"
 progress:
-  total_phases: 6
-  completed_phases: 2
-  total_plans: 14
-  completed_plans: 11
-  percent: 33
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 16
+  completed_plans: 12
+  percent: 31
 ---
 
 # Project State
 
 ## Current Phase
 
-Phase 3: Order Execution Layer (Phase 1.1 Infrastructure Stabilized)
+Phase 01.2: Secure Proxy Gateway (In Progress)
 
 ## Status
 
-READY TO PLAN
+IN PROGRESS
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://proxy.trading-terminal.dev (Static Named Tunnel)
-- **Environment**: DEMO/LIVE
-- **Security**: Cloudflare Access Service Tokens (CF-Access-Client-Id/Secret)
+- **Proxy Strategy**: Vercel Gateway -> Cloudflare Tunnel -> GHA Backend
+- **Environment**: Backend-driven via `BACKEND_URL`
+- **Architecture**: Production-first (ArrayBuffer body handling)
+- **Security**: Cloudflare Access Service Tokens + Strip hop-by-hop headers.
 
 ## Session State
 
 - **Auth Mode**: Dual-token (CST + X-SECURITY-TOKEN)
-- **Persistence**: Proxy URL persisted in localStorage; Tokens in-memory.
+- **Persistence**: Tokens in-memory.
 
 ## Last Session
 
-- **Stopped at**: Phase 1.2 context gathered
-- **Resume file**: .planning/phases/01.2-secure-proxy-gateway/01.2-CONTEXT.md
+- **Stopped at**: Phase 01.2 Plan 01 Completed.
+- **Resume file**: .planning/phases/01.2-secure-proxy-gateway/01.2-01-SUMMARY.md
 
-## Phase 2.1 Deliverables
+## Phase 3 Deliverables (Completed)
 
-- [x] WebSocket tick buffering
-- [x] Gap detection logic (1x timeframe threshold)
-- [x] Bridge fetching for missing historical data
-- [x] Atomic handover and tick replay logic
-- [x] Date sanitization for Capital.com API compliance
-- [x] Auth-gated chart initialization
+- [x] REST/WS Foundation for orders
+- [x] Hybrid Sync & Watchdog for missed confirmations
+- [x] UI & Management (Notifications, TradeLog, SidePanel)
