@@ -200,4 +200,31 @@ describe('order handler', () => {
       })
     );
   });
+
+  it('should forward PUT request body as ArrayBuffer', async () => {
+    const orderHandler = (await import('./order')).default;
+    const testBody = JSON.stringify({ orderId: '123' });
+    
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ success: true }),
+    });
+
+    const req = new Request('http://localhost/api/order', {
+      method: 'PUT',
+      body: testBody,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    await orderHandler(req);
+
+    expect(request).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        method: 'PUT',
+        body: expect.any(ArrayBuffer)
+      })
+    );
+  });
 });
