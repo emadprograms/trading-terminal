@@ -1,59 +1,83 @@
 ---
 status: in_progress
-trigger: "User reports manual proxy URL entry requirement and subsequent infinite reload/undefined bugs"
-goal: automate_proxy_and_stabilize_handshake
+trigger: "Phase 1.1 Proxy Migration causing CORS preflight failures and stability crashes"
+goal: restore_stability_and_finalize_proxy_bridge
 ---
 
-# Debug Session: Proxy URL Automation & Stability
+# Handover: Proxy Stability & Infrastructure Recovery
 
-## Symptoms
-1. **Initial**: User had to manually enter the proxy URL every time.
-2. **Regression A**: App entered an infinite rapid reload loop.
-3. **Regression B**: App started hitting `https://proxy.scanner-backend.uk/undefined` causing CORS preflight failures.
-4. **Regression C**: DB Worker failed with "critical error" (WASM fetch failed).
-5. **Current**: App loads briefly then disappears; console shows "BLOCKING malformed request to: undefined".
+## 1. Technical Audit & Context
+The application recently underwent **Phase 1.1 (Stable Infra & Tunneling)**, transitioning to **Cloudflare Named Tunnels**. This introduced a secured endpoint requiring **Cloudflare Access Service Tokens**.
 
-## Root Causes Identified
-1. **LocalStorage Corruption**: The string `"undefined"` was saved in `localStorage.proxyUrl`, causing the app to bootstrap with a broken base URL.
-2. **Ky v2 API Changes**: `ky` v2 renamed `prefixUrl` to `prefix` and introduced `baseUrl`. Using `prefixUrl` triggered a library-level error that blocked the handshake.
-3. **Hook Resolution Race**: My `beforeRequest` hook in `src/api/client.ts` was sometimes receiving a relative URL before Ky had resolved it against the `prefix`, leading to path segments like `/undefined` if the input was malformed.
-4. **Rules of Hooks Violation**: In `ChartHeader.tsx`, a Zustand hook was called inside an IIFE, causing internal React crashes during re-renders.
-5. **WASM Pathing**: The DB worker used a relative path for `sql-wasm.wasm`, which failed when the app origin/pathname shifted.
+### Identified Failure Points (Updated)
+1.  **CORS Preflight Blockage**:
+    - **Symptom**: `Access to fetch at 'https://proxy.scanner-backend.uk/session' from origin 'http://localhost:3000' has been blocked by CORS policy`.
+    - **Root Cause**: The frontend injects `CF-Access` headers, triggering an `OPTIONS` preflight. Cloudflare Edge blocks this preflight because browsers don't include the service token headers in `OPTIONS` requests.
+2.  **The "Undefined" Path Loop**:
+    - **Status**: Fixed in `src/api/client.ts` by resolving the `ky` wrapper object.
+3.  **The `duplex` TypeError**:
+    - **Status**: Fixed in `src/api/client.ts` by adding `duplex: 'half'`.
+4.  **DB Worker Crash**:
+    - **Status**: Diagnostics and try-catch added.
 
-## Fixes Applied
+---
 
-### 1. Store & Storage Sanitization
-- **File**: `src/store/useSessionStore.ts`
-- **Change**: Added `sanitizeUrl` to reject `"undefined"`, `"null"`, or empty strings, defaulting to the stable Cloudflare proxy.
-- **File**: `src/App.tsx`
-- **Change**: Added a "first-boot" `useEffect` to explicitly `localStorage.removeItem('proxyUrl')` if it contains the corrupted string.
+## 2. Master Implementation Plan
 
-### 2. API Client Hardening
-- **File**: `src/api/client.ts`
-- **Change**: 
-    - Switched to `prefix` (Ky v2).
-    - Implemented a robust `beforeRequest` hook that manually reconstructs absolute URLs to the proxy.
-    - Added a **Hard Block**: Throws `Error` if the path contains `undefined` to prevent network clutter and CORS noise.
-    - Explicitly injects Cloudflare Service Tokens and Capital.com session tokens.
+### Phase A: The "Vite Proxy" Bridge (CORS Resolution)
+We will move Cloudflare Access header injection from the browser to a local development proxy.
 
-### 3. DB Worker Stability
-- **Action**: Manually copied `node_modules/sql.js/dist/sql-wasm.wasm` to `public/sql-wasm.wasm`.
-- **File**: `src/lib/workers/db.worker.ts`
-- **Change**: Updated fetch to use `new URL('/sql-wasm.wasm', self.location.origin)`, ensuring it always targets the correct origin regardless of the current path.
+**1. Vite Configuration (`vite.config.ts`)**:
+- Configure `server.proxy['/api']`.
+- Target: `https://proxy.scanner-backend.uk`.
+- `changeOrigin: true`.
+- `rewrite: (path) => path.replace(/^\/api/, '')`.
+- `configure`: Inject `CF-Access-Client-Id` and `CF-Access-Client-Secret` using environment variables during the `proxyReq` event.
 
-### 4. UI Isolation
-- **File**: `src/App.tsx`
-- **Change**: Wrapped **Header**, **AccountSelector**, and **Workspace** in separate `ErrorBoundary` components to prevent a single component crash from disappearing the entire page.
-- **Change**: Added `[StabilityTrace]` logging to track rendering and handshake lifecycle.
+**2. API Client Refactor (`src/api/client.ts`)**:
+- Set `DEFAULT_PROXY_URL` to `/api`.
+- Remove `CF-Access` header injection from the frontend code.
+- Ensure `beforeRequest` still handles Capital.com token injection and URL rewriting for the proxy path.
 
-## Current Blockers
-- **Malformed Request**: Something is still calling `api.get(undefined)` or `api.post(undefined)`. The logs show `BLOCKING malformed request to: undefined`. This is likely a hook (possibly `useQuery` in `AccountHeader` or `useChartData`) triggered before its parameters are hydrated.
-- **Handshake Failure**: The auto-login handshake fails because it is being redirected or blocked by the same `undefined` path resolution logic.
+**3. Hono Proxy Update (`server/index.ts`)**:
+- Update CORS middleware to allow `CF-Access-Client-Id` and `CF-Access-Client-Secret` in `allowHeaders`.
+- Ensure the server correctly handles the `/api/v1` prefixing for proxied requests.
 
-## Handover Notes for Next Agent
-- **Start here**: Look for the component calling the `api` with an undefined variable as the path. 
-- **Suspects**: 
-    - `src/components/AccountHeader.tsx`: Check `useQuery` dependencies.
-    - `src/hooks/useChartData.ts`: Check `fetchMarketData` calls.
-    - `src/hooks/useSession.ts`: Check `loginMutation` parameters.
-- **Do not**: Change the Cloudflare headers or the proxy URL (`https://proxy.scanner-backend.uk`); they are confirmed working when the path is correct.
+### Phase B: DB Worker Stabilization
+1.  **Check Logs**: Look for `[DBWorker] FATAL INITIALIZATION ERROR`.
+2.  **Verify WASM**: Ensure `public/sql-wasm.wasm` exists and is reachable via the new proxy path if applicable.
+
+### Phase C: Edge Configuration (Infrastructure)
+This phase addresses the root cause at the network layer to ensure long-term stability across all environments.
+
+**1. Cloudflare Access Policy**:
+- **Requirement**: Create a bypass rule for the `OPTIONS` method in the Cloudflare Zero Trust dashboard.
+- **Rationale**: This allows the browser's preflight requests to reach the Hono proxy without requiring Service Tokens, which browsers cannot send during preflight.
+
+**2. Hono Proxy CORS Enhancement (`server/index.ts`)**:
+- **Action**: Update the `cors` middleware to explicitly allow the following headers:
+    - `CST`
+    - `X-SECURITY-TOKEN`
+    - `X-Environment`
+    - `CF-Access-Client-Id`
+    - `CF-Access-Client-Secret`
+- **Action**: Ensure `Access-Control-Allow-Origin` is handled dynamically or set to `*` (as per current security posture).
+
+---
+
+## 3. Verification Matrix
+
+| Test Case | Expected Result | Success Signal |
+| :--- | :--- | :--- |
+| **CORS Preflight** | `OPTIONS /api/session` returns 200 OK | No CORS errors in console |
+| **Auto-Login** | `api.post('session', ...)` succeeds | `[StabilityTrace] Login handshake successful` |
+| **Account Fetch** | `api.get('accounts')` succeeds | `AccountHeader` displays balance/equity |
+| **DB Init** | `db.initDB()` returns `true` | `DB Worker status: LOADED` in UI |
+
+---
+
+## 4. Critical Handover Notes
+
+- **Environment Variables**: Ensure `VITE_CF_ACCESS_CLIENT_ID` and `VITE_CF_ACCESS_CLIENT_SECRET` are available in the local `.env` for Vite to use.
+- **Surgical Edits**: Focus on `vite.config.ts` and `src/api/client.ts`. Avoid changing the Hono proxy logic unless CORS requires it.
+- **Vite Proxy**: This only affects local development. Production (Vercel) will need a different proxy strategy (e.g., Vercel Rewrites or a serverless function) if the same CORS issues occur there.

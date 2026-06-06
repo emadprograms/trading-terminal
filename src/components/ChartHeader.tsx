@@ -37,6 +37,7 @@ export function ChartHeader({
   const [isGroupOpen, setIsGroupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tickerSearch, setTickerSearch] = useState('');
+  const price = usePriceStore((state) => state.prices[ticker]);
 
   const tickerRef = useRef<HTMLDivElement>(null);
   const tfRef = useRef<HTMLDivElement>(null);
@@ -116,22 +117,20 @@ export function ChartHeader({
 
         {/* LIVE PRICE DISPLAY */}
         <div className="live-price-display">
-          {(() => {
-            const price = usePriceStore((state) => state.prices[ticker]);
-            if (!price) return <span className="text-secondary" style={{fontSize: '12px', opacity: 0.5}}>Connecting...</span>;
-            return (
-              <div className="price-grid">
-                <div className="price-item">
-                  <span className="price-label">BID</span>
-                  <span className="price-value bid">{price.bid.toFixed(2)}</span>
-                </div>
-                <div className="price-item">
-                  <span className="price-label">ASK</span>
-                  <span className="price-value ask">{price.ask.toFixed(2)}</span>
-                </div>
+          {!price ? (
+            <span className="text-secondary" style={{fontSize: '12px', opacity: 0.5}}>Connecting...</span>
+          ) : (
+            <div className="price-grid">
+              <div className="price-item">
+                <span className="price-label">BID</span>
+                <span className="price-value bid">{price.bid.toFixed(2)}</span>
               </div>
-            );
-          })()}
+              <div className="price-item">
+                <span className="price-label">ASK</span>
+                <span className="price-value ask">{price.ask.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="custom-dropdown-container" ref={tfRef}>

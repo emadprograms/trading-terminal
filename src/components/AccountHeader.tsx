@@ -12,7 +12,12 @@ interface AccountData {
 }
 
 export const AccountHeader: React.FC = () => {
-  const { isAuthenticated, selectedAccountId, environment, proxyUrl, setProxyUrl } = useSessionStore();
+  const isAuthenticated = useSessionStore(state => state.isAuthenticated);
+  const selectedAccountId = useSessionStore(state => state.selectedAccountId);
+  const environment = useSessionStore(state => state.environment);
+  const proxyUrl = useSessionStore(state => state.proxyUrl);
+  const setProxyUrl = useSessionStore(state => state.setProxyUrl);
+
   const [showPnl, setShowPnl] = useState(true);
   const [proxyInputValue, setProxyInputValue] = useState(proxyUrl || '');
 

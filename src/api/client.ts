@@ -1,60 +1,54 @@
 import ky from 'ky'
 import { useSessionStore } from '../store/useSessionStore'
 
+const DEFAULT_PROXY_URL = 'https://proxy.scanner-backend.uk'
+
 /**
  * Get the current base URL from the store.
  */
 const getBaseUrl = () => {
   const { proxyUrl } = useSessionStore.getState()
-  const base = proxyUrl || 'https://proxy.scanner-backend.uk'
-  return base.endsWith('/') ? base : `${base}/`
+  return proxyUrl || DEFAULT_PROXY_URL
 }
 
 /**
  * API client with manual proxy URL resolution in hooks.
  */
 export const api = ky.create({
-  // Use prefix for stable resolution
-  prefix: getBaseUrl(),
+  prefix: DEFAULT_PROXY_URL,
   hooks: {
     beforeRequest: [
-      (request) => {
-        const proxyBase = getBaseUrl()
-        const targetBase = new URL(proxyBase)
+      (requestWrapper: any) => {
+        // Ky v2 hooks receive a wrapper object { request, options, retryCount }
+        const request = requestWrapper.request || requestWrapper;
         
-        let url: URL;
-        try {
-          // If request.url is literally "undefined", this might fail or resolve to origin/undefined
-          url = new URL(request.url);
-        } catch (e) {
-          const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-          url = new URL(request.url, origin);
+        // STRICT GUARD: Prevent "undefined" paths from reaching the proxy or network
+        if (!request.url || request.url === 'undefined' || request.url.includes('/undefined')) {
+          console.error('[StabilityTrace] FATAL: Blocked request to undefined path!');
+          throw new Error(`Blocked malformed API request to: ${request.url}`);
         }
 
-        // Detect if the path is literally "/undefined" or contains it
-        if (url.pathname.includes('undefined')) {
-          console.error('[StabilityTrace] BLOCKING malformed request to:', request.url);
-          // Instead of throwing, we can try to fix it if it's just the path,
-          // but if the URL is literally "undefined", we must throw.
-          if (request.url === 'undefined' || request.url.endsWith('/undefined')) {
-             throw new Error(`Invalid API request URL: ${request.url}`);
-          }
-        }
+        const proxyBase = getBaseUrl()
+        const targetBase = new URL(proxyBase.endsWith('/') ? proxyBase : `${proxyBase}/`)
+        const currentUrl = new URL(request.url)
+        
+        // We handle requests that are either:
+        // 1. Relative (which Ky has now made absolute using prefixUrl)
+        // 2. Already pointing to a known scanner-backend proxy
+        const isProxyTarget = currentUrl.hostname.includes('scanner-backend') || 
+                             currentUrl.origin === new URL(DEFAULT_PROXY_URL).origin ||
+                             currentUrl.origin === targetBase.origin;
 
-        const isLocal = url.origin === (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000') || url.origin === 'null';
-        const isProxy = url.origin === targetBase.origin || url.hostname.includes('scanner-backend');
-
-        if (isLocal || isProxy) {
+        if (isProxyTarget) {
           // Construct the final proxy URL. 
           // We take the pathname (stripping leading slash) + search and append it to targetBase
-          const cleanPath = url.pathname.replace(/^\/+/, '');
+          const cleanPath = currentUrl.pathname.replace(/^\/+/, '');
           
-          // Final check: if cleanPath is 'undefined', we stop it.
           if (cleanPath === 'undefined') {
             throw new Error('Detected malformed "undefined" path in rewrite logic');
           }
 
-          const finalUrl = new URL(cleanPath + url.search, targetBase).toString();
+          const finalUrl = new URL(cleanPath + currentUrl.search, targetBase).toString();
           
           const { cst, securityToken, environment } = useSessionStore.getState()
           const newHeaders = new Headers(request.headers)
@@ -70,10 +64,10 @@ export const api = ky.create({
           if (cfClientId) newHeaders.set('CF-Access-Client-Id', cfClientId)
           if (cfClientSecret) newHeaders.set('CF-Access-Client-Secret', cfClientSecret)
 
-          console.log(`[StabilityTrace] Proxy Routing: ${url.pathname} -> ${finalUrl}`);
+          console.log(`[StabilityTrace] Proxy Routing: ${currentUrl.pathname} -> ${finalUrl}`);
 
           const isMutation = ['POST', 'PUT', 'PATCH'].includes(request.method);
-          return new Request(finalUrl, {
+          const requestOptions: RequestInit = {
             method: request.method,
             headers: newHeaders,
             body: isMutation ? request.body : undefined,
@@ -84,13 +78,27 @@ export const api = ky.create({
             referrer: request.referrer,
             integrity: request.integrity,
             signal: request.signal,
-          })
+          };
+
+          // Fix for "duplex" TypeError in Chrome for requests with body
+          if (isMutation && request.body) {
+            // @ts-ignore - duplex is not in standard RequestInit yet
+            requestOptions.duplex = 'half';
+          }
+
+          return new Request(finalUrl, requestOptions);
         }
       }
     ],
     afterResponse: [
-      async (_request, options, response) => {
+      async (requestOrWrapper: any, optionsOrUndefined?: any, responseOrUndefined?: any) => {
         try {
+          // Handle potential wrapper object in ky v2
+          const response = responseOrUndefined || requestOrWrapper.response;
+          const options = optionsOrUndefined || requestOrWrapper.options || {};
+          
+          if (!response) return;
+
           const url = response.url || ''
           const optUrl = options.url ? String(options.url) : ''
           const isSession = url.includes('/session') || optUrl.includes('/session')

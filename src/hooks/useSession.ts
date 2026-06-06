@@ -48,12 +48,8 @@ export function useSession(tickers: string[]) {
 
       console.log(`[StabilityTrace] Attempting login handshake via ${proxyUrl}...`);
       
-      const endpoint = 'session';
-      if (!endpoint) {
-        throw new Error('API Endpoint is undefined');
-      }
-
-      const response = await api.post(endpoint, { 
+      // Call the session endpoint directly to avoid any potential closure/variable resolution issues
+      const response = await api.post('session', { 
         json: params?.credentials || { 
           identifier: import.meta.env.VITE_CAPITAL_USER, 
           password: import.meta.env.VITE_CAPITAL_PASSWORD 
