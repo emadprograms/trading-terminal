@@ -83,7 +83,7 @@
 - [x] 03-00-PLAN.md — Store & API Foundation
 - [x] 03-01-PLAN.md — Hybrid Sync & Watchdog
 - [x] 03-02-PLAN.md — UI & Management
-- [ ] 03-03-PLAN.md — Execution Hardening & Orchestration
+- [ ] 03-04-PLAN.md — Revised Execution Hardening & Orchestration
 
 **UI hint**: yes
 
