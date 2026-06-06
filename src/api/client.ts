@@ -12,8 +12,6 @@ const getBaseUrl = () => {
 
 /**
  * API client with manual proxy URL resolution in hooks.
- * We do not use prefix/baseUrl in the config to avoid Ky-internal resolution bugs
- * when we are already manually rewriting URLs.
  */
 export const api = ky.create({
   hooks: {
@@ -22,8 +20,6 @@ export const api = ky.create({
         const proxyBase = getBaseUrl()
         const targetBase = new URL(proxyBase)
         
-        // request.url is the final URL Ky wants to fetch.
-        // If it's relative, it will be resolved against the current origin by Ky.
         let url: URL;
         try {
           url = new URL(request.url);
@@ -32,11 +28,11 @@ export const api = ky.create({
           url = new URL(request.url, origin);
         }
 
-        // Detect if the pathname is literally "/undefined" or ends with it
-        if (url.pathname === '/undefined' || url.pathname.endsWith('/undefined')) {
-          console.error('[StabilityTrace] CRITICAL: Pathname is /undefined. Originating URL:', request.url);
-          // If it's a favicon or similar, just let it fail.
-          // If it's a real API call, we need to know where it came from.
+        // BLOCK MALFORMED REQUESTS
+        if (url.pathname.includes('undefined')) {
+          console.error('[StabilityTrace] CRITICAL: Pathname contains "undefined". URL:', request.url);
+          // Throwing here will be caught by the calling mutation/query
+          throw new Error(`Malformed API path: ${url.pathname}`);
         }
 
         const isLocal = url.origin === (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000') || url.origin === 'null';
@@ -44,8 +40,8 @@ export const api = ky.create({
 
         if (isLocal || isProxy) {
           // Construct the final proxy URL
-          // We take the pathname + search and append it to targetBase
-          const finalUrl = new URL(url.pathname.substring(1) + url.search, targetBase).toString();
+          const cleanPath = url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname;
+          const finalUrl = new URL(cleanPath + url.search, targetBase).toString();
           
           const { cst, securityToken, environment } = useSessionStore.getState()
           const newHeaders = new Headers(request.headers)

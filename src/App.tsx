@@ -119,9 +119,13 @@ export default function App() {
 
       <div className="main-content" style={{ position: 'relative' }}>
         <header className="terminal-header">
-          <AccountHeader />
+          <ErrorBoundary fallback={<div style={{ color: 'var(--accent-red)', fontSize: '10px' }}>Header Error</div>}>
+            <AccountHeader />
+          </ErrorBoundary>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <AccountSelector />
+            <ErrorBoundary fallback={null}>
+              <AccountSelector />
+            </ErrorBoundary>
             <EnvToggle login={login} isLoggingIn={isLoggingIn} />
           </div>
         </header>
