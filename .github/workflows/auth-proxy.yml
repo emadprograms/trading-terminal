@@ -51,20 +51,21 @@ jobs:
           RUNNER_TRACKING_ID: ""
         run: |
           echo "Extracting and preparing tunnel token..."
-          # Extract only the token part (JWTs start with 'ey') to handle accidental full-command pastes
-          CLEAN_TOKEN=$(echo "$RAW_TOKEN" | grep -oE 'ey[a-zA-Z0-9._-]+')
+          # Extract only the token part (Base64 JSON objects start with 'ey')
+          # Standard Base64 uses [A-Za-z0-9+/=]
+          CLEAN_TOKEN=$(echo "$RAW_TOKEN" | grep -oE 'ey[A-Za-z0-9+/=]{100,}')
           
           if [ -z "$CLEAN_TOKEN" ]; then
             echo "❌ Error: Could not find a valid Cloudflare token in the secret."
-            echo "Please ensure CLOUDFLARE_TUNNEL_TOKEN contains only the token string."
+            echo "The token should be a long Base64 string starting with 'ey'."
+            echo "If you pasted the full 'cloudflared tunnel run --token ...' command into the secret, please update the secret to contain ONLY the token part."
             exit 1
           fi
           
-          echo "$CLEAN_TOKEN" > tunnel.token
-          echo "Token written to tunnel.token"
-          
-          echo "Starting Named Tunnel via token-file..."
-          nohup cloudflared tunnel run --token-file tunnel.token > cloudflared.log 2>&1 &
+          echo "Starting Named Tunnel via TUNNEL_TOKEN env var..."
+          # Set the environment variable for cloudflared to pick up
+          export TUNNEL_TOKEN="$CLEAN_TOKEN"
+          nohup cloudflared tunnel run > cloudflared.log 2>&1 &
           echo $! > tunnel.pid
           echo "Tunnel process started with PID $(cat tunnel.pid)"
           
