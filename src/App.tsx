@@ -15,9 +15,11 @@ import { ChartWorkspace } from './components/ChartWorkspace';
 import { AccountHeader } from './components/AccountHeader';
 import { EnvToggle } from './components/EnvToggle';
 import { AccountSelector } from './components/AccountSelector';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useSessionStore } from './store/useSessionStore';
 
 export default function App() {
+  console.log('[StabilityTrace] App Rendering');
   const { 
     tickers, 
     isLoading, 
@@ -39,11 +41,16 @@ export default function App() {
     getUtcTimeFromEt,
     login,
     isAuthenticated,
-    isLoggingIn
+    isLoggingIn,
+    isLoginError,
+    loginError,
+    resetLogin
   } = useSession(tickers);
 
   const proxyUrl = useSessionStore(state => state.proxyUrl);
   const setProxyUrl = useSessionStore(state => state.setProxyUrl);
+
+  const autoLoginAttempted = React.useRef(false);
 
   const {
     layoutMode,
@@ -77,15 +84,20 @@ export default function App() {
   } = useDrawings();
 
   useEffect(() => {
-    if (proxyUrl && !isAuthenticated && !isLoggingIn) {
+    if (proxyUrl && !isAuthenticated && !isLoggingIn && !isLoginError && !autoLoginAttempted.current) {
       console.log('[StabilityTrace] Auto-initiating login handshake...');
-      login();
+      autoLoginAttempted.current = true;
+      login().catch(() => {
+        console.warn('[StabilityTrace] Auto-login failed. Standing by for manual intervention.');
+      });
     }
-  }, [proxyUrl, isAuthenticated, isLoggingIn, login]);
+  }, [proxyUrl, isAuthenticated, isLoggingIn, isLoginError, login]);
 
   const handleLaunch = async () => {
-    const url = prompt('Enter Proxy URL (e.g., https://my-proxy.workers.dev):');
+    const url = prompt('Enter Proxy URL:', proxyUrl || '');
     if (url) {
+      autoLoginAttempted.current = false;
+      resetLogin();
       setProxyUrl(url);
     }
   };
@@ -114,37 +126,39 @@ export default function App() {
           </div>
         </header>
 
-        {isLoggingIn ? (
-          <main className="workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-             <Activity className="animate-pulse" size={48} />
-          </main>
-        ) : (
-          <ChartWorkspace 
-            layoutMode={layoutMode}
-            maximizedId={maximizedId}
-            panelSizes={panelSizes}
-            activeGutter={activeGutter}
-            tickers={tickers}
-            sessionTicker={sessionTicker}
-            selectedDate={selectedDate}
-            isSessionStarted={true}
-            drawings={drawings}
-            chartGroups={chartGroups}
-            groupTickers={groupTickers}
-            workspaceRef={workspaceRef}
-            selectedChartId={selectedChartId}
-            onSelectChart={handleSelectChart}
-            onToggleMaximize={toggleMaximize}
-            onUpdateDrawings={handleUpdateDrawings}
-            onPnLUpdate={handlePnLUpdate}
-            onTickerChange={handleTickerChange}
-            onTimeframeChange={handleTimeframeChange}
-            onGroupChange={handleGroupChange}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerEnd={handlePointerEnd}
-          />
-        )}
+        <ErrorBoundary>
+          {isLoggingIn ? (
+            <main className="workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+               <Activity className="animate-pulse" size={48} />
+            </main>
+          ) : (
+            <ChartWorkspace 
+              layoutMode={layoutMode}
+              maximizedId={maximizedId}
+              panelSizes={panelSizes}
+              activeGutter={activeGutter}
+              tickers={tickers}
+              sessionTicker={sessionTicker}
+              selectedDate={selectedDate}
+              isSessionStarted={true}
+              drawings={drawings}
+              chartGroups={chartGroups}
+              groupTickers={groupTickers}
+              workspaceRef={workspaceRef}
+              selectedChartId={selectedChartId}
+              onSelectChart={handleSelectChart}
+              onToggleMaximize={toggleMaximize}
+              onUpdateDrawings={handleUpdateDrawings}
+              onPnLUpdate={handlePnLUpdate}
+              onTickerChange={handleTickerChange}
+              onTimeframeChange={handleTimeframeChange}
+              onGroupChange={handleGroupChange}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerEnd={handlePointerEnd}
+            />
+          )}
+        </ErrorBoundary>
 
       </div>
       <Toaster theme="dark" position="top-right" richColors />
