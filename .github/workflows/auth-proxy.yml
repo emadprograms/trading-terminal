@@ -79,10 +79,10 @@ jobs:
       - name: Verify Tunnel Reachability
         run: |
           echo "Testing connectivity to ${{ secrets.PROXY_STATIC_URL }}..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" 
-            -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" 
-            -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" 
-            ${{ secrets.PROXY_STATIC_URL }}/ping)
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
+            -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
+            "${{ secrets.PROXY_STATIC_URL }}/ping")
           if [ "$RESPONSE" -eq 200 ]; then
             echo "✅ Tunnel is healthy and reachable at the edge."
           else
@@ -94,8 +94,8 @@ jobs:
       - name: Verify Capital.com Connectivity
         run: |
           echo "Testing proxy authentication with real credentials..."
-          RESPONSE=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/session 
-            -H "Content-Type: application/json" 
+          RESPONSE=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/session \
+            -H "Content-Type: application/json" \
             -d '{}')
           echo "Response Code: $RESPONSE"
           if [ "$RESPONSE" -eq 200 ]; then
