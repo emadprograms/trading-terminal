@@ -52,6 +52,17 @@ export default function App() {
 
   const autoLoginAttempted = React.useRef(false);
 
+  useEffect(() => {
+    // Definitive fix for bad localStorage value
+    const current = localStorage.getItem('proxyUrl');
+    if (current === 'undefined' || current === 'null' || current === '') {
+      console.log('[StabilityTrace] Clearing invalid localStorage proxyUrl:', current);
+      localStorage.removeItem('proxyUrl');
+      // Force store to reset to default
+      useSessionStore.getState().resetProxyUrl();
+    }
+  }, []);
+
   const {
     layoutMode,
     setLayoutMode,

@@ -6,16 +6,15 @@ import { useSessionStore } from '../store/useSessionStore'
  */
 const getBaseUrl = () => {
   const { proxyUrl } = useSessionStore.getState()
-  // proxyUrl is now sanitized in the store, but we add a safety check here anyway
-  if (!proxyUrl || proxyUrl === 'undefined') return 'https://proxy.scanner-backend.uk/'
-  return proxyUrl.endsWith('/') ? proxyUrl : `${proxyUrl}/`
+  const base = proxyUrl || 'https://proxy.scanner-backend.uk'
+  return base.endsWith('/') ? base : `${base}/`
 }
 
 /**
  * API client with manual proxy URL resolution in hooks.
  */
 export const api = ky.create({
-  // Use prefix (Ky v2 specific naming) to ensure relative paths resolve to something valid initially.
+  // Use prefix for stable resolution
   prefix: getBaseUrl(),
   hooks: {
     beforeRequest: [
@@ -25,6 +24,7 @@ export const api = ky.create({
         
         let url: URL;
         try {
+          // If request.url is literally "undefined", this might fail or resolve to origin/undefined
           url = new URL(request.url);
         } catch (e) {
           const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
@@ -34,16 +34,18 @@ export const api = ky.create({
         // Detect if the path is literally "/undefined" or contains it
         if (url.pathname.includes('undefined')) {
           console.error('[StabilityTrace] BLOCKING malformed request to:', request.url);
-          throw new Error(`Invalid API path: ${url.pathname}`);
+          // Instead of throwing, we can try to fix it if it's just the path,
+          // but if the URL is literally "undefined", we must throw.
+          if (request.url === 'undefined' || request.url.endsWith('/undefined')) {
+             throw new Error(`Invalid API request URL: ${request.url}`);
+          }
         }
 
-        // We only rewrite if it's pointing to our local origin (relative request)
-        // or if it's pointing to a proxy (so we can still add headers).
         const isLocal = url.origin === (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000') || url.origin === 'null';
         const isProxy = url.origin === targetBase.origin || url.hostname.includes('scanner-backend');
 
         if (isLocal || isProxy) {
-          // Reconstruct the final proxy URL. 
+          // Construct the final proxy URL. 
           // We take the pathname (stripping leading slash) + search and append it to targetBase
           const cleanPath = url.pathname.replace(/^\/+/, '');
           
