@@ -1,4 +1,3 @@
-# Force re-parse to fix GitHub Actions visibility
 name: Auth Proxy
 
 on:
@@ -48,17 +47,13 @@ jobs:
 
       - name: Start Cloudflare Tunnel
         env:
-          RUNNER_TRACKING_ID: "" # Prevents GH Actions from killing background process
+          RUNNER_TRACKING_ID: ""
         run: |
           echo "Starting Named Tunnel via token..."
           nohup cloudflared tunnel run --token ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }} > cloudflared.log 2>&1 &
           echo $! > tunnel.pid
           echo "Tunnel process started with PID $(cat tunnel.pid)"
-          
-          # Initial wait for connection
           sleep 10
-          
-          # Verify process is still alive
           if ! kill -0 $(cat tunnel.pid) 2>/dev/null; then
             echo "❌ Tunnel process died immediately. Check logs:"
             cat cloudflared.log
@@ -68,12 +63,10 @@ jobs:
       - name: Verify Tunnel Reachability
         run: |
           echo "Testing connectivity to ${{ secrets.PROXY_STATIC_URL }}..."
-          # Use the Service Tokens to bypass Cloudflare Access during verification
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" 
             -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" 
             -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" 
             ${{ secrets.PROXY_STATIC_URL }}/ping)
-          
           if [ "$RESPONSE" -eq 200 ]; then
             echo "✅ Tunnel is healthy and reachable at the edge."
           else
@@ -85,23 +78,14 @@ jobs:
       - name: Verify Capital.com Connectivity
         run: |
           echo "Testing proxy authentication with real credentials..."
-          # We send an empty body to trigger the proxy's 'Smart Fallback' logic,
-          # which injects the real CAPITAL_USER and CAPITAL_PASSWORD secrets.
-          RESPONSE=$(curl -s -w "
-%{http_code}" -X POST http://localhost:3000/session 
+          RESPONSE=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/session 
             -H "Content-Type: application/json" 
             -d '{}')
-          
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-          
-          echo "Response Code: $HTTP_CODE"
-          echo "Response Body: $BODY"
-          
-          if [ "$HTTP_CODE" -eq 200 ]; then
+          echo "Response Code: $RESPONSE"
+          if [ "$RESPONSE" -eq 200 ]; then
             echo "✅ Full Authentication Verified: Proxy successfully logged into Capital.com"
           else
-            echo "❌ Authentication Failed: Proxy received $HTTP_CODE from Capital.com. Check your GitHub Secrets."
+            echo "❌ Authentication Failed: Proxy received $RESPONSE from Capital.com. Check your GitHub Secrets."
             exit 1
           fi
 
@@ -109,8 +93,6 @@ jobs:
         run: |
           INPUT_DURATION="${{ github.event.inputs.duration }}"
           echo "Proxy is running at ${{ secrets.PROXY_STATIC_URL }}"
-          
-          # Parse duration (e.g., 1h, 30m, or 360)
           if [[ "$INPUT_DURATION" == *h ]]; then
             MINS=${INPUT_DURATION%h}
             TOTAL_MINS=$((MINS * 60))
@@ -119,12 +101,9 @@ jobs:
           else
             TOTAL_MINS=$INPUT_DURATION
           fi
-          
           echo "The proxy will remain active for $TOTAL_MINS minutes ($INPUT_DURATION)."
-          
           START_TIME=$(date +%s)
           END_TIME=$((START_TIME + TOTAL_MINS * 60))
-          
           while [ $(date +%s) -lt $END_TIME ]; do
             if curl -s http://localhost:3000/ping > /dev/null; then
               REMAINING=$(( (END_TIME - $(date +%s)) / 60 ))
