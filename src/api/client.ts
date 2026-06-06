@@ -16,8 +16,8 @@ const getBaseUrl = () => {
  * API client with dynamic proxy URL resolution.
  */
 export const api = ky.create({
-  // Use prefixUrl for stable resolution of relative paths
-  prefixUrl: getBaseUrl(),
+  // Use 'prefix' (renamed from prefixUrl in v2)
+  prefix: getBaseUrl(),
   hooks: {
     beforeRequest: [
       (request) => {
