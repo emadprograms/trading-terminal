@@ -21,6 +21,10 @@ export interface Order {
   status: OrderStatus;
   timestamp: number;
   dealId?: string; // Filled when status becomes ACCEPTED
+  workingOrderId?: string; // Filled when status becomes ACCEPTED for LIMIT/STOP orders
+  guaranteedStop?: boolean; // Required for UI-02
+  bid?: number; // Bid price for slippage tracking
+  ofr?: number; // Offer/Ask price for slippage tracking
   reason?: string; // Rejection reason if status is REJECTED
 }
 
@@ -46,6 +50,7 @@ export interface TradeConfirmation {
   dealReference: string;
   status: OrderStatus;
   dealId?: string;
+  workingOrderId?: string;
   epic: string;
   size: number;
   entryPrice?: number;
