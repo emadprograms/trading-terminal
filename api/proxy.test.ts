@@ -33,10 +33,7 @@ describe('session handler', () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: {
-        json: () => Promise.resolve({ success: true }),
-        // For streaming, we might need more, but this is enough for basic check
-      },
+      body: JSON.stringify({ success: true }),
     });
 
     const req = new Request('http://localhost/api/session', {
@@ -64,6 +61,70 @@ describe('session handler', () => {
     );
     expect(res.status).toBe(200);
   });
+
+  it('should propagate upstream errors (4xx/5xx)', async () => {
+    (request as any).mockResolvedValue({
+      statusCode: 401,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: 'unauthorized' }),
+    });
+
+    const req = new Request('http://localhost/api/session', {
+      method: 'POST',
+      body: JSON.stringify({ identifier: 'user', password: 'pass' }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const res = await sessionHandler(req);
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe('unauthorized');
+  });
+
+  it('should use BACKEND_URL and log [StabilityTrace]', async () => {
+    process.env.BACKEND_URL = 'https://tunnel.test';
+    const consoleSpy = vi.spyOn(console, 'log');
+    
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ success: true }),
+    });
+
+    const req = new Request('http://localhost/api/session', {
+      method: 'POST',
+      body: JSON.stringify({ identifier: 'user', password: 'pass' }),
+    });
+
+    await sessionHandler(req);
+
+    expect(request).toHaveBeenCalledWith(
+      expect.stringContaining('https://tunnel.test'),
+      expect.anything()
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[StabilityTrace]'));
+  });
+
+  it('should convert POST body to ArrayBuffer', async () => {
+    process.env.BACKEND_URL = 'https://tunnel.test';
+    
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ success: true }),
+    });
+
+    const testPayload = { identifier: 'user', password: 'pass' };
+    const req = new Request('http://localhost/api/session', {
+      method: 'POST',
+      body: JSON.stringify(testPayload),
+    });
+
+    await sessionHandler(req);
+
+    const callArgs = (request as any).mock.calls[0][1];
+    expect(callArgs.body).toBeInstanceOf(ArrayBuffer);
+  });
 });
 
 describe('market handler', () => {
@@ -86,7 +147,8 @@ describe('market handler', () => {
       headers: {
         'CST': 'test-cst',
         'X-SECURITY-TOKEN': 'test-token',
-        'x-env': 'LIVE'
+        'x-env': 'LIVE',
+        'Accept': 'application/json'
       }
     });
 
@@ -98,7 +160,8 @@ describe('market handler', () => {
         headers: expect.objectContaining({
           'cst': 'test-cst',
           'x-security-token': 'test-token',
-          'x-env': 'LIVE'
+          'x-env': 'LIVE',
+          'accept': 'application/json'
         })
       })
     );
@@ -110,20 +173,19 @@ describe('order handler', () => {
     vi.clearAllMocks();
   });
 
-  it('should forward request body for POST requests', async () => {
+  it('should forward request body and preserve content-type', async () => {
     const orderHandler = (await import('./order')).default;
+    const testBody = JSON.stringify({ epic: 'ABC', size: 1 });
     
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: {
-        json: () => Promise.resolve({ success: true }),
-      },
+      body: JSON.stringify({ success: true }),
     });
 
     const req = new Request('http://localhost/api/order', {
       method: 'POST',
-      body: JSON.stringify({ epic: 'ABC', size: 1 }),
+      body: testBody,
       headers: { 'Content-Type': 'application/json' }
     });
 
@@ -133,7 +195,11 @@ describe('order handler', () => {
       expect.anything(),
       expect.objectContaining({
         method: 'POST',
-        body: expect.anything() // Could be a stream or string depending on environment
+        headers: expect.objectContaining({
+          'content-type': 'application/json'
+        }),
+        // In Vitest/Node, the body in proxyRequest (req.body) is a ReadableStream
+        body: expect.anything() 
       })
     );
   });
