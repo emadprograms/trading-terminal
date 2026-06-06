@@ -6,14 +6,17 @@ import { useSessionStore } from '../store/useSessionStore'
  */
 const getBaseUrl = () => {
   const { proxyUrl } = useSessionStore.getState()
-  const base = proxyUrl || 'https://proxy.scanner-backend.uk'
-  return base.endsWith('/') ? base : `${base}/`
+  // proxyUrl is now sanitized in the store, but we add a safety check here anyway
+  if (!proxyUrl || proxyUrl === 'undefined') return 'https://proxy.scanner-backend.uk/'
+  return proxyUrl.endsWith('/') ? proxyUrl : `${proxyUrl}/`
 }
 
 /**
  * API client with manual proxy URL resolution in hooks.
  */
 export const api = ky.create({
+  // Use prefix (Ky v2 specific naming) to ensure relative paths resolve to something valid initially.
+  prefix: getBaseUrl(),
   hooks: {
     beforeRequest: [
       (request) => {
@@ -28,28 +31,38 @@ export const api = ky.create({
           url = new URL(request.url, origin);
         }
 
-        // BLOCK MALFORMED REQUESTS
+        // Detect if the path is literally "/undefined" or contains it
         if (url.pathname.includes('undefined')) {
-          console.error('[StabilityTrace] CRITICAL: Pathname contains "undefined". URL:', request.url);
-          // Throwing here will be caught by the calling mutation/query
-          throw new Error(`Malformed API path: ${url.pathname}`);
+          console.error('[StabilityTrace] BLOCKING malformed request to:', request.url);
+          throw new Error(`Invalid API path: ${url.pathname}`);
         }
 
+        // We only rewrite if it's pointing to our local origin (relative request)
+        // or if it's pointing to a proxy (so we can still add headers).
         const isLocal = url.origin === (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000') || url.origin === 'null';
-        const isProxy = url.origin === targetBase.origin;
+        const isProxy = url.origin === targetBase.origin || url.hostname.includes('scanner-backend');
 
         if (isLocal || isProxy) {
-          // Construct the final proxy URL
-          const cleanPath = url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname;
+          // Reconstruct the final proxy URL. 
+          // We take the pathname (stripping leading slash) + search and append it to targetBase
+          const cleanPath = url.pathname.replace(/^\/+/, '');
+          
+          // Final check: if cleanPath is 'undefined', we stop it.
+          if (cleanPath === 'undefined') {
+            throw new Error('Detected malformed "undefined" path in rewrite logic');
+          }
+
           const finalUrl = new URL(cleanPath + url.search, targetBase).toString();
           
           const { cst, securityToken, environment } = useSessionStore.getState()
           const newHeaders = new Headers(request.headers)
           
+          // Inject Capital.com tokens
           if (cst) newHeaders.set('CST', cst)
           if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
           if (environment) newHeaders.set('X-Environment', environment)
 
+          // Inject Cloudflare Access Service Tokens
           const cfClientId = import.meta.env.VITE_CF_ACCESS_CLIENT_ID
           const cfClientSecret = import.meta.env.VITE_CF_ACCESS_CLIENT_SECRET
           if (cfClientId) newHeaders.set('CF-Access-Client-Id', cfClientId)
@@ -85,7 +98,7 @@ export const api = ky.create({
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
             
             if (cst && securityToken) {
-              console.log('[StabilityTrace] Tokens captured.');
+              console.log('[StabilityTrace] Tokens captured successfully.');
               useSessionStore.getState().setTokens(cst, securityToken)
             }
           }

@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 
+const DEFAULT_PROXY_URL = 'https://proxy.scanner-backend.uk'
+
 interface SessionState {
   cst: string | null
   securityToken: string | null
-  proxyUrl: string | null
+  proxyUrl: string
   environment: 'DEMO' | 'LIVE'
   selectedAccountId: string | null
   isAuthenticated: boolean
@@ -15,10 +17,17 @@ interface SessionState {
   resetProxyUrl: () => void
 }
 
+const sanitizeUrl = (url: string | null): string => {
+  if (!url || url === 'undefined' || url === 'null' || url.trim() === '') {
+    return DEFAULT_PROXY_URL;
+  }
+  return url.trim();
+}
+
 export const useSessionStore = create<SessionState>((set) => ({
   cst: null,
   securityToken: null,
-  proxyUrl: localStorage.getItem('proxyUrl'),
+  proxyUrl: sanitizeUrl(localStorage.getItem('proxyUrl')),
   environment: 'DEMO',
   selectedAccountId: null,
   isAuthenticated: false,
@@ -42,13 +51,14 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   setSelectedAccountId: (selectedAccountId) => set({ selectedAccountId }),
 
-  setProxyUrl: (proxyUrl) => {
-    localStorage.setItem('proxyUrl', proxyUrl || '');
-    set({ proxyUrl });
+  setProxyUrl: (url) => {
+    const sanitized = sanitizeUrl(url);
+    localStorage.setItem('proxyUrl', sanitized);
+    set({ proxyUrl: sanitized });
   },
 
   resetProxyUrl: () => {
     localStorage.removeItem('proxyUrl');
-    set({ proxyUrl: null });
+    set({ proxyUrl: DEFAULT_PROXY_URL });
   },
 }))
