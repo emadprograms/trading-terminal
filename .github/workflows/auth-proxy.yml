@@ -1,3 +1,4 @@
+# Force re-parse to fix GitHub Actions visibility
 name: Auth Proxy
 
 on:
