@@ -25,8 +25,8 @@ This phase delivers the core **Live Execution Layer**, transitioning the termina
 - **Slippage Protection**: Implement a hidden safety cap (0.5%). Orders should be rejected/canceled if the market moves beyond this threshold before the order hits the exchange.
 
 ### 4. Flattening (Exits)
-- **Scope**: Initial implementation focuses on **Single-Position Flattening** (closing only the currently selected position).
-- **Expansion**: Global "Flatten All" is deferred to avoid complexity in state synchronization for this phase.
+- **Scope**: Initial implementation focuses on **Single-Position Flattening**.
+- **Expansion**: Global **Flatten All** and **Cancel All** have been implemented with 100ms throttling to ensure account-wide safety and rate-limit compliance.
 
 ## Canonical Refs
 - `.planning/research/CAPITAL_API_REFERENCE.md` — Mandatory for request/response schemas and field names (e.g., `ask` vs `ofr`).

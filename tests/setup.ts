@@ -11,6 +11,33 @@ class ResizeObserver {
 }
 window.ResizeObserver = ResizeObserver
 
+// Mock localStorage and sessionStorage
+const createStorageMock = () => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value.toString();
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    key: vi.fn((index: number) => Object.keys(store)[index] || null),
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+};
+
+const mockLocalStorage = createStorageMock();
+const mockSessionStorage = createStorageMock();
+
+Object.defineProperty(window, 'localStorage', { value: mockLocalStorage });
+Object.defineProperty(window, 'sessionStorage', { value: mockSessionStorage });
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

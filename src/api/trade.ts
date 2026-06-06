@@ -1,5 +1,6 @@
 import { api } from './client';
 import { OrderDirection, OrderType } from '../types/trade';
+import { sanitizeErrorMessage } from '../lib/api-utils';
 
 export interface MarketOrderParams {
   epic: string;
@@ -7,6 +8,7 @@ export interface MarketOrderParams {
   direction: OrderDirection;
   guaranteedStop?: boolean;
   stopLevel?: number;
+  stopDistance?: number;
   profitLevel?: number;
 }
 
@@ -29,7 +31,12 @@ export const tradeApi = {
       }
       return response.dealReference;
     } catch (error: any) {
-      return this.handleApiError(error);
+      const sanitized = sanitizeErrorMessage(error);
+      // Specific handling for Guaranteed Stop errors
+      if (sanitized.includes('guaranteedStop') || sanitized.includes('403')) {
+        throw new Error(`Trade API Error: Guaranteed Stop not available for this instrument`);
+      }
+      throw new Error(`Trade API Error: ${sanitized}`);
     }
   },
 
@@ -46,7 +53,7 @@ export const tradeApi = {
       }
       return response.dealReference;
     } catch (error: any) {
-      return this.handleApiError(error);
+      throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
   },
 
@@ -58,7 +65,7 @@ export const tradeApi = {
     try {
       return await api.get(`confirms/${dealReference}`).json();
     } catch (error: any) {
-      return this.handleApiError(error);
+      throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
   },
 
@@ -70,7 +77,7 @@ export const tradeApi = {
       const response: any = await api.delete(`positions/${dealId}`).json();
       return response.dealReference;
     } catch (error: any) {
-      return this.handleApiError(error);
+      throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
   },
 
@@ -82,34 +89,7 @@ export const tradeApi = {
       const response: any = await api.delete(`workingorders/${id}`).json();
       return response.dealReference;
     } catch (error: any) {
-      return this.handleApiError(error);
+      throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
-  },
-
-  /**
-   * Centralized error handler for trade API calls.
-   */
-  handleApiError(error: any): never {
-    // If it's already a formatted error, re-throw it
-    if (error.message?.startsWith('Trade API Error:')) {
-      throw error;
-    }
-
-    let message = 'Unknown error';
-    
-    // Ky/HTTP error handling
-    if (error.response) {
-      try {
-        // Try to get message from response body
-        const body = error.response.body;
-        message = body?.message || `HTTP ${error.response.status}`;
-      } catch {
-        message = `HTTP ${error.response.status}`;
-      }
-    } else {
-      message = error.message || 'Network error';
-    }
-
-    throw new Error(`Trade API Error: ${message}`);
   },
 };

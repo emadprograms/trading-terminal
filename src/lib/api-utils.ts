@@ -15,3 +15,41 @@ export const mapTimeframeToResolution = (tf: Timeframe): MarketResolution => {
 
   return mapping[tf];
 };
+
+/**
+ * Strips sensitive data (proxy URLs, internal headers) from error messages.
+ * Prevents information disclosure in UI toasts.
+ */
+export const sanitizeErrorMessage = (error: any): string => {
+  let message = '';
+
+  if (typeof error === 'string') {
+    message = error;
+  } else if (error instanceof Error) {
+    message = error.message;
+  } else if (error?.response?.body?.message) {
+    message = error.response.body.message;
+  } else if (error?.message) {
+    message = error.message;
+  } else {
+    message = JSON.stringify(error);
+  }
+
+  // 1. Strip Proxy URLs (e.g., https://tt-proxy-*.vercel.app)
+  const proxyPattern = /https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.vercel\.app/gi;
+  message = message.replace(proxyPattern, '[INTERNAL_PROXY]');
+
+  // 2. Strip sensitive headers
+  const sensitiveHeaders = ['x-security-token', 'CST', 'cst', 'x-env'];
+  sensitiveHeaders.forEach(header => {
+    const headerPattern = new RegExp(`${header}[:=]?\\s*[^,\\s\\"]+`, 'gi');
+    message = message.replace(headerPattern, `${header}: [REDACTED]`);
+  });
+
+  // 3. Fallback for generic errors
+  if (message === '{}' || !message) {
+    return 'An unexpected error occurred';
+  }
+
+  return message;
+};

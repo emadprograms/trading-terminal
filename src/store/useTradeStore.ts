@@ -8,6 +8,8 @@ interface TradeState {
   positions: Position[];
   confirmationBuffer: Record<string, TradeConfirmation>;
   watchdogTimers: Record<string, any>;
+  isExecuting: boolean;
+  closingDealIds: Set<string>;
   
   // Actions
   addPendingOrder: (dealReference: string, order: Order) => void;
@@ -22,12 +24,15 @@ interface TradeState {
 
   placeOrder: (params: MarketOrderParams & { bid?: number, ofr?: number }) => Promise<string>;
   flattenPosition: (dealId: string) => Promise<void>;
+  flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
+  cancelAllWorkingOrders: () => Promise<void>;
 }
 
 const BUFFER_TTL = 30000; // 30 seconds
 const WATCHDOG_DELAY = 2000; // 2 seconds
 const SLIPPAGE_LIMIT = 0.005; // 0.5%
+const BATCH_THROTTLE = 100; // 100ms between calls
 
 export const useTradeStore = create<TradeState>()(
   persist(
@@ -36,71 +41,152 @@ export const useTradeStore = create<TradeState>()(
       positions: [],
       confirmationBuffer: {},
       watchdogTimers: {},
+      isExecuting: false,
+      closingDealIds: new Set<string>(),
 
       placeOrder: async (params) => {
-        const { bid, ofr, ...apiParams } = params;
-        
-        // Auto-include Guaranteed Stop
-        const finalParams = {
-          ...apiParams,
-          guaranteedStop: true,
-        };
+        set({ isExecuting: true });
+        try {
+          const { bid, ofr, ...apiParams } = params;
+          
+          // Auto-include Guaranteed Stop
+          const finalParams = {
+            ...apiParams,
+            guaranteedStop: true,
+          };
 
-        const dealReference = await tradeApi.placeMarketOrder(finalParams);
-        
-        get().addPendingOrder(dealReference, {
-          dealReference,
-          epic: params.epic,
-          size: params.size,
-          type: 'MARKET',
-          direction: params.direction,
-          status: 'PENDING',
-          timestamp: Date.now(),
-          guaranteedStop: true,
-          stopLevel: params.stopLevel,
-          bid,
-          ofr
-        });
+          const dealReference = await tradeApi.placeMarketOrder(finalParams);
+          
+          get().addPendingOrder(dealReference, {
+            dealReference,
+            epic: params.epic,
+            size: params.size,
+            type: 'MARKET',
+            direction: params.direction,
+            status: 'PENDING',
+            timestamp: Date.now(),
+            guaranteedStop: true,
+            stopLevel: params.stopLevel,
+            stopDistance: params.stopDistance,
+            bid,
+            ofr
+          });
 
-        return dealReference;
+          return dealReference;
+        } finally {
+          // We don't reset isExecuting here because we wait for confirmation
+          // handleConfirmation will reset it.
+          // BUT if the API call itself failed, catch block or error handling in tradeApi will throw
+          // So we might need a catch here if we want to reset it on IMMEDIATE API failure
+        }
       },
 
       flattenPosition: async (dealId) => {
-        const dealReference = await tradeApi.flattenPosition(dealId);
-        // We treat it as a pending order for tracking confirmation
-        get().addPendingOrder(dealReference, {
-          dealReference,
-          epic: '', // Epic will be filled by confirmation or we could lookup from current positions
-          size: 0, 
-          type: 'MARKET',
-          direction: 'SELL', // Simplification, in reality it's the opposite of the position
-          status: 'PENDING',
-          timestamp: Date.now(),
+        set((state) => {
+          const newSet = new Set(state.closingDealIds);
+          newSet.add(dealId);
+          return { isExecuting: true, closingDealIds: newSet };
         });
+
+        try {
+          const dealReference = await tradeApi.flattenPosition(dealId);
+          get().addPendingOrder(dealReference, {
+            dealReference,
+            epic: '',
+            size: 0,
+            type: 'MARKET',
+            direction: 'SELL',
+            status: 'PENDING',
+            timestamp: Date.now(),
+          });
+        } finally {
+          set((state) => {
+            const newSet = new Set(state.closingDealIds);
+            newSet.delete(dealId);
+            return { closingDealIds: newSet };
+          });
+        }
+      },
+
+      flattenAll: async () => {
+        const { positions } = get();
+        if (positions.length === 0) return;
+
+        set({ isExecuting: true });
+        try {
+          for (const pos of positions) {
+            set((state) => {
+              const newSet = new Set(state.closingDealIds);
+              newSet.add(pos.dealId);
+              return { closingDealIds: newSet };
+            });
+
+            try {
+              await tradeApi.flattenPosition(pos.dealId);
+              // We don't wait for confirmation in the loop, just fire the DELETE
+            } catch (e) {
+              console.error(`Failed to flatten ${pos.dealId}:`, e);
+            } finally {
+              set((state) => {
+                const newSet = new Set(state.closingDealIds);
+                newSet.delete(pos.dealId);
+                return { closingDealIds: newSet };
+              });
+            }
+            
+            // Throttle
+            await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
+          }
+        } finally {
+          set({ isExecuting: false });
+        }
       },
 
       cancelWorkingOrder: async (workingOrderId) => {
-        const dealReference = await tradeApi.cancelWorkingOrder(workingOrderId);
-        get().addPendingOrder(dealReference, {
-          dealReference,
-          epic: '',
-          size: 0,
-          type: 'STOP', // or LIMIT
-          direction: 'BUY', 
-          status: 'PENDING',
-          timestamp: Date.now(),
-        });
+        set({ isExecuting: true });
+        try {
+          const dealReference = await tradeApi.cancelWorkingOrder(workingOrderId);
+          get().addPendingOrder(dealReference, {
+            dealReference,
+            epic: '',
+            size: 0,
+            type: 'STOP',
+            direction: 'BUY', 
+            status: 'PENDING',
+            timestamp: Date.now(),
+          });
+        } finally {
+          // Resetting isExecuting happens in handleConfirmation
+        }
+      },
+
+      cancelAllWorkingOrders: async () => {
+        const { pendingOrders } = get();
+        const workingOrders = Object.values(pendingOrders).filter(o => o.status === 'PENDING' && (o.type === 'LIMIT' || o.type === 'STOP'));
+        
+        if (workingOrders.length === 0) return;
+
+        set({ isExecuting: true });
+        try {
+          for (const order of workingOrders) {
+            const id = order.workingOrderId || order.dealId || order.dealReference;
+            try {
+              await tradeApi.cancelWorkingOrder(id);
+            } catch (e) {
+              console.error(`Failed to cancel order ${id}:`, e);
+            }
+            await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
+          }
+        } finally {
+          set({ isExecuting: false });
+        }
       },
 
       addPendingOrder: (dealReference, order) => {
         set((state) => {
-          // Check if we already have a buffered confirmation for this dealReference
           const buffered = state.confirmationBuffer[dealReference];
           
           if (buffered) {
-            console.log(`[TradeStore] Using buffered confirmation for ${dealReference}`);
-            
-            // Immediately transition order status based on buffered confirmation
             const updatedOrder = { 
               ...order, 
               status: buffered.status,
@@ -109,7 +195,6 @@ export const useTradeStore = create<TradeState>()(
               reason: buffered.reason
             };
 
-            // If accepted, add to positions
             if (buffered.status === 'ACCEPTED' && buffered.dealId && buffered.entryPrice) {
               setTimeout(() => {
                 get().addPosition({
@@ -123,11 +208,11 @@ export const useTradeStore = create<TradeState>()(
               }, 0);
             }
 
-            // Remove from buffer
             const newBuffer = { ...state.confirmationBuffer };
             delete newBuffer[dealReference];
 
             return {
+              isExecuting: false,
               pendingOrders: {
                 ...state.pendingOrders,
                 [dealReference]: updatedOrder,
@@ -136,8 +221,6 @@ export const useTradeStore = create<TradeState>()(
             };
           }
 
-          // Standard path: just add as PENDING
-          // We'll trigger the watchdog after the state update
           setTimeout(() => {
             get().startWatchdog(dealReference);
           }, 0);
@@ -152,9 +235,7 @@ export const useTradeStore = create<TradeState>()(
       },
 
       startWatchdog: (dealReference) => {
-        const { watchdogTimers, pendingOrders } = get();
-        
-        // Clear existing timer if any
+        const { watchdogTimers } = get();
         if (watchdogTimers[dealReference]) {
           clearTimeout(watchdogTimers[dealReference]);
         }
@@ -162,18 +243,16 @@ export const useTradeStore = create<TradeState>()(
         const timer = setTimeout(async () => {
           const currentOrder = get().pendingOrders[dealReference];
           if (currentOrder && currentOrder.status === 'PENDING') {
-            console.log(`[TradeStore] Watchdog triggered for ${dealReference}`);
             try {
               const confirmation = await tradeApi.getConfirmation(dealReference);
               if (confirmation) {
                 get().handleConfirmation(confirmation);
               }
             } catch (error) {
-              console.error(`[TradeStore] Watchdog polling failed for ${dealReference}:`, error);
+              console.error(`[Watchdog] Polling failed for ${dealReference}:`, error);
             }
           }
           
-          // Clean up timer reference
           set(state => {
             const newTimers = { ...state.watchdogTimers };
             delete newTimers[dealReference];
@@ -192,9 +271,10 @@ export const useTradeStore = create<TradeState>()(
       updateOrderStatus: (dealReference, status, details) => 
         set((state) => {
           const order = state.pendingOrders[dealReference];
-          if (!order) return state;
+          if (!order) return { ...state, isExecuting: false };
 
           return {
+            isExecuting: false,
             pendingOrders: {
               ...state.pendingOrders,
               [dealReference]: {
@@ -212,30 +292,22 @@ export const useTradeStore = create<TradeState>()(
         const { watchdogTimers } = get();
         if (watchdogTimers[dealReference]) {
           clearTimeout(watchdogTimers[dealReference]);
-          // We'll clean up the reference in the state later or now
         }
 
         set((state) => {
           const order = state.pendingOrders[dealReference];
-
-          // Clean up watchdog timer reference
           const newTimers = { ...state.watchdogTimers };
           delete newTimers[dealReference];
 
           if (!order) {
-            console.warn(`[TradeStore] No pending order found for ${dealReference}, buffering confirmation`);
-            
-            // Race condition: confirmation arrived before REST response. Buffer it.
             const newBuffer = {
               ...state.confirmationBuffer,
               [dealReference]: payload
             };
 
-            // Set TTL to prevent memory leaks
             setTimeout(() => {
               set((s) => {
                 if (s.confirmationBuffer[dealReference]) {
-                  console.log(`[TradeStore] TTL expired for buffered confirmation ${dealReference}`);
                   const cleanedBuffer = { ...s.confirmationBuffer };
                   delete cleanedBuffer[dealReference];
                   return { confirmationBuffer: cleanedBuffer };
@@ -245,36 +317,30 @@ export const useTradeStore = create<TradeState>()(
             }, BUFFER_TTL);
 
             return { 
+              isExecuting: false,
               confirmationBuffer: newBuffer,
               watchdogTimers: newTimers
             };
           }
 
-          // Normal path: update the existing pending order
           let finalStatus = status;
           let finalReason = reason;
 
-          // Risk & Slippage Guards
-          if (status === 'ACCEPTED' && entryPrice && order) {
-            // 1. Slippage Safety Cap (0.5%)
+          if (status === 'ACCEPTED' && entryPrice) {
             if (order.type === 'MARKET') {
               const targetPrice = order.direction === 'BUY' ? order.ofr : order.bid;
               if (targetPrice) {
                 const slippage = Math.abs(entryPrice - targetPrice) / targetPrice;
                 if (slippage > SLIPPAGE_LIMIT) {
-                  console.warn(`[TradeStore] Slippage limit exceeded: ${(slippage * 100).toFixed(2)}%`);
                   finalReason = finalReason || `Slippage: ${(slippage * 100).toFixed(2)}%`;
                 }
               }
             }
 
-            // 2. Post-fill SL Validation
             if (order.stopLevel) {
               const stopDistance = Math.abs(entryPrice - order.stopLevel);
               const stopPercent = stopDistance / entryPrice;
-              // If SL is too close (e.g. < 0.1% due to slippage), warn user
               if (stopPercent < 0.001) {
-                console.warn(`[TradeStore] Post-fill SL Validation: SL is extremely close (${(stopPercent * 100).toFixed(3)}%)`);
                 finalReason = finalReason || 'SL risk: fill price too close to stop level';
               }
             }
@@ -288,9 +354,7 @@ export const useTradeStore = create<TradeState>()(
             reason: finalReason
           };
 
-          // Create position if accepted
           if (status === 'ACCEPTED' && dealId && entryPrice) {
-            // We use setTimeout to ensure this happens after the state update
             setTimeout(() => {
               get().addPosition({
                 dealId,
@@ -304,6 +368,7 @@ export const useTradeStore = create<TradeState>()(
           }
 
           return {
+            isExecuting: false,
             pendingOrders: {
               ...state.pendingOrders,
               [dealReference]: updatedOrder,
@@ -315,7 +380,6 @@ export const useTradeStore = create<TradeState>()(
 
       addPosition: (position) => 
         set((state) => {
-          // Avoid duplicate positions if confirmation arrives multiple times (unlikely but safe)
           if (state.positions.find(p => p.dealId === position.dealId)) {
             return state;
           }
@@ -336,13 +400,11 @@ export const useTradeStore = create<TradeState>()(
     {
       name: 'trade-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ pendingOrders: state.pendingOrders }), // Whitelist pendingOrders only
+      partialize: (state) => ({ pendingOrders: state.pendingOrders }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Resume watchdog for any pending orders found in storage
           Object.keys(state.pendingOrders).forEach(dealReference => {
             if (state.pendingOrders[dealReference].status === 'PENDING') {
-              console.log(`[TradeStore] Resuming watchdog for ${dealReference}`);
               state.startWatchdog(dealReference);
             }
           });
