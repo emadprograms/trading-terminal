@@ -24,11 +24,12 @@
   3. User can toggle between Demo and Live environments with immediate visual confirmation of the active account.
   4. Real-time account equity and margin are visible in the terminal header.
 
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 - [x] 01-00-PLAN.md — Setup the test scaffolding and mocking infrastructure.
 - [x] 01-01-PLAN.md — Setup the Hono proxy and tunnel automation in GitHub Actions.
 - [x] 01-02-PLAN.md — Implement the auth handshake, token management, and Ky integration.
+- [ ] 01.2-01-PLAN.md — Implement granular secure proxy gateway on Vercel.
 - [ ] 01-03-PLAN.md — Build the UI components for account toggling and state synchronization.
 
 **UI hint**: yes
@@ -114,7 +115,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth & Infrastructure | 4/4 | Completed | Yes |
+| 1. Auth & Infrastructure | 4/5 | In progress | - |
 | 2. Market Data Engine | 3/3 | Completed | Yes |
 | 2.1 Market Data Sync | 3/3 | Completed | Yes |
 | 3. Order Execution Layer | 3/3 | Complete   | 2026-06-05 |
