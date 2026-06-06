@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-const DEFAULT_PROXY_URL = 'https://proxy.scanner-backend.uk'
+const DEFAULT_PROXY_URL = '/api'
 
 interface SessionState {
   cst: string | null
