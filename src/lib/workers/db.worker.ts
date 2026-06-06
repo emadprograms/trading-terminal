@@ -8,9 +8,12 @@ let SQL: SqlJsStatic | null = null;
 async function getSqlJs() {
   if (SQL) return SQL;
   
-  // In a worker, we can fetch the wasm binary
-  const wasmResp = await fetch('/sql-wasm.wasm');
-  if (!wasmResp.ok) throw new Error(`WASM fetch failed: ${wasmResp.status}`);
+  // Use an absolute path or resolve against the current origin to avoid relative path issues
+  const wasmUrl = new URL('/sql-wasm.wasm', self.location.origin).toString();
+  console.log(`[DBWorker] Fetching WASM from: ${wasmUrl}`);
+  
+  const wasmResp = await fetch(wasmUrl);
+  if (!wasmResp.ok) throw new Error(`WASM fetch failed at ${wasmUrl}: ${wasmResp.status}`);
   const wasmBinary = await wasmResp.arrayBuffer();
   
   SQL = await initSqlJs({ wasmBinary });

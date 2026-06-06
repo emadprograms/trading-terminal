@@ -3,60 +3,71 @@ import { useSessionStore } from '../store/useSessionStore'
 
 /**
  * Get the current base URL from the store.
+ * Ensures it ends with a slash for standard URL resolution.
  */
 const getBaseUrl = () => {
   const { proxyUrl } = useSessionStore.getState()
-  if (proxyUrl) {
-    return proxyUrl.startsWith('http') ? proxyUrl : `https://${proxyUrl}`
-  }
-  return 'https://proxy.scanner-backend.uk'
+  const base = proxyUrl || 'https://proxy.scanner-backend.uk'
+  return base.endsWith('/') ? base : `${base}/`
 }
 
 /**
  * API client with dynamic proxy URL resolution.
+ * Uses baseUrl (Ky v2) for robust relative path resolution.
  */
 export const api = ky.create({
-  // Use 'prefix' (renamed from prefixUrl in v2)
-  prefix: getBaseUrl(),
+  // Use baseUrl as recommended by Ky error message for better resolution
+  prefix: getBaseUrl(), 
   hooks: {
     beforeRequest: [
       (request) => {
         const proxyUrl = getBaseUrl()
         const targetBase = new URL(proxyUrl)
         
-        // Ensure we are hitting the proxy. If not (e.g. relative path resolved to local origin), rewrite.
+        console.log(`[StabilityTrace] Request intercepted: ${request.url}`);
+
         let url: URL;
         try {
           url = new URL(request.url);
         } catch (e) {
-          url = new URL(request.url, window.location.origin);
+          // Fallback for relative URLs if Ky didn't resolve them yet
+          const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+          url = new URL(request.url, origin);
         }
 
+        // Only handle requests meant for our proxy or local origin
         const isProxy = url.origin === targetBase.origin;
-        const isLocal = url.origin === window.location.origin || url.origin === 'null';
+        const isLocal = url.origin === (typeof window !== 'undefined' ? window.location.origin : '');
 
         if (isProxy || isLocal) {
-          // Re-construct the URL to ensure it's on the proxy and properly formatted
-          const finalUrl = new URL(url.pathname + url.search, targetBase).toString();
+          // Construct the final URL on the proxy. 
+          // We strip any leading slash from pathname to avoid double slashes or 'undefined' issues.
+          const cleanPath = url.pathname.replace(/^\/+/, '');
+          
+          // CRITICAL: If cleanPath is empty and we are just hitting the root, or if it somehow became 'undefined'
+          if (cleanPath === 'undefined') {
+            console.error('[StabilityTrace] Detected malformed "undefined" path! URL was:', request.url);
+          }
+
+          const finalUrl = new URL(cleanPath + url.search, targetBase).toString();
+          console.log(`[StabilityTrace] Routing to: ${finalUrl}`);
           
           const { cst, securityToken, environment } = useSessionStore.getState()
           const newHeaders = new Headers(request.headers)
           
-          // Authentication Headers
+          // Inject Capital.com tokens
           if (cst) newHeaders.set('CST', cst)
           if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
           if (environment) newHeaders.set('X-Environment', environment)
 
-          // Cloudflare Access Service Tokens
+          // Inject Cloudflare Access Service Tokens
           const cfClientId = import.meta.env.VITE_CF_ACCESS_CLIENT_ID
           const cfClientSecret = import.meta.env.VITE_CF_ACCESS_CLIENT_SECRET
           if (cfClientId) newHeaders.set('CF-Access-Client-Id', cfClientId)
           if (cfClientSecret) newHeaders.set('CF-Access-Client-Secret', cfClientSecret)
 
-          // Return new request with injected headers and proxy URL
-          // We only pass the body for mutation methods to avoid "body already consumed" errors
+          // Return a fresh Request object
           const isMutation = ['POST', 'PUT', 'PATCH'].includes(request.method);
-          
           return new Request(finalUrl, {
             method: request.method,
             headers: newHeaders,
@@ -84,7 +95,7 @@ export const api = ky.create({
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
             
             if (cst && securityToken) {
-              console.log('[StabilityTrace] Session tokens captured.');
+              console.log('[StabilityTrace] Session tokens captured successfully.');
               useSessionStore.getState().setTokens(cst, securityToken)
             }
           }

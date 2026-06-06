@@ -47,7 +47,13 @@ export function useSession(tickers: string[]) {
       }
 
       console.log(`[StabilityTrace] Attempting login handshake via ${proxyUrl}...`);
-      const response = await api.post('session', { 
+      
+      const endpoint = 'session';
+      if (!endpoint) {
+        throw new Error('API Endpoint is undefined');
+      }
+
+      const response = await api.post(endpoint, { 
         json: params?.credentials || { 
           identifier: import.meta.env.VITE_CAPITAL_USER, 
           password: import.meta.env.VITE_CAPITAL_PASSWORD 
@@ -136,6 +142,9 @@ export function useSession(tickers: string[]) {
     login,
     logout,
     isAuthenticated,
-    isLoggingIn: loginMutation.isPending
+    isLoggingIn: loginMutation.isPending,
+    isLoginError: loginMutation.isError,
+    loginError: loginMutation.error,
+    resetLogin: loginMutation.reset
   };
 }
