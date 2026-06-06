@@ -14,9 +14,9 @@ vi.mock('undici', async (importOriginal) => {
 describe('session handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.BACKEND_URL = 'https://tunnel.test';
     process.env.CF_ACCESS_CLIENT_ID = 'test-id';
     process.env.CF_ACCESS_CLIENT_SECRET = 'test-secret';
-    process.env.ENV = 'DEMO';
   });
 
   it('should handle OPTIONS preflight', async () => {
@@ -48,13 +48,12 @@ describe('session handler', () => {
     const res = await sessionHandler(req);
     
     expect(request).toHaveBeenCalledWith(
-      expect.stringContaining('https://api-capital.backend-capital.com'),
+      expect.stringContaining('https://tunnel.test'),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
           'CF-Access-Client-Id': 'test-id',
           'CF-Access-Client-Secret': 'test-secret',
-          'x-env': 'LIVE',
         }),
         dispatcher: sharedAgent,
       })
@@ -82,7 +81,6 @@ describe('session handler', () => {
   });
 
   it('should use BACKEND_URL and log [StabilityTrace]', async () => {
-    process.env.BACKEND_URL = 'https://tunnel.test';
     const consoleSpy = vi.spyOn(console, 'log');
     
     (request as any).mockResolvedValue({
@@ -106,8 +104,6 @@ describe('session handler', () => {
   });
 
   it('should convert POST body to ArrayBuffer', async () => {
-    process.env.BACKEND_URL = 'https://tunnel.test';
-    
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
@@ -130,6 +126,7 @@ describe('session handler', () => {
 describe('market handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.BACKEND_URL = 'https://tunnel.test';
   });
 
   it('should forward authentication tokens and environment headers', async () => {
@@ -155,7 +152,7 @@ describe('market handler', () => {
     await marketHandler(req);
 
     expect(request).toHaveBeenCalledWith(
-      expect.stringContaining('https://api-capital.backend-capital.com/api/v1/market'),
+      expect.stringContaining('https://tunnel.test/market'),
       expect.objectContaining({
         headers: expect.objectContaining({
           'cst': 'test-cst',
@@ -171,9 +168,10 @@ describe('market handler', () => {
 describe('order handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.BACKEND_URL = 'https://tunnel.test';
   });
 
-  it('should forward request body and preserve content-type', async () => {
+  it('should forward request body as ArrayBuffer and preserve content-type', async () => {
     const orderHandler = (await import('./order')).default;
     const testBody = JSON.stringify({ epic: 'ABC', size: 1 });
     
@@ -198,8 +196,7 @@ describe('order handler', () => {
         headers: expect.objectContaining({
           'content-type': 'application/json'
         }),
-        // In Vitest/Node, the body in proxyRequest (req.body) is a ReadableStream
-        body: expect.anything() 
+        body: expect.any(ArrayBuffer)
       })
     );
   });

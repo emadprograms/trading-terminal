@@ -9,15 +9,6 @@ export const sharedAgent = new Agent({
 });
 
 /**
- * Determine the upstream target based on environment selection.
- */
-export const getTarget = (env: string | null) => {
-  return env === 'LIVE'
-    ? 'https://api-capital.backend-capital.com'
-    : 'https://demo-api-capital.backend-capital.com';
-};
-
-/**
  * Common proxy logic for granular handlers.
  */
 export async function proxyRequest(req: Request, path: string) {
@@ -34,41 +25,50 @@ export async function proxyRequest(req: Request, path: string) {
     });
   }
 
-  const envHeader = req.headers.get('x-env');
-  const env = envHeader || process.env.ENV || 'DEMO';
-  const targetBase = getTarget(env);
-  
+  const backendUrl = process.env.BACKEND_URL;
+  if (!backendUrl) {
+    console.error('[StabilityTrace] FATAL: BACKEND_URL is not defined in environment');
+    return new Response(JSON.stringify({ error: 'Configuration Error', message: 'Upstream target missing' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Parse original URL to preserve search params
   const urlObj = new URL(req.url);
-  const url = `${targetBase}/api/v1${path}${urlObj.search}`;
+  const targetUrl = `${backendUrl.replace(/\/$/, '')}${path}${urlObj.search}`;
+
+  console.log(`[StabilityTrace] Proxying ${req.method} ${path} -> ${targetUrl}`);
 
   const requestHeaders: Record<string, string> = {};
   req.headers.forEach((value, key) => {
+    // T-01.2-01: Strip hop-by-hop headers
     if (!['host', 'connection', 'content-length'].includes(key.toLowerCase())) {
       requestHeaders[key] = value;
     }
   });
 
-  // Inject Cloudflare Access Service Tokens
+  // Inject Cloudflare Access Service Tokens (T-01.2-02)
   if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
     requestHeaders['CF-Access-Client-Id'] = process.env.CF_ACCESS_CLIENT_ID;
     requestHeaders['CF-Access-Client-Secret'] = process.env.CF_ACCESS_CLIENT_SECRET;
   }
 
   try {
-    // Determine body handling: Use text for small payloads, streaming for potentially larger ones
+    // Determine body handling: Use arrayBuffer() for POST/PUT/PATCH to avoid Vercel 500s (streaming issues)
     let requestBody: any = undefined;
     if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-      // Vercel Edge/Serverless Request.body is a ReadableStream
-      requestBody = req.body;
+      requestBody = await req.arrayBuffer();
     }
 
-    const { statusCode, headers, body } = await request(url, {
+    const { statusCode, headers, body } = await request(targetUrl, {
       method: req.method as any,
       headers: requestHeaders,
       body: requestBody,
       dispatcher: sharedAgent,
     });
+
+    console.log(`[StabilityTrace] Upstream Response: ${statusCode}`);
 
     const responseHeaders = new Headers();
     Object.entries(headers).forEach(([key, value]) => {
@@ -89,7 +89,7 @@ export async function proxyRequest(req: Request, path: string) {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error(`[Proxy Error] ${path}:`, error);
+    console.error(`[StabilityTrace] [Proxy Error] ${path}:`, error);
     return new Response(JSON.stringify({ error: 'Proxy Error', message: (error as Error).message }), {
       status: 502,
       headers: { 
