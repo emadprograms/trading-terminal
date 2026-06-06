@@ -80,14 +80,24 @@ jobs:
         run: |
           echo "Waiting for tunnel propagation..."
           sleep 10
+          
+          CLIENT_ID="${{ secrets.CF_ACCESS_CLIENT_ID }}"
+          CLIENT_SECRET="${{ secrets.CF_ACCESS_CLIENT_SECRET }}"
+          
+          if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
+            echo "❌ Error: CF_ACCESS_CLIENT_ID or CF_ACCESS_CLIENT_SECRET is missing from GitHub Secrets."
+            echo "Please add them to Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          
           URL="${{ secrets.PROXY_STATIC_URL }}"
           URL="${URL%/}"
           echo "Testing connectivity to $URL/ping..."
           
           # Fetch and follow redirects, capturing final URL and status code
           curl -L -s -o /dev/null -w "%{url_effective}\n%{http_code}" \
-            -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
-            -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
+            -H "CF-Access-Client-Id: $CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CLIENT_SECRET" \
             "$URL/ping" > result.txt
           
           FINAL_URL=$(head -n 1 result.txt)
@@ -98,7 +108,12 @@ jobs:
           
           if [[ "$FINAL_URL" == *cloudflareaccess.com* ]]; then
             echo "❌ Error: Request was intercepted by Cloudflare Access login page."
-            echo "This means your Service Token headers are missing, invalid, or your Access policy is not configured for Service Auth."
+            echo "This means your 'Service Auth' policy is not correctly configured in Cloudflare Zero Trust."
+            echo "REQUIRED SETUP:"
+            echo "1. Go to Cloudflare Zero Trust -> Access -> Applications."
+            echo "2. Edit the application for your domain."
+            echo "3. Add a Policy with Action: 'Service Auth'."
+            echo "4. Include: 'Service Token' -> [Select your token name]."
             exit 1
           fi
           
