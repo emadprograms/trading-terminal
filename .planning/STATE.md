@@ -24,7 +24,7 @@ READY TO PLAN
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://editor-cement-porcelain-noted.trycloudflare.com
+- **Proxy URL**: https://prior-sir-board-tract.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
