@@ -24,7 +24,7 @@ READY TO PLAN
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://attempted-sir-ethnic-faculty.trycloudflare.com
+- **Proxy URL**: https://editor-cement-porcelain-noted.trycloudflare.com
 - **Environment**: DEMO/LIVE
 
 ## Session State
