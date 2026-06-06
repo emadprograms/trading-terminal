@@ -50,8 +50,8 @@ jobs:
           TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           RUNNER_TRACKING_ID: ""
         run: |
-          echo "Starting Named Tunnel via token..."
-          nohup cloudflared tunnel run --token "$TUNNEL_TOKEN" > cloudflared.log 2>&1 &
+          echo "Starting Named Tunnel using TUNNEL_TOKEN env var..."
+          nohup cloudflared tunnel run > cloudflared.log 2>&1 &
           echo $! > tunnel.pid
           echo "Tunnel process started with PID $(cat tunnel.pid)"
           sleep 10
