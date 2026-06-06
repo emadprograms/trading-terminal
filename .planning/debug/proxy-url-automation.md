@@ -13,35 +13,36 @@ The application recently underwent **Phase 1.1 (Stable Infra & Tunneling)**, tra
 1.  **CORS Preflight Blockage**:
     - **Symptom**: `Access to fetch at 'https://proxy.scanner-backend.uk/session' from origin 'http://localhost:3000' has been blocked by CORS policy`.
     - **Root Cause**: The frontend injects `CF-Access` headers, triggering an `OPTIONS` preflight. Cloudflare Edge blocks this preflight because browsers don't include the service token headers in `OPTIONS` requests.
-2.  **The "Undefined" Path Loop**:
-    - **Status**: Fixed in `src/api/client.ts` by resolving the `ky` wrapper object.
-3.  **The `duplex` TypeError**:
-    - **Status**: Fixed in `src/api/client.ts` by adding `duplex: 'half'`.
-4.  **DB Worker Crash**:
-    - **Status**: Diagnostics and try-catch added.
+2.  **Persistence Conflict (Legacy Storage)**:
+    - **Symptom**: Requests still hitting the remote URL even after the Vite proxy fix.
+    - **Root Cause**: `localStorage.proxyUrl` containing the old remote URL, which overrides the new `/api` default in the store.
+3.  **The "Undefined" Path Loop**:
+    - **Status**: Fixed in `src/api/client.ts`.
+4.  **The `duplex` TypeError**:
+    - **Status**: Fixed in `src/api/client.ts`.
 
 ---
 
 ## 2. Master Implementation Plan
 
-### Phase A: The "Vite Proxy" Bridge (CORS Resolution)
-We will move Cloudflare Access header injection from the browser to a local development proxy.
+### Phase A: The "Vite Proxy" Bridge & Client Hardening
+We will move Cloudflare Access header injection from the browser to a local development proxy and ensure the client definitively uses it.
 
 **1. Vite Configuration (`vite.config.ts`)**:
 - Configure `server.proxy['/api']`.
-- Target: `https://proxy.scanner-backend.uk`.
-- `changeOrigin: true`.
-- `rewrite: (path) => path.replace(/^\/api/, '')`.
-- `configure`: Inject `CF-Access-Client-Id` and `CF-Access-Client-Secret` using environment variables during the `proxyReq` event.
+- Inject `CF-Access-Client-Id` and `CF-Access-Client-Secret` during the `proxyReq` event.
 
-**2. API Client Refactor (`src/api/client.ts`)**:
-- Set `DEFAULT_PROXY_URL` to `/api`.
-- Remove `CF-Access` header injection from the frontend code.
-- Ensure `beforeRequest` still handles Capital.com token injection and URL rewriting for the proxy path.
+**2. Storage Migration (`App.tsx` / `useSessionStore.ts`)**:
+- **Action**: In `App.tsx`, implement a definitive cleanup effect that removes `https://proxy.scanner-backend.uk` from `localStorage` if found.
+- **Action**: Update `DEFAULT_PROXY_URL` in `useSessionStore.ts` to `/api`.
 
-**3. Hono Proxy Update (`server/index.ts`)**:
+**3. API Client Hardening (`src/api/client.ts`)**:
+- **Action**: Update `DEFAULT_PROXY_URL` to `/api`.
+- **Action**: In the `beforeRequest` hook, if a remote proxy (`http`) is used, strip the `/api` prefix from the path to prevent double-prefixing.
+- **Action**: Remove `CF-Access` header injection for same-origin (`/api`) requests.
+
+**4. Hono Proxy Update (`server/index.ts`)**:
 - Update CORS middleware to allow `CF-Access-Client-Id` and `CF-Access-Client-Secret` in `allowHeaders`.
-- Ensure the server correctly handles the `/api/v1` prefixing for proxied requests.
 
 ### Phase B: DB Worker Stabilization
 1.  **Check Logs**: Look for `[DBWorker] FATAL INITIALIZATION ERROR`.
