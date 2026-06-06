@@ -47,13 +47,27 @@ jobs:
 
       - name: Start Cloudflare Tunnel
         env:
-          TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          RAW_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
           RUNNER_TRACKING_ID: ""
         run: |
-          echo "Starting Named Tunnel using TUNNEL_TOKEN env var..."
-          nohup cloudflared tunnel run > cloudflared.log 2>&1 &
+          echo "Extracting and preparing tunnel token..."
+          # Extract only the token part (JWTs start with 'ey') to handle accidental full-command pastes
+          CLEAN_TOKEN=$(echo "$RAW_TOKEN" | grep -oE 'ey[a-zA-Z0-9._-]+')
+          
+          if [ -z "$CLEAN_TOKEN" ]; then
+            echo "❌ Error: Could not find a valid Cloudflare token in the secret."
+            echo "Please ensure CLOUDFLARE_TUNNEL_TOKEN contains only the token string."
+            exit 1
+          fi
+          
+          echo "$CLEAN_TOKEN" > tunnel.token
+          echo "Token written to tunnel.token"
+          
+          echo "Starting Named Tunnel via token-file..."
+          nohup cloudflared tunnel run --token-file tunnel.token > cloudflared.log 2>&1 &
           echo $! > tunnel.pid
           echo "Tunnel process started with PID $(cat tunnel.pid)"
+          
           sleep 10
           if ! kill -0 $(cat tunnel.pid) 2>/dev/null; then
             echo "❌ Tunnel process died immediately. Check logs:"
