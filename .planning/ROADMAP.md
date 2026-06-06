@@ -6,8 +6,8 @@
 - [x] **Phase 2: Market Data Engine** - Real-time Bid/Ask streaming via WebSocket and historical candle data integration. (completed 2026-06-04)
 - [x] **Phase 2.1: Market Data Synchronization** - Eliminate gaps between REST history and live WebSocket streams with atomic buffering and bridging. (completed 2026-06-05)
 
-- [x] **Phase 3: Order Execution Layer** - Implementation of market and limit order execution with state tracking. (completed 2026-06-05)
-- [ ] **Phase 4: Risk & Position Management** - Position flattening and automated stop-loss placement logic.
+- [/] **Phase 3: Order Execution Layer** - Implementation of market/limit orders, position flattening, and automated risk management.
+- [ ] **Phase 4: Risk & Position Management** - Advanced risk protection and multi-position management.
 - [ ] **Phase 5: UI & Shortcut Orchestration** - Keyboard shortcut integration, visual trade markers, and execution optimization.
 
 ## Phase Details
@@ -66,33 +66,33 @@
 
 ### Phase 3: Order Execution Layer
 
-**Goal**: Enable the core ability to open trades with state-aware feedback.
+**Goal**: Enable core trading capabilities with automated risk guards and rapid exit logic.
 **Depends on**: Phase 2
-**Requirements**: EXEC-01, EXEC-02
+**Requirements**: EXEC-01, EXEC-02, EXEC-03, UI-02
 **Success Criteria** (what must be TRUE):
 
-  1. User can place Market and Limit orders via the UI.
-  2. Order state is tracked and displayed (e.g., Pending -> Accepted or Rejected).
-  3. Trade confirmation messages (Success/Failure) are visible to the user.
+  1. User can place Market and Limit orders with an automated Stop Loss (`guaranteedStop`).
+  2. Order status transitions (Pending -> Accepted/Rejected) are visible and tracked in real-time.
+  3. User can "Flatten" a single position or cancel a working order with one click.
+  4. The system recovers order status within 2 seconds if WebSocket messages are missed.
 
 **Plans**: 3 plans
 
-- [x] 03-00-PLAN.md — Scaffolding & Store
-- [x] 03-01-PLAN.md — API & WebSocket Integration
-- [x] 03-02-PLAN.md — UI Components & Feedback
+- [ ] 03-00-PLAN.md — Store & API Foundation
+- [ ] 03-01-PLAN.md — Hybrid Sync & Watchdog
+- [ ] 03-02-PLAN.md — UI & Management
 
 **UI hint**: yes
 
 ### Phase 4: Risk & Position Management
 
-**Goal**: Automate risk protection and provide rapid exit capabilities.
+**Goal**: Advanced risk protection and multi-position management.
 **Depends on**: Phase 3
-**Requirements**: EXEC-03, UI-02
+**Requirements**: TBD
 **Success Criteria** (what must be TRUE):
 
-  1. Every new trade entry automatically triggers the placement of a fixed-distance Stop Loss order.
-  2. User can define the default Stop Loss distance in the terminal settings.
-  3. "One-Click" flatten button instantly closes all active positions for the current symbol.
+  1. Multi-symbol risk dashboard shows exposure across all active trades.
+  2. Automated trailing stops (if supported by API) or client-side trailing logic.
 
 **Plans**: TBD
 **UI hint**: yes
@@ -118,6 +118,6 @@
 | 1. Auth & Infrastructure | 4/5 | In progress | - |
 | 2. Market Data Engine | 3/3 | Completed | Yes |
 | 2.1 Market Data Sync | 3/3 | Completed | Yes |
-| 3. Order Execution Layer | 3/3 | Complete   | 2026-06-05 |
+| 3. Order Execution Layer | 0/3 | In Progress | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |

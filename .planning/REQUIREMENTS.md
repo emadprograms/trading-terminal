@@ -58,9 +58,9 @@
 | DATA-01 | Phase 2 | Complete |
 | DATA-02 | Phase 2 | Complete |
 | DATA-03 | Phase 1 | Complete |
-| EXEC-01 | Phase 3 | Complete |
-| EXEC-02 | Phase 3 | Complete |
-| EXEC-03 | Phase 4 | Pending |
+| EXEC-01 | Phase 3 | Pending |
+| EXEC-02 | Phase 3 | Pending |
+| EXEC-03 | Phase 3 | Pending |
 | UI-01 | Phase 5 | Pending |
-| UI-02 | Phase 4 | Pending |
+| UI-02 | Phase 3 | Pending |
 | UI-03 | Phase 5 | Pending |

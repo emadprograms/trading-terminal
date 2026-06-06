@@ -4,48 +4,45 @@
 
 | Req ID | Requirement | Success Criteria | Verification Method |
 |--------|-------------|------------------|---------------------|
-| EXEC-01 | Market Order execution | User can place Market orders via the UI. | Integration Test + Manual Verification |
-| EXEC-02 | Limit Order placement | User can place Limit orders via the UI. | Integration Test + Manual Verification |
-| EXEC-03 | Order state tracking | Order state is tracked and displayed (Pending -> Accepted/Rejected). | Unit Test (Store) + Integration Test (WS) |
-| UI-01 | Trade feedback | Trade confirmation messages are visible. | Component Test + Manual Verification |
+| EXEC-01 | Market Order execution | User can place Market orders with tracked status. | Unit Test (Store) + Manual |
+| EXEC-02 | Limit Order placement | User can place Limit orders with tracked status. | Unit Test (Store) + Manual |
+| EXEC-03 | One-Click Flatten | User can close a position with a single click. | Unit Test (API/Store) + Manual |
+| UI-02 | Automated Stop Loss | SL is placed automatically with `guaranteedStop: true`. | Unit Test (Risk logic) |
 
 ## Automated Tests
 
 ### Wave 1: Foundation (03-00)
+- **Test Scaffolding:** Create `src/api/client.test.ts`, `src/api/trade.test.ts`, `src/store/useTradeStore.test.ts`.
 - **Unit Test:** `src/store/useTradeStore.test.ts`
-  - Verify state updates for adding pending orders, updating order status, and managing positions.
-- **Mocking:** Update `src/mocks/handlers.ts` to support order execution endpoints.
+  - Verify state updates for adding pending orders and managing positions.
+- **Unit Test:** `src/api/trade.test.ts`
+  - Verify REST calls for market/limit orders and confirms.
 
 ### Wave 2: Integration (03-01)
-- **Integration Test:** `src/api/trade.test.ts`
-  - Verify REST calls for order placement and confirmation.
-- **WebSocket Test:** `src/lib/ws-manager.test.ts` (extended)
-  - Verify handling of `confirms` updates.
+- **Integration Test:** `src/store/useTradeStore.hybrid.test.ts`
+  - Verify WebSocket confirmation routing and buffer logic.
+- **Integration Test:** `src/store/useTradeStore.watchdog.test.ts`
+  - Verify REST polling fallback if WS is missed.
 
-### Wave 3: UI & Feedback (03-02)
+### Wave 3: UI & Management (03-02)
+- **Unit Test:** `src/store/useTradeStore.risk.test.ts`
+  - Verify pre-flight SL calculation and `guaranteedStop` inclusion.
 - **Component Test:** `src/components/TradeControls.test.tsx`
-  - Verify order placement triggers and UI state changes.
+  - Verify button states, size inputs, and order triggers.
 - **Component Test:** `src/components/TradeLog.test.tsx`
-  - Verify order history display.
+  - Verify history display, flattening triggers, and cancel buttons.
 
 ## Manual Verification Procedure
 
-1. **Market Order Flow:**
-   - Open the terminal.
-   - Select a symbol.
-   - Click "Buy" or "Sell" in `TradeControls`.
-   - Observe "Pending" state in UI.
-   - Observe toast notification upon success/failure.
-   - Verify position appears in the store/UI if successful.
+1. **Trade Lifecycle:**
+   - Place a Market Order; verify "Pending" status and toast.
+   - Verify position appears in list once accepted.
+   - Click "Flatten" on the position; verify it closes and toast confirms.
 
-2. **Limit Order Flow:**
-   - Set a target level in `TradeControls`.
-   - Click "Place Limit Order".
-   - Observe order appears in "Working Orders" section of `TradeLog`.
-   - (Simulation) Trigger order fill and verify it becomes an active position.
+2. **Limit Order & Cancellation:**
+   - Place a Limit Order; verify it appears in "Working Orders".
+   - Click "Cancel" on the working order; verify it is removed.
 
-3. **Error Handling:**
-   - Attempt to place an order with invalid size (e.g., 0).
-   - Verify validation error message.
-   - (Simulation) Trigger a server-side rejection (e.g., `INSUFFICIENT_FUNDS`).
-   - Verify human-readable toast notification.
+3. **Risk Guards:**
+   - Check that every placed order in the "Confirms" REST response or WS payload includes the expected Stop Loss level.
+   - Verify that "Guaranteed Stop" is checked/true in the API payload (captured via Network tab or test spy).
