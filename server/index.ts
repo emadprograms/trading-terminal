@@ -19,7 +19,7 @@ app.use('*', async (c, next) => {
 app.use('*', cors({
   origin: '*',
   exposeHeaders: ['CST', 'X-SECURITY-TOKEN'],
-  allowHeaders: ['Content-Type', 'CST', 'X-SECURITY-TOKEN', 'X-Environment'],
+  allowHeaders: ['Content-Type', 'CST', 'X-SECURITY-TOKEN', 'X-Environment', 'CF-Access-Client-Id', 'CF-Access-Client-Secret'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }))
 
