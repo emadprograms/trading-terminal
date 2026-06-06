@@ -16,7 +16,7 @@ progress:
 
 ## Current Phase
 
-Phase 3: Order Execution Layer
+Phase 3: Order Execution Layer (Phase 1.1 Infrastructure Stabilized)
 
 ## Status
 
@@ -24,8 +24,9 @@ READY TO PLAN
 
 ## Active Infrastructure
 
-- **Proxy URL**: https://attempted-sir-ethnic-faculty.trycloudflare.com
+- **Proxy URL**: https://proxy.trading-terminal.dev (Static Named Tunnel)
 - **Environment**: DEMO/LIVE
+- **Security**: Cloudflare Access Service Tokens (CF-Access-Client-Id/Secret)
 
 ## Session State
 

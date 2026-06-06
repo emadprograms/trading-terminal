@@ -45,6 +45,11 @@ export const api = ky.create({
         if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
         if (environment) newHeaders.set('X-Environment', environment)
 
+        const cfClientId = import.meta.env.VITE_CF_ACCESS_CLIENT_ID
+        const cfClientSecret = import.meta.env.VITE_CF_ACCESS_CLIENT_SECRET
+        if (cfClientId) newHeaders.set('CF-Access-Client-Id', cfClientId)
+        if (cfClientSecret) newHeaders.set('CF-Access-Client-Secret', cfClientSecret)
+
         // Return a fresh Request object to guarantee header insertion is respected in all runtimes
         return new Request(finalUrl, {
           method: request.method,
