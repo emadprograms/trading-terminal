@@ -5,7 +5,6 @@ describe('useSessionStore', () => {
   beforeEach(() => {
     useSessionStore.getState().clearTokens()
     useSessionStore.getState().setEnvironment('DEMO')
-    useSessionStore.getState().setProxyUrl(null)
   })
 
   it('should have correct initial state', () => {
@@ -45,12 +44,5 @@ describe('useSessionStore', () => {
     
     setEnvironment('DEMO')
     expect(useSessionStore.getState().environment).toBe('DEMO')
-  })
-
-  it('should set proxy URL', () => {
-    const { setProxyUrl } = useSessionStore.getState()
-    setProxyUrl('http://localhost:3000')
-
-    expect(useSessionStore.getState().proxyUrl).toBe('http://localhost:3000')
   })
 })
