@@ -127,14 +127,19 @@ jobs:
       - name: Verify Capital.com Connectivity
         run: |
           echo "Testing proxy authentication with real credentials..."
-          RESPONSE=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/session \
+          # Capture status code and body separately
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/session \
             -H "Content-Type: application/json" \
             -d '{}')
-          echo "Response Code: $RESPONSE"
-          if [ "$RESPONSE" -eq 200 ]; then
+          
+          echo "Response Code: $STATUS_CODE"
+          
+          if [ "$STATUS_CODE" -eq 200 ]; then
             echo "✅ Full Authentication Verified: Proxy successfully logged into Capital.com"
+            echo "Account Data Preview:"
+            curl -s -X POST http://localhost:3000/session -H "Content-Type: application/json" -d '{}' | jq '.' || echo "Could not parse JSON body."
           else
-            echo "❌ Authentication Failed: Proxy received $RESPONSE from Capital.com. Check your GitHub Secrets."
+            echo "❌ Authentication Failed: Proxy received $STATUS_CODE from Capital.com."
             exit 1
           fi
 
