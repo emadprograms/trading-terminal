@@ -24,12 +24,13 @@
   3. User can toggle between Demo and Live environments with immediate visual confirmation of the active account.
   4. Real-time account equity and margin are visible in the terminal header.
 
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 - [x] 01-00-PLAN.md — Setup the test scaffolding and mocking infrastructure.
 - [x] 01-01-PLAN.md — Setup the Hono proxy and tunnel automation in GitHub Actions.
 - [x] 01-02-PLAN.md — Implement the auth handshake, token management, and Ky integration.
-- [ ] 01.2-01-PLAN.md — Implement granular secure proxy gateway on Vercel.
+- [ ] 01.2-01-PLAN.md — Secure Proxy Implementation
+- [ ] 01.2-02-PLAN.md — Frontend Cleanup & Relative Path Enforcement
 - [ ] 01-03-PLAN.md — Build the UI components for account toggling and state synchronization.
 
 **UI hint**: yes
@@ -62,7 +63,7 @@
   2. The system fetches missing "Bridge" data if the REST API lags behind the current time.
   3. WebSocket ticks are buffered during initial load to prevent out-of-order updates.
 
-**Plans**: TBD
+**Plans**: 3 plans (completed)
 
 ### Phase 3: Order Execution Layer
 
@@ -76,48 +77,22 @@
   3. User can "Flatten" a single position or cancel a working order with one click.
   4. The system recovers order status within 2 seconds if WebSocket messages are missed.
 
-**Plans**: 3 plans
+**Plans**: 4 plans
 
-- [ ] 03-00-PLAN.md — Store & API Foundation
-- [ ] 03-01-PLAN.md — Hybrid Sync & Watchdog
-- [ ] 03-02-PLAN.md — UI & Management
+- [x] 03-00-PLAN.md — Store & API Foundation
+- [x] 03-01-PLAN.md — Hybrid Sync & Watchdog
+- [x] 03-02-PLAN.md — UI & Management
+- [ ] 03-03-PLAN.md — Execution Hardening & Orchestration
 
 **UI hint**: yes
 
-### Phase 4: Risk & Position Management
-
-**Goal**: Advanced risk protection and multi-position management.
-**Depends on**: Phase 3
-**Requirements**: TBD
-**Success Criteria** (what must be TRUE):
-
-  1. Multi-symbol risk dashboard shows exposure across all active trades.
-  2. Automated trailing stops (if supported by API) or client-side trailing logic.
-
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 5: UI & Shortcut Orchestration
-
-**Goal**: Deliver the "Zero-Friction" experience via keyboard and visual feedback.
-**Depends on**: Phase 4
-**Requirements**: UI-01, UI-03
-**Success Criteria** (what must be TRUE):
-
-  1. Keyboard shortcuts (Ctrl+1, Alt+1, etc.) trigger trades with the correct pre-configured sizing.
-  2. Visual markers (arrows/badges) appear on the chart at the exact fill price and time.
-  3. Default trade size can be adjusted via a dedicated input in the navigation bar.
-
-**Plans**: TBD
-**UI hint**: yes
-
-## Progress Table
+### Progress Table
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth & Infrastructure | 4/5 | In progress | - |
+| 1. Auth & Infrastructure | 3/6 | In progress | - |
 | 2. Market Data Engine | 3/3 | Completed | Yes |
 | 2.1 Market Data Sync | 3/3 | Completed | Yes |
-| 3. Order Execution Layer | 0/3 | In Progress | - |
+| 3. Order Execution Layer | 3/4 | In Progress | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |
