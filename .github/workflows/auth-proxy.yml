@@ -78,16 +78,34 @@ jobs:
 
       - name: Verify Tunnel Reachability
         run: |
-          echo "Testing connectivity to ${{ secrets.PROXY_STATIC_URL }}..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+          echo "Waiting for tunnel propagation..."
+          sleep 10
+          URL="${{ secrets.PROXY_STATIC_URL }}"
+          URL="${URL%/}"
+          echo "Testing connectivity to $URL/ping..."
+          
+          # Fetch and follow redirects, capturing final URL and status code
+          curl -L -s -o /dev/null -w "%{url_effective}\n%{http_code}" \
             -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
-            "${{ secrets.PROXY_STATIC_URL }}/ping")
+            "$URL/ping" > result.txt
+          
+          FINAL_URL=$(head -n 1 result.txt)
+          RESPONSE=$(tail -n 1 result.txt)
+          
+          echo "Final Destination: $FINAL_URL"
+          echo "Response Code: $RESPONSE"
+          
+          if [[ "$FINAL_URL" == *cloudflareaccess.com* ]]; then
+            echo "❌ Error: Request was intercepted by Cloudflare Access login page."
+            echo "This means your Service Token headers are missing, invalid, or your Access policy is not configured for Service Auth."
+            exit 1
+          fi
+          
           if [ "$RESPONSE" -eq 200 ]; then
             echo "✅ Tunnel is healthy and reachable at the edge."
           else
-            echo "❌ Tunnel unreachable. HTTP Code: $RESPONSE. Check Cloudflare Dashboard."
-            cat cloudflared.log
+            echo "❌ Tunnel unreachable. HTTP Code: $RESPONSE."
             exit 1
           fi
 
