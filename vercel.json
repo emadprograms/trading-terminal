@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/api/session",
+      "destination": "/api/session"
+    },
+    {
+      "source": "/api/market",
+      "destination": "/api/market"
+    },
+    {
+      "source": "/api/order",
+      "destination": "/api/order"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
