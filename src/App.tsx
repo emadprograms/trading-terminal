@@ -55,10 +55,12 @@ export default function App() {
   useEffect(() => {
     // Definitive fix for bad localStorage value
     const current = localStorage.getItem('proxyUrl');
-    if (current === 'undefined' || current === 'null' || current === '') {
-      console.log('[StabilityTrace] Clearing invalid localStorage proxyUrl:', current);
+    const legacyUrl = 'https://proxy.scanner-backend.uk';
+    
+    if (current === 'undefined' || current === 'null' || current === '' || current === legacyUrl) {
+      console.log('[StabilityTrace] Clearing legacy or invalid localStorage proxyUrl:', current);
       localStorage.removeItem('proxyUrl');
-      // Force store to reset to default
+      // Force store to reset to default (/api)
       useSessionStore.getState().resetProxyUrl();
     }
   }, []);

@@ -54,7 +54,12 @@ export const api = ky.create({
           const targetBase = new URL(proxyBase.endsWith('/') ? proxyBase : `${proxyBase}/`)
           const currentUrl = new URL(request.url)
           
-          const cleanPath = currentUrl.pathname.replace(/^\/+/, '');
+          // HARDENING: If Ky has already prepended /api (our local default), 
+          // we strip it before appending to the remote proxy target.
+          const cleanPath = currentUrl.pathname
+            .replace(/^\/api/, '')
+            .replace(/^\/+/, '');
+            
           const finalUrl = new URL(cleanPath + currentUrl.search, targetBase).toString();
 
           const { cst, securityToken, environment, cfClientId, cfClientSecret } = useSessionStore.getState()
