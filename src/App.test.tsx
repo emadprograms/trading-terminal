@@ -80,7 +80,7 @@ vi.mock('./hooks/useDrawings', () => ({
 
 vi.mock('./store/useSessionStore', () => {
   const state = {
-    setProxyUrl: vi.fn(),
+    environment: 'DEMO',
   };
   
   const useSessionStore = (selector?: any) => {

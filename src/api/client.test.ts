@@ -16,7 +16,7 @@ describe('Ky Client', () => {
     useSessionStore.getState().clearTokens()
     
     // Correctly extend the api with an absolute URL for Node/Vitest
-    testApi = api.extend({ prefix: `${BASE_URL}/api` })
+    testApi = api.extend({ prefixUrl: `${BASE_URL}/api` })
   })
 
   afterEach(() => {

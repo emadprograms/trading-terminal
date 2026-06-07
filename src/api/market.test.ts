@@ -29,7 +29,6 @@ const server = setupServer(
 );
 
 beforeEach(() => {
-  useSessionStore.getState().setProxyUrl('http://localhost:3000');
   server.listen();
 });
 

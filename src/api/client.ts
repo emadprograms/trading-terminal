@@ -8,7 +8,7 @@ const DEFAULT_PREFIX = '/api'
  * Secrets are injected server-side to prevent leaking to the browser.
  */
 export const api = ky.create({
-  prefix: DEFAULT_PREFIX,
+  prefixUrl: DEFAULT_PREFIX,
   hooks: {
     beforeRequest: [
       (requestWrapper: any) => {

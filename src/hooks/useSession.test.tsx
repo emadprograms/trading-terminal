@@ -20,7 +20,6 @@ const createWrapper = () => {
 describe('useSession', () => {
   beforeEach(() => {
     useSessionStore.getState().clearTokens()
-    useSessionStore.getState().setProxyUrl('http://localhost:3000')
   })
 
   it('should handle login successfully', async () => {
