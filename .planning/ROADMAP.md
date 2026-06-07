@@ -30,8 +30,8 @@
 - [x] 01-01-PLAN.md — Setup the Hono proxy and tunnel automation in GitHub Actions.
 - [x] 01-02-PLAN.md — Implement the auth handshake, token management, and Ky integration.
 - [x] 01.2-01-PLAN.md — Secure Proxy Implementation
-- [ ] 01.2-02-PLAN.md — Store & API Hardening
-- [ ] 01.2-03-PLAN.md — UI Cleanup & Test Updates
+- [x] 01.2-02-PLAN.md — Store & API Hardening
+- [x] 01.2-03-PLAN.md — UI Cleanup & Test Updates
 - [ ] 01-03-PLAN.md — Build the UI components for account toggling and state synchronization.
 
 **UI hint**: yes
