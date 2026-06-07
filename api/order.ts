@@ -5,6 +5,13 @@ import { proxyRequest } from './_utils.js';
  * Handles /api/order -> /api/v1/order
  */
 export default async function handler(req: Request) {
-  // Use proxyRequest which supports body streaming for POST/PUT
-  return proxyRequest(req, '/order');
+  console.log('[StabilityTrace] Order handler started');
+  try {
+    const res = await proxyRequest(req, '/order');
+    console.log('[StabilityTrace] Order handler completed with status:', res.status);
+    return res;
+  } catch (err) {
+    console.error('[StabilityTrace] Order handler CRASH:', err);
+    throw err;
+  }
 }
