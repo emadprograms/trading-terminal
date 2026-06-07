@@ -1,19 +1,19 @@
 {
   "rewrites": [
     {
-      "source": "/api/session",
+      "source": "/api/session(.*)",
       "destination": "/api/session"
     },
     {
-      "source": "/api/market",
+      "source": "/api/market(.*)",
       "destination": "/api/market"
     },
     {
-      "source": "/api/order",
+      "source": "/api/order(.*)",
       "destination": "/api/order"
     },
     {
-      "source": "/api/debug",
+      "source": "/api/debug(.*)",
       "destination": "/api/debug"
     },
     {
