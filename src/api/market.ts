@@ -45,7 +45,7 @@ export const marketApi = {
     if (options.from) query.append('from', sanitizeDate(options.from));
     if (options.to) query.append('to', sanitizeDate(options.to));
 
-    const response = await api.get(`api/v1/prices/${encodeURIComponent(epic)}`, {
+    const response = await api.get(`v1/prices/${encodeURIComponent(epic)}`, {
       searchParams: query,
       throwHttpErrors: false, // Allow custom handling
     });
