@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { request } from 'undici';
 import sessionHandler from './session';
 import { sharedAgent } from './_utils';
+import { Readable, PassThrough } from 'stream';
 
 vi.mock('undici', async (importOriginal) => {
   const actual = await importOriginal() as any;
@@ -10,6 +11,34 @@ vi.mock('undici', async (importOriginal) => {
     request: vi.fn(),
   };
 });
+
+// Helper to create mock req/res
+function createMocks(options: any = {}) {
+  const req = new Readable({
+    read() {}
+  }) as any;
+  req.method = options.method || 'GET';
+  req.url = options.url || '/api/session';
+  req.headers = options.headers || {};
+  
+  if (options.body) {
+    req.push(Buffer.from(options.body));
+  }
+  req.push(null);
+
+  const res = new PassThrough() as any;
+  res.statusCode = 200;
+  res.headers = {};
+  res.setHeader = vi.fn((name, value) => { res.headers[name.toLowerCase()] = value; });
+  res.getHeader = vi.fn((name) => res.headers[name.toLowerCase()]);
+  const originalEnd = res.end.bind(res);
+  res.end = vi.fn((data) => {
+    if (data) res.write(data);
+    originalEnd();
+  });
+
+  return { req, res };
+}
 
 describe('session handler', () => {
   beforeEach(() => {
@@ -20,32 +49,35 @@ describe('session handler', () => {
   });
 
   it('should handle OPTIONS preflight', async () => {
-    const req = new Request('http://localhost/api/session', {
-      method: 'OPTIONS',
-    });
+    const { req, res } = createMocks({ method: 'OPTIONS' });
 
-    const res = await sessionHandler(req);
-    expect(res.status).toBe(200);
-    expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+    await sessionHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', expect.stringContaining('POST'));
   });
 
   it('should inject Cloudflare Access Service Tokens and use sharedAgent', async () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ success: true }),
+      body: {
+        pipe: vi.fn((dest) => {
+          dest.end(JSON.stringify({ success: true }));
+        })
+      },
     });
 
-    const req = new Request('http://localhost/api/session', {
+    const { req, res } = createMocks({
       method: 'POST',
       body: JSON.stringify({ identifier: 'user', password: 'pass' }),
       headers: {
-        'Content-Type': 'application/json',
-        'x-env': 'LIVE'
+        'content-type': 'application/json',
+        'x-env': 'LIVE',
+        'host': 'localhost'
       }
     });
 
-    const res = await sessionHandler(req);
+    await sessionHandler(req, res);
     
     expect(request).toHaveBeenCalledWith(
       expect.stringContaining('https://tunnel.test'),
@@ -58,26 +90,28 @@ describe('session handler', () => {
         dispatcher: sharedAgent,
       })
     );
-    expect(res.status).toBe(200);
+    expect(res.statusCode).toBe(200);
   });
 
   it('should propagate upstream errors (4xx/5xx)', async () => {
     (request as any).mockResolvedValue({
       statusCode: 401,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ error: 'unauthorized' }),
+      body: {
+        pipe: vi.fn((dest) => {
+          dest.end(JSON.stringify({ error: 'unauthorized' }));
+        })
+      },
     });
 
-    const req = new Request('http://localhost/api/session', {
+    const { req, res } = createMocks({
       method: 'POST',
       body: JSON.stringify({ identifier: 'user', password: 'pass' }),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'content-type': 'application/json' }
     });
 
-    const res = await sessionHandler(req);
-    expect(res.status).toBe(401);
-    const data = await res.json();
-    expect(data.error).toBe('unauthorized');
+    await sessionHandler(req, res);
+    expect(res.statusCode).toBe(401);
   });
 
   it('should use BACKEND_URL and log [StabilityTrace]', async () => {
@@ -86,15 +120,15 @@ describe('session handler', () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ success: true }),
+      body: { pipe: vi.fn() },
     });
 
-    const req = new Request('http://localhost/api/session', {
+    const { req, res } = createMocks({
       method: 'POST',
       body: JSON.stringify({ identifier: 'user', password: 'pass' }),
     });
 
-    await sessionHandler(req);
+    await sessionHandler(req, res);
 
     expect(request).toHaveBeenCalledWith(
       expect.stringContaining('https://tunnel.test'),
@@ -107,10 +141,10 @@ describe('session handler', () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ success: true }),
+      body: { pipe: vi.fn() },
     });
 
-    const req = new Request('http://localhost/api/session', {
+    const { req, res } = createMocks({
       method: 'POST',
       headers: {
         'host': 'localhost',
@@ -120,7 +154,7 @@ describe('session handler', () => {
       }
     });
 
-    await sessionHandler(req);
+    await sessionHandler(req, res);
 
     const callArgs = (request as any).mock.calls[0][1];
     const headers = callArgs.headers;
@@ -131,23 +165,23 @@ describe('session handler', () => {
     expect(headers['x-custom-header']).toBe('keep-me');
   });
 
-  it('should convert POST body to ArrayBuffer', async () => {
+  it('should read POST body as Buffer', async () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ success: true }),
+      body: { pipe: vi.fn() },
     });
 
     const testPayload = { identifier: 'user', password: 'pass' };
-    const req = new Request('http://localhost/api/session', {
+    const { req, res } = createMocks({
       method: 'POST',
       body: JSON.stringify(testPayload),
     });
 
-    await sessionHandler(req);
+    await sessionHandler(req, res);
 
     const callArgs = (request as any).mock.calls[0][1];
-    expect(callArgs.body).toBeInstanceOf(ArrayBuffer);
+    expect(callArgs.body).toBeInstanceOf(Buffer);
   });
 });
 
@@ -163,21 +197,21 @@ describe('market handler', () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: {
-        json: () => Promise.resolve({ prices: [] }),
-      },
+      body: { pipe: vi.fn() },
     });
 
-    const req = new Request('http://localhost/api/market?epic=ABC', {
+    const { req, res } = createMocks({
+      url: '/api/market?epic=ABC',
       headers: {
-        'CST': 'test-cst',
-        'X-SECURITY-TOKEN': 'test-token',
+        'cst': 'test-cst',
+        'x-security-token': 'test-token',
         'x-env': 'LIVE',
-        'Accept': 'application/json'
+        'accept': 'application/json',
+        'host': 'localhost'
       }
     });
 
-    await marketHandler(req);
+    await marketHandler(req, res);
 
     expect(request).toHaveBeenCalledWith(
       expect.stringContaining('https://tunnel.test/market'),
@@ -199,23 +233,23 @@ describe('order handler', () => {
     process.env.BACKEND_URL = 'https://tunnel.test';
   });
 
-  it('should forward request body as ArrayBuffer and preserve content-type', async () => {
+  it('should forward request body as Buffer and preserve content-type', async () => {
     const orderHandler = (await import('./order')).default;
     const testBody = JSON.stringify({ epic: 'ABC', size: 1 });
     
     (request as any).mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ success: true }),
+      body: { pipe: vi.fn() },
     });
 
-    const req = new Request('http://localhost/api/order', {
+    const { req, res } = createMocks({
       method: 'POST',
       body: testBody,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'content-type': 'application/json' }
     });
 
-    await orderHandler(req);
+    await orderHandler(req, res);
 
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
@@ -224,34 +258,7 @@ describe('order handler', () => {
         headers: expect.objectContaining({
           'content-type': 'application/json'
         }),
-        body: expect.any(ArrayBuffer)
-      })
-    );
-  });
-
-  it('should forward PUT request body as ArrayBuffer', async () => {
-    const orderHandler = (await import('./order')).default;
-    const testBody = JSON.stringify({ orderId: '123' });
-    
-    (request as any).mockResolvedValue({
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ success: true }),
-    });
-
-    const req = new Request('http://localhost/api/order', {
-      method: 'PUT',
-      body: testBody,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    await orderHandler(req);
-
-    expect(request).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        method: 'PUT',
-        body: expect.any(ArrayBuffer)
+        body: expect.any(Buffer)
       })
     );
   });

@@ -1,6 +1,7 @@
 console.log('[StabilityTrace] Loading _utils.ts');
 import { Agent, request } from 'undici';
 import { Readable } from 'stream';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Shared undici Agent configured to force HTTP/1.1.
@@ -12,64 +13,60 @@ export const sharedAgent = new Agent({
 });
 
 /**
- * Common proxy logic for granular handlers.
+ * Helper to read the request body from an IncomingMessage
  */
-export async function proxyRequest(req: Request, path: string) {
-  console.log(`[StabilityTrace] proxyRequest called for path: ${path}, method: ${req.method}`);
-  
-  // Guard against missing req or method
-  if (!req || !req.method) {
-    console.error('[StabilityTrace] Invalid request object received');
-    return new Response(JSON.stringify({ error: 'Internal Error', message: 'Invalid request object' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
   }
+  return chunks.length > 0 ? Buffer.concat(chunks) : undefined;
+}
 
+/**
+ * Common proxy logic for granular handlers using Node.js (req, res) signature.
+ */
+export async function proxyRequest(req: IncomingMessage, res: ServerResponse, path: string) {
+  const method = req.method || 'GET';
+  console.log(`[StabilityTrace] proxyRequest called for path: ${path}, method: ${method}`);
+  
   // CORS Preflight
-  if (req.method === 'OPTIONS') {
+  if (method === 'OPTIONS') {
     console.log('[StabilityTrace] Handling OPTIONS preflight');
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, x-env, CST, X-SECURITY-TOKEN',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
+    res.statusCode = 200;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-env, CST, X-SECURITY-TOKEN');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.end();
+    return;
   }
 
   const backendUrl = process.env.BACKEND_URL;
   if (!backendUrl) {
     console.error('[StabilityTrace] FATAL: BACKEND_URL is not defined in environment');
-    return new Response(JSON.stringify({ error: 'Configuration Error', message: 'Upstream target missing' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ error: 'Configuration Error', message: 'Upstream target missing' }));
+    return;
   }
 
   try {
-    // Parse original URL to preserve search params
-    console.log(`[StabilityTrace] Original req.url: ${req.url}`);
-    let url: string = req.url;
-    if (url.startsWith('/')) {
-      const host = req.headers.get('host') || 'localhost';
-      url = `https://${host}${url}`;
-      console.log(`[StabilityTrace] Reconstructed URL: ${url}`);
-    }
+    // Reconstruct URL to preserve search params. req.url in Node.js is usually just the path + query.
+    const host = (req.headers['host'] as string) || 'localhost';
+    const protocol = req.headers['x-forwarded-proto'] === 'http' ? 'http' : 'https';
+    const fullUrl = new URL(req.url || '', `${protocol}://${host}`);
     
-    const urlObj = new URL(url);
-    const targetUrl = `${backendUrl.replace(/\/$/, '')}${path}${urlObj.search}`;
+    const targetUrl = `${backendUrl.replace(/\/$/, '')}${path}${fullUrl.search}`;
 
-    console.log(`[StabilityTrace] Proxying ${req.method} ${path} -> ${targetUrl}`);
+    console.log(`[StabilityTrace] Proxying ${method} ${path} -> ${targetUrl}`);
     console.log(`[StabilityTrace] CF_ACCESS_CLIENT_ID present: ${!!process.env.CF_ACCESS_CLIENT_ID}`);
 
     const requestHeaders: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
+    Object.entries(req.headers).forEach(([key, value]) => {
       // T-01.2-01: Strip hop-by-hop headers
-      if (!['host', 'connection', 'content-length'].includes(key.toLowerCase())) {
-        requestHeaders[key] = value;
+      if (!['host', 'connection', 'content-length'].includes(key.toLowerCase()) && value !== undefined) {
+        requestHeaders[key] = Array.isArray(value) ? value.join(', ') : value;
       }
     });
 
@@ -79,17 +76,17 @@ export async function proxyRequest(req: Request, path: string) {
       requestHeaders['CF-Access-Client-Secret'] = process.env.CF_ACCESS_CLIENT_SECRET;
     }
 
-    // Determine body handling: Use arrayBuffer() for POST/PUT/PATCH to avoid Vercel 500s (streaming issues)
+    // Determine body handling
     let requestBody: any = undefined;
-    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-      console.log('[StabilityTrace] Reading request body as arrayBuffer');
-      requestBody = await req.arrayBuffer();
-      console.log(`[StabilityTrace] Body size: ${requestBody?.byteLength || 0} bytes`);
+    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+      console.log('[StabilityTrace] Reading request body');
+      requestBody = await readBody(req);
+      console.log(`[StabilityTrace] Body size: ${requestBody?.length || 0} bytes`);
     }
 
     console.log('[StabilityTrace] Sending upstream request via undici');
     const { statusCode, headers, body } = await request(targetUrl, {
-      method: req.method as any,
+      method: method as any,
       headers: requestHeaders,
       body: requestBody,
       dispatcher: sharedAgent,
@@ -97,40 +94,36 @@ export async function proxyRequest(req: Request, path: string) {
 
     console.log(`[StabilityTrace] Upstream Response: ${statusCode}`);
 
-    const responseHeaders = new Headers();
+    // Set response headers
     Object.entries(headers).forEach(([key, value]) => {
       if (value && !['content-encoding', 'transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
-        if (Array.isArray(value)) {
-          value.forEach(v => responseHeaders.append(key, v));
-        } else {
-          responseHeaders.set(key, value);
-        }
+        res.setHeader(key, value);
       }
     });
 
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
-    responseHeaders.set('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Expose-Headers', 'CST, X-SECURITY-TOKEN');
+    res.statusCode = statusCode;
 
-    // Convert Node.js Readable to Web ReadableStream for Response compatibility
-    const webBody = body ? Readable.toWeb(body as any) : null;
-
-    console.log('[StabilityTrace] Returning response to client');
-    return new Response(webBody as any, {
-      status: statusCode,
-      headers: responseHeaders,
-    });
+    // Stream body to response
+    if (body) {
+      body.pipe(res);
+    } else {
+      res.end();
+    }
+    
+    console.log('[StabilityTrace] Response streamed to client');
   } catch (error) {
     console.error(`[StabilityTrace] [Proxy Error] ${path}:`, error);
-    return new Response(JSON.stringify({ 
-      error: 'Proxy Error', 
-      message: (error as Error).message,
-      stack: (error as Error).stack 
-    }), {
-      status: 502,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-    });
+    if (!res.headersSent) {
+      res.statusCode = 502;
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.end(JSON.stringify({ 
+        error: 'Proxy Error', 
+        message: (error as Error).message,
+        stack: (error as Error).stack 
+      }));
+    }
   }
 }
