@@ -1,4 +1,4 @@
-# Phase 4: Risk & Position Management - Exhaustive Deep-Dive Research
+/# Phase 4: Risk & Position Management - Exhaustive Deep-Dive Research
 
 **Researched:** 2026-06-05
 **Domain:** Risk Protection, Position Management, and Flattening (Advanced)
