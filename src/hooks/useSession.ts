@@ -42,10 +42,12 @@ export function useSession(tickers: string[]) {
         clearTokens();
       }
 
-      // Call the session endpoint. Credentials are now injected server-side by the Vercel proxy
-      // to prevent leaking secrets to the browser.
+      // Call the session endpoint directly to avoid any potential closure/variable resolution issues
       const response = await api.post('session', { 
-        json: params?.credentials || {} 
+        json: params?.credentials || { 
+          identifier: import.meta.env.VITE_CAPITAL_USER, 
+          password: import.meta.env.VITE_CAPITAL_PASSWORD 
+        } 
       });
       return response.json();
     },
