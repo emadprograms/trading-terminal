@@ -1,5 +1,10 @@
 import { create } from 'zustand'
 
+// Legacy cleanup: remove old proxyUrl from localStorage to prevent interference with new /api gateway
+if (typeof window !== 'undefined') {
+  localStorage.removeItem('proxyUrl');
+}
+
 interface SessionState {
   cst: string | null
   securityToken: string | null
