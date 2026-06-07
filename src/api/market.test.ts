@@ -4,8 +4,16 @@ import { http, HttpResponse } from 'msw';
 import { marketApi } from './market';
 import { useSessionStore } from '../store/useSessionStore';
 
+vi.mock('./client', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./client')>();
+  return {
+    ...mod,
+    api: mod.api.extend({ prefix: 'http://localhost:3000/api' })
+  };
+});
+
 const server = setupServer(
-  http.get('http://localhost:3000/api/v1/prices/*', async ({ request }) => {
+  http.get('http://localhost:3000/api/market/v1/prices/*', async ({ request }) => {
     const url = new URL(request.url);
     const epic = url.pathname.split('/').pop();
     const resolution = url.searchParams.get('resolution');
@@ -29,10 +37,12 @@ const server = setupServer(
 );
 
 beforeEach(() => {
+  vi.stubGlobal('location', { origin: 'http://localhost:3000' });
   server.listen();
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   server.resetHandlers();
   server.close();
 });
@@ -52,7 +62,7 @@ describe('marketApi', () => {
     const epic = 'S&P 500';
     const spy = vi.fn();
     server.use(
-      http.get('http://localhost:3000/api/v1/prices/S%26P%20500', async () => {
+      http.get('http://localhost:3000/api/market/v1/prices/S%26P%20500', async () => {
         spy();
         return HttpResponse.json({ prices: [] });
       })
@@ -66,7 +76,7 @@ describe('marketApi', () => {
     let capturedParams: URLSearchParams | null = null;
     
     server.use(
-      http.get('http://localhost:3000/api/v1/prices/*', async ({ request }) => {
+      http.get('http://localhost:3000/api/market/v1/prices/*', async ({ request }) => {
         capturedParams = new URL(request.url).searchParams;
         return HttpResponse.json({ prices: [] });
       })
@@ -79,14 +89,14 @@ describe('marketApi', () => {
     });
 
     expect(capturedParams?.get('max')).toBe('100');
-    expect(capturedParams?.get('from')).toBe('2024-01-01T00:00:00Z');
-    expect(capturedParams?.get('to')).toBe('2024-01-02T00:00:00Z');
+    expect(capturedParams?.get('from')).toBe('2024-01-01T00:00:00');
+    expect(capturedParams?.get('to')).toBe('2024-01-02T00:00:00');
     expect(capturedParams?.get('resolution')).toBe('MINUTE');
   });
 
   it('should throw an error when the response is not OK', async () => {
     server.use(
-      http.get('http://localhost:3000/api/v1/prices/*', () => {
+      http.get('http://localhost:3000/api/market/v1/prices/*', () => {
         return new HttpResponse(JSON.stringify({ errorCode: 'error.invalid-resolution' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },

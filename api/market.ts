@@ -8,7 +8,14 @@ import type { IncomingMessage, ServerResponse } from 'http';
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   console.log('[StabilityTrace] Market handler started');
   try {
-    await proxyRequest(req, res, '/market');
+    // Extract everything after /api/market (e.g., /v1/prices/EPIC)
+    const urlPath = req.url?.split('?')[0] || '';
+    const subPath = urlPath.replace(/^\/api\/market/, '');
+    
+    // The backend expects /api/... (e.g., /api/v1/prices/EPIC)
+    const targetPath = `/api${subPath}`;
+    
+    await proxyRequest(req, res, targetPath);
     console.log('[StabilityTrace] Market handler completed');
   } catch (err) {
     console.error('[StabilityTrace] Market handler CRASH:', err);
