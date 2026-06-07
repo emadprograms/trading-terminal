@@ -80,7 +80,6 @@ vi.mock('./hooks/useDrawings', () => ({
 
 vi.mock('./store/useSessionStore', () => {
   const state = {
-    proxyUrl: 'https://test-proxy.com',
     setProxyUrl: vi.fn(),
   };
   

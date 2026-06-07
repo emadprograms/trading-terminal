@@ -7,7 +7,7 @@ import { wsManager } from '../lib/ws-manager';
 const TODAY = new Date().toISOString().split('T')[0];
 
 export function useSession(tickers: string[]) {
-  const { cst, securityToken, proxyUrl, isAuthenticated, setTokens, clearTokens, environment } = useSessionStore();
+  const { cst, securityToken, isAuthenticated, setTokens, clearTokens, environment } = useSessionStore();
   
   const [selectedDate, setSelectedDate] = useState<string>(() => localStorage.getItem('lastUsedDate') || TODAY);
   const [sessionTicker, setSessionTicker] = useState<string>(() => localStorage.getItem('lastUsedTicker') || 'SPY');
@@ -35,19 +35,13 @@ export function useSession(tickers: string[]) {
   // Auth Mutation
   const loginMutation = useMutation({
     mutationFn: async (params?: { credentials?: { identifier: string; password: string }, environment?: 'DEMO' | 'LIVE' }) => {
-      const { setEnvironment, clearTokens, proxyUrl } = useSessionStore.getState();
+      const { setEnvironment, clearTokens } = useSessionStore.getState();
       
       if (params?.environment) {
         setEnvironment(params.environment);
         clearTokens();
       }
 
-      if (!proxyUrl) {
-        throw new Error('No Proxy URL configured. Please use the Launch Terminal button.');
-      }
-
-      console.log(`[StabilityTrace] Attempting login handshake via ${proxyUrl}...`);
-      
       // Call the session endpoint directly to avoid any potential closure/variable resolution issues
       const response = await api.post('session', { 
         json: params?.credentials || { 

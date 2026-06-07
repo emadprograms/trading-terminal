@@ -103,6 +103,34 @@ describe('session handler', () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[StabilityTrace]'));
   });
 
+  it('should strip host, connection, and content-length headers before proxying', async () => {
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ success: true }),
+    });
+
+    const req = new Request('http://localhost/api/session', {
+      method: 'POST',
+      headers: {
+        'host': 'localhost',
+        'connection': 'keep-alive',
+        'content-length': '123',
+        'x-custom-header': 'keep-me'
+      }
+    });
+
+    await sessionHandler(req);
+
+    const callArgs = (request as any).mock.calls[0][1];
+    const headers = callArgs.headers;
+    
+    expect(headers['host']).toBeUndefined();
+    expect(headers['connection']).toBeUndefined();
+    expect(headers['content-length']).toBeUndefined();
+    expect(headers['x-custom-header']).toBe('keep-me');
+  });
+
   it('should convert POST body to ArrayBuffer', async () => {
     (request as any).mockResolvedValue({
       statusCode: 200,

@@ -40,7 +40,7 @@
 
 All Nyquist behavioral validation requirements have been met and verified via automated tests.
 
-## Validation Audit 2026-06-06
+## Validation Audit 2026-06-07
 | Metric | Count |
 |--------|-------|
 | Gaps found | 1 |

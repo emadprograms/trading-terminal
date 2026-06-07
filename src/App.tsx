@@ -47,23 +47,7 @@ export default function App() {
     resetLogin
   } = useSession(tickers);
 
-  const proxyUrl = useSessionStore(state => state.proxyUrl);
-  const setProxyUrl = useSessionStore(state => state.setProxyUrl);
-
   const autoLoginAttempted = React.useRef(false);
-
-  useEffect(() => {
-    // Definitive fix for bad localStorage value
-    const current = localStorage.getItem('proxyUrl');
-    const legacyUrl = 'https://proxy.scanner-backend.uk';
-    
-    if (current === 'undefined' || current === 'null' || current === '' || current === legacyUrl) {
-      console.log('[StabilityTrace] Clearing legacy or invalid localStorage proxyUrl:', current);
-      localStorage.removeItem('proxyUrl');
-      // Force store to reset to default (/api)
-      useSessionStore.getState().resetProxyUrl();
-    }
-  }, []);
 
   const {
     layoutMode,
@@ -96,25 +80,6 @@ export default function App() {
     handleUpdateDrawings
   } = useDrawings();
 
-  useEffect(() => {
-    if (proxyUrl && !isAuthenticated && !isLoggingIn && !isLoginError && !autoLoginAttempted.current) {
-      console.log('[StabilityTrace] Auto-initiating login handshake...');
-      autoLoginAttempted.current = true;
-      login().catch(() => {
-        console.warn('[StabilityTrace] Auto-login failed. Standing by for manual intervention.');
-      });
-    }
-  }, [proxyUrl, isAuthenticated, isLoggingIn, isLoginError, login]);
-
-  const handleLaunch = async () => {
-    const url = prompt('Enter Proxy URL:', proxyUrl || '');
-    if (url) {
-      autoLoginAttempted.current = false;
-      resetLogin();
-      setProxyUrl(url);
-    }
-  };
-
   return (
     <div className="app-container">
       <Sidebar 
@@ -127,7 +92,6 @@ export default function App() {
         onEndSession={endSession}
         layoutMode={layoutMode}
         setLayoutMode={setLayoutMode}
-        onLaunch={handleLaunch}
       />
 
       <div className="main-content" style={{ position: 'relative' }}>

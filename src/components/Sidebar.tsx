@@ -12,7 +12,6 @@ interface SidebarProps {
   onEndSession: () => void;
   layoutMode: string;
   setLayoutMode: (mode: string) => void;
-  onLaunch?: () => void;
 }
 
 const LAYOUTS = [
@@ -37,8 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isSessionStarted,
   onEndSession,
   layoutMode,
-  setLayoutMode,
-  onLaunch
+  setLayoutMode
 }) => {
   const [showTradeLog, setShowTradeLog] = useState(false);
 
@@ -48,10 +46,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="logo" title="Trading Terminal">
           <Activity size={24} color="var(--accent-green)" />
         </div>
-
-        <button className="btn-icon" onClick={onLaunch} title="Connect Proxy">
-          <ExternalLink size={20} color="var(--accent-green)" />
-        </button>
 
         <button 
           className={`btn-icon ${showTradeLog ? 'active' : ''}`} 

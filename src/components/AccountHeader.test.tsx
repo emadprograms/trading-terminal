@@ -21,7 +21,6 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
 describe('AccountHeader', () => {
   beforeEach(() => {
     useSessionStore.getState().clearTokens()
-    useSessionStore.getState().setProxyUrl('http://localhost:3000')
   })
 
   it('should show offline state when not authenticated', () => {
