@@ -76,6 +76,8 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
       requestHeaders['CF-Access-Client-Secret'] = process.env.CF_ACCESS_CLIENT_SECRET;
     }
 
+    console.log(`[StabilityTrace] Token Check - ID present: ${!!process.env.CF_ACCESS_CLIENT_ID}, Secret present: ${!!process.env.CF_ACCESS_CLIENT_SECRET}`);
+
     // Determine body handling
     let requestBody: any = undefined;
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
