@@ -65,7 +65,7 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
     const requestHeaders: Record<string, string> = {};
     Object.entries(req.headers).forEach(([key, value]) => {
       // T-01.2-01: Strip hop-by-hop headers
-      if (!['host', 'connection', 'content-length'].includes(key.toLowerCase()) && value !== undefined) {
+      if (!['host', 'connection', 'content-length', 'transfer-encoding'].includes(key.toLowerCase()) && value !== undefined) {
         requestHeaders[key] = Array.isArray(value) ? value.join(', ') : value;
       }
     });
