@@ -61,17 +61,6 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
 
     console.log(`[StabilityTrace] Proxying ${method} ${path} -> ${targetUrl}`);
     
-    // INSTRUMENTATION: Log header presence for backend auth
-    const authHeaders = {
-      'CST': requestHeaders['CST'] ? 'PRESENT' : 'MISSING',
-      'X-SECURITY-TOKEN': requestHeaders['X-SECURITY-TOKEN'] ? 'PRESENT' : 'MISSING',
-      'CF-Access-Client-Id': requestHeaders['CF-Access-Client-Id'] ? 'PRESENT' : 'MISSING',
-      'CF-Access-Client-Secret': requestHeaders['CF-Access-Client-Secret'] ? 'PRESENT' : 'MISSING',
-    };
-    console.log(`[StabilityTrace] Upstream Auth Headers:`, authHeaders);
-
-    console.log(`[StabilityTrace] CF_ACCESS_CLIENT_ID present: ${!!process.env.CF_ACCESS_CLIENT_ID}`);
-
     const requestHeaders: Record<string, string> = {};
     Object.entries(req.headers).forEach(([key, value]) => {
       // T-01.2-01: Strip hop-by-hop headers
@@ -85,6 +74,15 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
       requestHeaders['CF-Access-Client-Id'] = process.env.CF_ACCESS_CLIENT_ID;
       requestHeaders['CF-Access-Client-Secret'] = process.env.CF_ACCESS_CLIENT_SECRET;
     }
+
+    // INSTRUMENTATION: Log header presence for backend auth
+    const authHeaders = {
+      'CST': requestHeaders['CST'] ? 'PRESENT' : 'MISSING',
+      'X-SECURITY-TOKEN': requestHeaders['X-SECURITY-TOKEN'] ? 'PRESENT' : 'MISSING',
+      'CF-Access-Client-Id': requestHeaders['CF-Access-Client-Id'] ? 'PRESENT' : 'MISSING',
+      'CF-Access-Client-Secret': requestHeaders['CF-Access-Client-Secret'] ? 'PRESENT' : 'MISSING',
+    };
+    console.log(`[StabilityTrace] Upstream Auth Headers:`, authHeaders);
 
     console.log(`[StabilityTrace] Token Check - ID present: ${!!process.env.CF_ACCESS_CLIENT_ID}, Secret present: ${!!process.env.CF_ACCESS_CLIENT_SECRET}`);
 
