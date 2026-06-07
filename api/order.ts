@@ -1,4 +1,4 @@
-import { proxyRequest } from './_utils';
+import { proxyRequest } from './_utils.js';
 
 /**
  * Granular proxy handler for Order Execution.
