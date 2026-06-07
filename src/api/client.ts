@@ -22,6 +22,10 @@ export const api = ky.create({
         const { cst, securityToken, environment } = useSessionStore.getState()
         const newHeaders = new Headers(request.headers)
         
+        // INSTRUMENTATION: Trace token presence
+        console.log(`[StabilityTrace] Request to ${request.url}`);
+        console.log(`[StabilityTrace] Tokens: CST=${cst ? 'PRESENT' : 'MISSING'}, X-SECURITY-TOKEN=${securityToken ? 'PRESENT' : 'MISSING'}, ENV=${environment}`);
+        
         // Pass through essential trading tokens
         if (cst) newHeaders.set('CST', cst)
         if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)

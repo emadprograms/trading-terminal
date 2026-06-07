@@ -60,6 +60,16 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
     const targetUrl = `${backendUrl.replace(/\/$/, '')}${path}${fullUrl.search}`;
 
     console.log(`[StabilityTrace] Proxying ${method} ${path} -> ${targetUrl}`);
+    
+    // INSTRUMENTATION: Log header presence for backend auth
+    const authHeaders = {
+      'CST': requestHeaders['CST'] ? 'PRESENT' : 'MISSING',
+      'X-SECURITY-TOKEN': requestHeaders['X-SECURITY-TOKEN'] ? 'PRESENT' : 'MISSING',
+      'CF-Access-Client-Id': requestHeaders['CF-Access-Client-Id'] ? 'PRESENT' : 'MISSING',
+      'CF-Access-Client-Secret': requestHeaders['CF-Access-Client-Secret'] ? 'PRESENT' : 'MISSING',
+    };
+    console.log(`[StabilityTrace] Upstream Auth Headers:`, authHeaders);
+
     console.log(`[StabilityTrace] CF_ACCESS_CLIENT_ID present: ${!!process.env.CF_ACCESS_CLIENT_ID}`);
 
     const requestHeaders: Record<string, string> = {};

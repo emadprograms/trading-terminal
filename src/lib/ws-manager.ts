@@ -55,13 +55,14 @@ class WebSocketManager {
       this.handleMessage(event.data);
     };
 
-    this.socket.onclose = () => {
-      console.log('[WSManager] Connection closed');
+    this.socket.onclose = (event) => {
+      console.log(`[WSManager] Connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`);
       this.scheduleReconnect();
     };
 
     this.socket.onerror = (error) => {
-      console.error('[WSManager] WebSocket error:', error);
+      console.error('[WSManager] WebSocket error occurred. Checking network state...');
+      console.error('[WSManager] Error details:', error);
     };
   }
 
