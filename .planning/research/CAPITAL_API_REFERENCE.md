@@ -295,7 +295,7 @@ These are instrument identifiers used in the `epic` field:
 |-------------|------|
 | Apple | `AAPL` |
 | Tesla | `TSLA` |
-| S&P 500 | `US500` |
+| SPY | `US500` |
 | EUR/USD | `EURUSD` |
 | Gold | `GOLD` |
 | Crude Oil | `OIL_CRUDE` |

@@ -49,7 +49,7 @@ afterEach(() => {
 
 describe('marketApi', () => {
   it('should fetch candles with the correct resolution mapping', async () => {
-    const epic = 'S&P 500';
+    const epic = 'SPY';
     const resolution = '1H' as any; // Timeframe
     
     const candles = await marketApi.fetchCandles(epic, resolution);
@@ -59,10 +59,10 @@ describe('marketApi', () => {
   });
 
   it('should correctly encode the epic in the URL', async () => {
-    const epic = 'S&P 500';
+    const epic = 'SPY';
     const spy = vi.fn();
     server.use(
-      http.get('http://localhost:3000/api/market/v1/prices/S%26P%20500', async () => {
+      http.get('http://localhost:3000/api/market/v1/prices/SPY', async () => {
         spy();
         return HttpResponse.json({ prices: [] });
       })

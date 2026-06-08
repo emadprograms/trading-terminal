@@ -15,7 +15,7 @@ export const marketApi = {
   /**
    * Fetches historical candles for a given epic.
    * 
-   * @param epic - The asset identifier (e.g., 'S&P 500')
+   * @param epic - The asset identifier (e.g., 'SPY')
    * @param resolution - The timeframe for the candles
    * @param options - Optional range and limit constraints
    * @returns A typed array of Capital candles

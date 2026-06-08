@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { initDB, fetchTickers, loadDatabaseFromFile } from '../lib/db';
 
 export function useDatabase() {
-  const [tickers, setTickers] = useState<string[]>(['S&P 500', 'AAPL', 'EURUSD', 'BTCUSD', 'ETHUSD']);
+  const [tickers, setTickers] = useState<string[]>(['SPY', 'AAPL', 'EURUSD', 'BTCUSD', 'ETHUSD']);
   const [isLoading, setIsLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState('Live Mode');
   const [isDbLoaded, setIsDbLoaded] = useState(true);
