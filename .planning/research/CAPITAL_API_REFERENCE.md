@@ -10,7 +10,7 @@
 
 ## Proxy Routing Architecture
 
-To avoid leaking API keys and bypass CORS restrictions, all frontend requests are routed through Vercel serverless proxy handlers.
+To avoid leaking API keys and bypass CORS/Cloudflare restrictions, all frontend requests MUST be routed through Vercel serverless proxy handlers.
 
 | Frontend Service | Base URL Prefix | Proxy Handler | Target Backend Path |
 |------------------|-----------------|---------------|---------------------|
@@ -21,8 +21,8 @@ To avoid leaking API keys and bypass CORS restrictions, all frontend requests ar
 
 ### ⚠️ CRITICAL: Routing Rule
 Requests MUST use the full path including the proxy prefix and the versioned subpath.
-*   **Correct:** `api.get('accounts/v1/accounts')` -> `/api/accounts/v1/accounts`
-*   **Incorrect:** `api.get('v1/accounts')` -> `/api/v1/accounts` (Misses the Vercel rewrite rule and falls back to `index.html`)
+*   **Correct:** `api.get('accounts/v1/accounts')` -> hits `/api/accounts/v1/accounts`
+*   **Incorrect:** `api.get('v1/accounts')` -> hits `/api/v1/accounts` (This misses the Vercel rewrite rule and falls back to `index.html`)
 
 ---
 
@@ -38,24 +38,28 @@ Requests MUST use the full path including the proxy prefix and the versioned sub
 ## Authentication & Session
 
 ### POST `/api/session`
-Creates a new trading session.
+(Proxies to `/api/v1/session`)
 
-**Required Headers:**
+**Request Headers:**
 ```
+Content-Type: application/json
 X-CAP-API-KEY: <your_api_key>
+```
+
+**Request Body:**
+```json
+{
+  "identifier": "email@example.com",
+  "password": "your_password",
+  "encryptedPassword": false
+}
 ```
 
 **Success Response (200) Headers:**
 - `CST` — Client Session Token
 - `X-SECURITY-TOKEN` — Security token
-*Note: Tokens are captured by `src/api/client.ts` and stored in `useSessionStore`.*
 
-**Subsequent Request Headers:**
-```
-CST: <cst_value>
-X-SECURITY-TOKEN: <security_token_value>
-x-env: <DEMO | LIVE>
-```
+**Preservation Rule:** These tokens are automatically captured by the `afterResponse` hook in `src/api/client.ts` and stored in `useSessionStore`. ALL subsequent REST requests require these headers.
 
 ---
 
@@ -64,14 +68,29 @@ x-env: <DEMO | LIVE>
 ### GET `/api/accounts/v1/accounts`
 
 **Response Structure (Polymorphic):**
-The client (`src/api/account.ts`) MUST handle both:
+The client (`src/api/account.ts`) is designed to handle both formats returned by the API:
 1.  **Bare Array:** `[ { "accountId": "...", ... }, ... ]`
 2.  **Wrapped Object:** `{ "accounts": [ { ... } ] }`
 
-**Account Object Fields:**
-- `balance`: `{ balance, available, deposit, profitLoss }`
-- `status`: `"ACTIVE"`, `"PENDING"`, etc.
-- `accountType`: `"CFD"`, `"SPREADBET"`, etc.
+**Account Object Schema:**
+```json
+{
+  "accountId": "12345678",
+  "accountName": "CFD Demo",
+  "accountAlias": null,
+  "status": "ACTIVE",
+  "accountType": "CFD",
+  "currency": "USD",
+  "canTransferFrom": true,
+  "canTransferTo": true,
+  "balance": {
+    "balance": 10000.00,
+    "available": 9500.00,
+    "deposit": 1000.00,
+    "profitLoss": 500.00
+  }
+}
+```
 
 ---
 
@@ -83,25 +102,30 @@ The client (`src/api/account.ts`) MUST handle both:
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `resolution` | string | Yes | — | `MINUTE`, `MINUTE_5`, `MINUTE_15`, `HOUR`, `DAY` |
-| `max` | integer | No | 10 | Max candles (Max 1000) |
+| `resolution` | string | Yes | — | Candle timeframe. See Resolution enum below. |
+| `max` | integer | No | 10 | Max number of price points. **Maximum allowed: 1000**. |
 
-**Resolution Lookback Limits (Safety):**
-Requests beyond these limits return `400 Bad Request`.
+**Resolution Enum:**
+`MINUTE`, `MINUTE_5`, `MINUTE_15`, `MINUTE_30`, `HOUR`, `HOUR_4`, `DAY`, `WEEK`.
 
-| Resolution | Approx. Max Lookback | Safe `max` |
-|------------|---------------------|------------|
+### ⚠️ CRITICAL: Data Range Limits (400 Errors)
+Requesting beyond these limits returns a `400 Bad Request`.
+
+| Resolution | Approx. Max Lookback | Safe `max` Value |
+|------------|---------------------|------------------|
 | `MINUTE` | ~16 hours | 960 |
 | `MINUTE_5` | ~3 days | 864 |
 | `MINUTE_15` | ~7 days | 672 |
+| `MINUTE_30` | ~14 days | 672 |
 | `HOUR` | ~60 days | 1000 |
+| `HOUR_4` | ~180 days | 1000 |
 | `DAY` | ~5 years | 1000 |
 
-### ⚠️ CRITICAL: Field Mapping (`ask` vs `ofr`)
-- **REST API** uses **`ask`** for the buy price.
-- **WebSocket API** uses **`ofr`** for the buy price.
+### ⚠️ Response Format & Field Mapping
+The REST response is **Always Wrapped** in a `prices` key.
+*   **REST uses `ask`** for the buy price.
+*   **WebSocket uses `ofr`** for the buy price.
 
-**REST Response JSON:**
 ```json
 {
   "prices": [
@@ -124,11 +148,23 @@ Requests beyond these limits return `400 Bad Request`.
 ### POST `/api/order/v1/positions`
 Place a market order.
 
-### POST `/api/order/v1/workingorders`
-Place a limit or stop order (requires `level` field).
+**Payload:**
+```json
+{
+  "epic": "AAPL",
+  "size": 1,
+  "direction": "BUY",
+  "guaranteedStop": false,
+  "stopLevel": 170.0,
+  "profitLevel": 190.0
+}
+```
 
-### DELETE `/api/order/v1/positions/{dealId}`
-Close an active position.
+### POST `/api/order/v1/workingorders`
+Place a limit or stop order. Requires the `level` field.
+
+### GET `/api/order/v1/confirms/{dealReference}`
+Retrieve confirmation for a specific trade. Used as a fallback when WebSocket messages are missed.
 
 ---
 
@@ -136,7 +172,8 @@ Close an active position.
 
 **URL:** `wss://api-streaming-capital.backend-capital.com/connect`
 
-### Auth Message (Required)
+### 1. Authentication Message
+Required immediately after connection:
 ```json
 {
   "destination": "ping",
@@ -146,9 +183,21 @@ Close an active position.
 }
 ```
 
-### Price Update Payload
+### 2. Subscribe to Market Data
 ```json
 {
+  "destination": "marketData.subscribe",
+  "payload": {
+    "epics": ["AAPL", "US500"]
+  }
+}
+```
+*Note: `epics` MUST be an array. Max 40 epics per connection.*
+
+### 3. Price Update Payload (`destination: "quote"`)
+```json
+{
+  "status": "OK",
   "destination": "quote",
   "payload": {
     "epic": "AAPL",
@@ -158,7 +207,7 @@ Close an active position.
   }
 }
 ```
-*Note: Uses `ofr`, NOT `ask`.*
+**⚠️ WARNING:** Use `ofr` for Ask price. WebSocket timestamp is in **milliseconds**.
 
 ---
 
@@ -169,26 +218,10 @@ Close an active position.
 | Apple | `AAPL` |
 | Tesla | `TSLA` |
 | SPY | `US500` |
+| EUR/USD | `EURUSD` |
 | Gold | `GOLD` |
 | Crude Oil | `OIL_CRUDE` |
 | Bitcoin | `BTCUSD` |
-
----
-
-## ky HTTP Client (v2) Integration Notes
-
-**Crucial Bug History:**
-- `prefix`: NOT a valid ky option (silently ignored).
-- `baseUrl`: Standard in ky v2 for leading-slash paths (`/api/...`).
-- `prefixUrl`: Throws if path starts with `/`.
-
-**Current Configuration (`src/api/client.ts`):**
-```typescript
-export const api = ky.create({
-  prefix: '/api', // This acts as a custom property, NOT ky prefixUrl
-  // hooks handle the actual resolution
-});
-```
 
 ---
 
@@ -198,4 +231,17 @@ export const api = ky.create({
 |-------|-------|
 | REST API | 10 requests per second |
 | Order placement | 1 request per 0.1 seconds |
+| WebSocket | Max 40 instruments per connection |
 | Session timeout | 10 minutes of inactivity |
+
+---
+
+## ky HTTP Client (v2) Configuration Notes
+
+The codebase uses `ky` v2.0.2. 
+
+**Bug History:**
+1.  **`prefix` vs `baseUrl`**: `prefix` is NOT a valid ky option and is silently ignored. We use a custom `prefix` property in `src/api/client.ts` but the actual request is handled by a `beforeRequest` hook to resolve the full proxy URL.
+2.  **Leading Slashes**: `prefixUrl` throws if the input starts with `/`. We use absolute path resolution in hooks to avoid this.
+
+**Preservation Mandate:** Do not "simplify" the client headers or prefixes without verifying against the Vercel proxy rewrite rules in `vercel.json`.
