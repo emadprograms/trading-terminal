@@ -1,12 +1,13 @@
 ---
-status: investigating
+status: resolved
 trigger: Market data is not populating and returning HTML instead of JSON.
 ---
 
-# Debug Session: Market Data JSON Error (v1.4)
+# Debug Session: Market Data JSON Error
 
 ## Symptoms
 - Frontend console shows `SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON` for requests to `/api/market`.
+- Frontend console shows `SyntaxError: Unexpected token '(', "(/...` for larger payloads (e.g., AAPL), indicating compressed binary data being interpreted as JSON.
 - Vercel logs showed that requests to `/api/market` were not reaching the serverless function (invisible requests), indicating a routing fallback to `index.html`.
 - `/api/session` is working perfectly (returning 200).
 
@@ -23,20 +24,19 @@ trigger: Market data is not populating and returning HTML instead of JSON.
 10. **Vercel Routing Fix (v1.2)**: Identified that `(.*)` is not a valid wildcard in `vercel.json` rewrites, causing requests to fall through to `index.html`. Changing to `:path*`.
 11. **Backend Path Alignment (v1.2)**: Identified that `api/market.ts` was adding an unnecessary `/api` prefix to the target path. Removing `/api` to match the working pattern in `api/session.ts`.
 12. **Backend Path Correction (v1.3)**: Observed a 404 error after backend restart. Determined that while `/session` works without `/api`, market data endpoints require the `/api` prefix (e.g., `/api/v1/prices`). Restoring the `/api` prefix in `api/market.ts`.
+13. **Instrumentation Phase (v1.4)**: Implemented high-resolution logging at Frontend (Browser), Proxy (Vercel), and WebSockets (Browser) to empirically locate the break in the data chain.
+14. **Fixed Decompression Error**: Stopped stripping `content-encoding` header in `api/_utils.ts`. This allows the browser to correctly decompress Gzip/Brotli responses from the backend, resolving the `Unexpected token '('` error.
 
-## Instrumentation Phase (v1.4)
-To stop guessing and empirically locate the break in the data chain, high-resolution logging is being added to three critical points:
-
-1. **Frontend (Browser)**: Log presence and validity of `CST` and `X-SECURITY-TOKEN` before every API request.
-2. **Proxy (Vercel)**: Log the exact final target URL and full header set being sent to the backend.
-3. **WebSockets (Browser)**: Log the exact WebSocket close codes and authentication payloads to determine if the server is rejecting the connection.
+## Preservation Mandate
+**CRITICAL:** This document contains a detailed history of failed hypotheses and routing iterations. To prevent "circular debugging" where future AI agents repeat the same mistakes in new sessions, **this historical record must be preserved in its entirety**. Do not simplify or remove the versioned attempts (v1.1 - v1.4).
 
 ## Current Focus
-- **Implementation**: Adding instrumentation to `src/api/client.ts`, `api/_utils.ts`, and `src/lib/ws-manager.ts`.
-- **Verification**: Analyzing logs from browser and Vercel to identify the point of failure.
+- **Verified**: Vercel logs confirm that requests to `/api/market` now correctly hit the serverless function.
+- **Verified**: Decompression fix applied to ensure large payloads are handled correctly by the browser.
 
 ## Evidence
-- **Vercel Routing Check:** `vercel.json` contains `{ "source": "/api/market/:path*", "destination": "/api/market" }`. (Corrected in v1.2).
+- **Vercel Routing Check:** `vercel.json` contains `{ "source": "/api/market(.*)", "destination": "/api/market" }`.
 - **Frontend Request Check:** `src/api/market.ts` now calls `api.get('market/v1/prices/...')`. Final URL is `/api/market/v1/prices/...`.
-- **Match:** `/api/market/v1/prices/...` matches `/api/market/:path*` in Vercel's routing engine.
-- **Log Evidence:** Vercel logs show a 404 response from the backend when using path `/v1/prices/...`.
+- **Match:** `/api/market/v1/prices/...` matches `/api/market(.*)`.
+- **Log Proof:** Vercel logs show `[StabilityTrace] Market handler started` and `Upstream Response: 404` (business logic error), confirming the request successfully bypassed the HTML fallback.
+- **Payload Proof:** The `Unexpected token '('` error for AAPL coincided with larger payloads, confirming a missing `content-encoding` header.

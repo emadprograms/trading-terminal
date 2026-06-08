@@ -106,7 +106,7 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
 
     // Set response headers
     Object.entries(headers).forEach(([key, value]) => {
-      if (value && !['content-encoding', 'transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
+      if (value && !['transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
         res.setHeader(key, value);
       }
     });
