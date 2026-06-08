@@ -24,8 +24,8 @@ export const tradeApi = {
    */
   async placeMarketOrder(params: MarketOrderParams): Promise<string> {
     try {
-      // POST /positions for market orders
-      const response: any = await api.post('positions', { json: params }).json();
+      // POST order/v1/positions for market orders
+      const response: any = await api.post('order/v1/positions', { json: params }).json();
       if (!response.dealReference) {
         throw new Error('API response missing dealReference');
       }
@@ -46,8 +46,8 @@ export const tradeApi = {
    */
   async placeLimitOrder(params: LimitOrderParams): Promise<string> {
     try {
-      // POST /workingorders for limit/stop orders
-      const response: any = await api.post('workingorders', { json: params }).json();
+      // POST order/v1/workingorders for limit/stop orders
+      const response: any = await api.post('order/v1/workingorders', { json: params }).json();
       if (!response.dealReference) {
         throw new Error('API response missing dealReference');
       }
@@ -63,7 +63,7 @@ export const tradeApi = {
    */
   async getConfirmation(dealReference: string): Promise<any> {
     try {
-      return await api.get(`confirms/${dealReference}`).json();
+      return await api.get(`order/v1/confirms/${dealReference}`).json();
     } catch (error: any) {
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
@@ -74,7 +74,7 @@ export const tradeApi = {
    */
   async flattenPosition(dealId: string): Promise<string> {
     try {
-      const response: any = await api.delete(`positions/${dealId}`).json();
+      const response: any = await api.delete(`order/v1/positions/${dealId}`).json();
       return response.dealReference;
     } catch (error: any) {
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
@@ -86,7 +86,7 @@ export const tradeApi = {
    */
   async cancelWorkingOrder(id: string): Promise<string> {
     try {
-      const response: any = await api.delete(`workingorders/${id}`).json();
+      const response: any = await api.delete(`order/v1/workingorders/${id}`).json();
       return response.dealReference;
     } catch (error: any) {
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);

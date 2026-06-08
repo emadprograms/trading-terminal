@@ -23,7 +23,7 @@ describe('tradeApi', () => {
     const params = { epic: 'AAPL', size: 1, direction: 'BUY' };
     const result = await tradeApi.placeMarketOrder(params);
 
-    expect(api.post).toHaveBeenCalledWith('positions', { json: params });
+    expect(api.post).toHaveBeenCalledWith('order/v1/positions', { json: params });
     expect(result).toBe('DR12345');
   });
 
@@ -36,7 +36,7 @@ describe('tradeApi', () => {
     const params = { epic: 'AAPL', size: 1, direction: 'BUY', level: 150.0 };
     const result = await tradeApi.placeLimitOrder(params);
 
-    expect(api.post).toHaveBeenCalledWith('workingorders', { json: params });
+    expect(api.post).toHaveBeenCalledWith('order/v1/workingorders', { json: params });
     expect(result).toBe('DR67890');
   });
 
@@ -49,7 +49,7 @@ describe('tradeApi', () => {
     const dealReference = 'DR12345';
     const result = await tradeApi.getConfirmation(dealReference);
 
-    expect(api.get).toHaveBeenCalledWith(`confirms/${dealReference}`);
+    expect(api.get).toHaveBeenCalledWith(`order/v1/confirms/${dealReference}`);
     expect(result).toEqual(mockResponse);
   });
 

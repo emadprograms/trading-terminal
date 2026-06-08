@@ -31,7 +31,7 @@ export const accountApi = {
    * Fetches the list of accounts with their current balances.
    */
   async fetchAccounts(): Promise<Account[]> {
-    const response = await api.get('v1/accounts', {
+    const response = await api.get('accounts/v1/accounts', {
       throwHttpErrors: false,
     });
     if (!response.ok) {

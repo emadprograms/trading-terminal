@@ -27,7 +27,7 @@ describe('Account API', () => {
     ];
 
     server.use(
-      http.get('*/api/v1/accounts', () => {
+      http.get('*/api/accounts/v1/accounts', () => {
         return HttpResponse.json({ accounts: mockAccounts });
       })
     );
@@ -45,7 +45,7 @@ describe('Account API', () => {
 
   it('should throw error on failed response', async () => {
     server.use(
-      http.get('*/api/accounts', () => {
+      http.get('*/api/accounts/v1/accounts', () => {
         return new HttpResponse(null, { status: 500 });
       })
     );
