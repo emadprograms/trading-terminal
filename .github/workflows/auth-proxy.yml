@@ -31,7 +31,11 @@ jobs:
 
       - name: Install cloudflared
         run: |
-          curl -L https://pkg.cloudflare.com/cloudflared-installer.sh | sudo sh
+          # Use a specific version for stability and reliability
+          VERSION="2026.5.2"
+          wget -q https://github.com/cloudflare/cloudflared/releases/download/${VERSION}/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared-linux-amd64.deb
+          rm cloudflared-linux-amd64.deb
 
       - name: Start Hono Proxy
         env:
