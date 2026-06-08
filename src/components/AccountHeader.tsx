@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { accountApi } from '../api/account';
 import { useSessionStore } from '../store/useSessionStore';
 
 interface AccountData {
@@ -18,44 +18,30 @@ export const AccountHeader: React.FC = () => {
 
   const [showPnl, setShowPnl] = useState(true);
 
-  console.log(`[AccountHeader] Rendering. isAuthenticated: ${isAuthenticated}`);
+  console.log(`[AccountHeader] Rendering. isAuthenticated: ${isAuthenticated}, selected: ${selectedAccountId}`);
 
   const { data, isLoading, error } = useQuery<AccountData>({
     queryKey: ['account', selectedAccountId, environment],
     queryFn: async () => {
       console.log('[AccountHeader] queryFn triggered! Fetching accounts...');
-      const res = await api.get('accounts');
-      const rawData = await res.json();
+      const accounts = await accountApi.fetchAccounts();
       
-      console.log('[AccountHeader] Raw API Response:', rawData);
+      console.log(`[AccountHeader] Received ${accounts.length} accounts`);
       
-      if (rawData && typeof rawData === 'object') {
-        if (Array.isArray(rawData.accounts) && rawData.accounts.length > 0) {
-          // Use selected account or fallback to first
-          const account = rawData.accounts.find((a: any) => a.accountId === selectedAccountId) || rawData.accounts[0];
-          const bal = account.balance;
-          
-          if (bal && typeof bal === 'object') {
-            console.log(`[AccountHeader] Mapping nested balance data for account ${account.accountId}`);
-            return {
-              balance: bal.balance,
-              available: bal.available,
-              margin: bal.deposit,
-              marginLevel: 100,
-              profitLoss: bal.profitLoss,
-            } as AccountData;
-          }
-        }
+      if (accounts.length > 0) {
+        // Use selected account or fallback to first
+        const account = accounts.find((a: any) => a.accountId === selectedAccountId) || accounts[0];
+        const bal = account.balance;
         
-        if (rawData.accountInfo) {
-          console.log('[AccountHeader] Mapping from accountInfo');
+        if (bal && typeof bal === 'object') {
+          console.log(`[AccountHeader] Mapping balance data for account ${account.accountId}`);
           return {
-            balance: rawData.accountInfo.balance,
-            available: rawData.accountInfo.available,
-            margin: rawData.accountInfo.deposit,
-            marginLevel: 100,
-            profitLoss: rawData.accountInfo.profitLoss,
-            } as AccountData;
+            balance: bal.balance,
+            available: bal.available,
+            margin: bal.deposit,
+            marginLevel: 100, // Capital API doesn't always provide this in accounts list
+            profitLoss: bal.profitLoss,
+          } as AccountData;
         }
       }
       

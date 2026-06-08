@@ -13,6 +13,10 @@
       "destination": "/api/order"
     },
     {
+      "source": "/api/accounts/:path*",
+      "destination": "/api/accounts"
+    },
+    {
       "source": "/api/debug/:path*",
       "destination": "/api/debug"
     },

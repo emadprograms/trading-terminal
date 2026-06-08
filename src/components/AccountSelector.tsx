@@ -1,14 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { accountApi } from '../api/account';
 import { useSessionStore } from '../store/useSessionStore';
 import { ChevronDown } from 'lucide-react';
-
-interface Account {
-  accountId: string;
-  accountName?: string;
-  balance: any;
-}
 
 export const AccountSelector: React.FC = () => {
   const { isAuthenticated, environment, selectedAccountId, setSelectedAccountId } = useSessionStore();
@@ -16,12 +10,8 @@ export const AccountSelector: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['accounts-list', environment],
     queryFn: async () => {
-      const res = await api.get('accounts');
-      const rawData = await res.json();
-      if (rawData && Array.isArray(rawData.accounts)) {
-        return rawData.accounts as Account[];
-      }
-      return [];
+      console.log('[AccountSelector] Fetching accounts list...');
+      return await accountApi.fetchAccounts();
     },
     enabled: isAuthenticated,
   });
