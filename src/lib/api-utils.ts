@@ -40,7 +40,7 @@ export const sanitizeErrorMessage = (error: any): string => {
   message = message.replace(proxyPattern, '[INTERNAL_PROXY]');
 
   // 2. Strip sensitive headers
-  const sensitiveHeaders = ['x-security-token', 'CST', 'cst', 'x-env'];
+  const sensitiveHeaders = ['x-security-token', 'CST', 'cst', 'X-Environment'];
   sensitiveHeaders.forEach(header => {
     const headerPattern = new RegExp(`${header}[:=]?\\s*[^,\\s\\"]+`, 'gi');
     message = message.replace(headerPattern, `${header}: [REDACTED]`);

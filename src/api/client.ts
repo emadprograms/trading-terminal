@@ -31,8 +31,8 @@ export const api = ky.create({
         if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
         
         // Pass through environment selection (LIVE vs DEMO)
-        // Proxy expects 'x-env' as per Task 4 behavior
-        if (environment) newHeaders.set('x-env', environment)
+        // Proxy expects 'X-Environment' as per Task 4 behavior
+        if (environment) newHeaders.set('X-Environment', environment)
 
         const isMutation = ['POST', 'PUT', 'PATCH'].includes(request.method);
         const requestOptions: RequestInit = {

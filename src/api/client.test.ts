@@ -64,7 +64,7 @@ describe('Ky Client', () => {
 
     expect(capturedHeaders?.get('CST')).toBe('mock-cst')
     expect(capturedHeaders?.get('X-SECURITY-TOKEN')).toBe('mock-security-token')
-    expect(capturedHeaders?.get('x-env')).toBe('LIVE')
+    expect(capturedHeaders?.get('X-Environment')).toBe('LIVE')
   })
 
   it('should NOT inject CF Access headers in the browser', async () => {
