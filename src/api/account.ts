@@ -37,7 +37,16 @@ export const accountApi = {
     if (!response.ok) {
       throw new Error(`Failed to fetch accounts: ${response.status}`);
     }
-    const data = await response.json() as AccountsResponse;
-    return data.accounts || [];
+    const data = await response.json();
+    
+    // Handle both bare array and wrapped object responses
+    if (Array.isArray(data)) {
+      return data as Account[];
+    }
+    if (data && typeof data === 'object' && 'accounts' in data) {
+      return (data as AccountsResponse).accounts || [];
+    }
+    
+    return [];
   },
 };
