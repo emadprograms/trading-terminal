@@ -52,6 +52,63 @@ CST: <cst_value>
 X-SECURITY-TOKEN: <security_token_value>
 ```
 
+## REST API: Account Management
+
+### GET `/api/v1/accounts`
+
+Returns a list of all accounts associated with the session, including their current balances and statuses.
+
+**Required Headers:**
+```
+CST: <cst_value>
+X-SECURITY-TOKEN: <security_token_value>
+```
+
+**Success Response (200):**
+```json
+{
+  "accounts": [
+    {
+      "accountId": "12345678",
+      "accountName": "CFD Demo",
+      "accountAlias": "My Trading Account",
+      "status": "ACTIVE",
+      "accountType": "DEMO",
+      "currency": "USD",
+      "canTransferFrom": true,
+      "canTransferTo": true,
+      "balance": {
+        "balance": 10000.00,
+        "available": 9500.00,
+        "deposit": 1000.00,
+        "profitLoss": 500.00
+      }
+    }
+  ]
+}
+```
+
+**Field Definitions:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `accountId` | string | Unique identifier for the account |
+| `accountName` | string | Display name of the account |
+| `accountAlias` | string\|null | User-defined alias for the account |
+| `status` | string | Account status (e.g., "ACTIVE", "PENDING") |
+| `accountType` | string | Account type (e.g., "DEMO", "LIVE") |
+| `currency` | string | Base currency of the account |
+| `balance` | object | Balance details (see below) |
+
+**Balance Object Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `balance` | number | Total equity |
+| `available` | number | Free margin available for new trades |
+| `deposit` | number | Total deposited amount |
+| `profitLoss` | number | Unrealized PnL of open positions |
+
 ---
 
 ## REST API: Historical Prices

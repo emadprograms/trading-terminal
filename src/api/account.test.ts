@@ -27,7 +27,7 @@ describe('Account API', () => {
     ];
 
     server.use(
-      http.get('*/api/accounts', () => {
+      http.get('*/api/v1/accounts', () => {
         return HttpResponse.json({ accounts: mockAccounts });
       })
     );
