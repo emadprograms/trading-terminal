@@ -31,9 +31,8 @@ jobs:
 
       - name: Install cloudflared
         run: |
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-          chmod +x cloudflared
-          sudo mv cloudflared /usr/local/bin/
+          curl -L https://pkg.cloudflare.com/cloudflared-installer.sh | sudo sh
+
       - name: Start Hono Proxy
         env:
           ENV: ${{ github.event.inputs.env }}
