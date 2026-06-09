@@ -87,58 +87,54 @@ blocked: 7
 
 ## Gaps
 
-- truth: "Place Market order -> Toast 'Placing...' -> Order appears as Pending in TradeLog -> Toast 'Success' -> Order becomes Position."
+- truth: "Buttons must unlock immediately upon any API failure."
   status: failed
-  reason: "User reported: A toast shows up but.. I see Trade API Error: Request failed with status code 400: POST [INTERNAL_PROXY]/api/order/v1/positions this error and then order gets canceled. and then the buy and sell button gets disabled So No, this doesn't work."
+  reason: "UI lock persists because isExecuting reset is tied to specific catch blocks. Needs a global finally block in the store action."
   severity: blocker
   test: 2
-  root_cause: "Endpoint mismatch and forced guaranteedStop parameter. Store sends all orders to /v1/positions (market only) and forces guaranteedStop: true even when unsupported."
+  root_cause: "Store action resets isExecuting in catch, but UI wrapper may swallow errors or delay state update."
   artifacts:
     - path: "src/store/useTradeStore.ts"
-      issue: "Unconditional call to placeMarketOrder and forced guaranteedStop: true"
-    - path: "src/api/trade.ts"
-      issue: "placeMarketOrder specifically targets /v1/positions"
+      issue: "isExecuting reset should be in finally block"
   missing:
-    - "Implement conditional routing in placeOrder based on order type (Market vs Limit/Stop)"
-    - "Respect guaranteedStop preference from the UI/Store state"
+    - "Move set({ isExecuting: false }) to a finally block in placeOrder"
   debug_session: ".planning/debug/order-execution-failures.md"
 
-- truth: "Place Limit order -> Toast confirms placement -> Order appears as working order in TradeLog with correct limit price."
+- truth: "Market orders must not return 400 Bad Request."
   status: failed
-  reason: "User reported: It attempts to place an order and then I see Request failed with status code 400: POST [INTERNAL_PROXY]/api/order/v1/positions. and then the app hangs.It attempts to place an order and then I see Request failed with status code 400: POST [INTERNAL_PROXY]/api/order/v1/positions. and then the buy and sell buttons disable."
+  reason: "Sending guaranteedStop: false explicitly may be rejected by the API."
+  severity: blocker
+  test: 2
+  root_cause: "Payload includes explicit false for guaranteedStop."
+  artifacts:
+    - path: "src/store/useTradeStore.ts"
+      issue: "Explicit false value for guaranteedStop in finalParams"
+  missing:
+    - "Update placeOrder to only include guaranteedStop if it is true"
+  debug_session: ".planning/debug/order-execution-failures.md"
+
+- truth: "Limit and Stop orders must be routed to /v1/workingorders."
+  status: failed
+  reason: "User reports /v1/positions is still being called for all order types."
   severity: blocker
   test: 3
-  root_cause: "Incorrect API endpoint routing and state lockup. Limit orders are sent to /v1/positions instead of /v1/workingorders. isExecuting flag is not reset on API failure."
+  root_cause: "Either routing logic is bypassed or browser is running cached version of the store."
   artifacts:
     - path: "src/store/useTradeStore.ts"
-      issue: "Wrong endpoint selection and missing isExecuting reset in catch block"
+      issue: "Verify routing logic is actually executed in the browser"
   missing:
-    - "Route Limit/Stop orders to /v1/workingorders"
-    - "Add catch block to reset isExecuting: false on placement failure"
+    - "Verify and force-update store routing logic"
   debug_session: ".planning/debug/order-execution-failures.md"
 
-- truth: "Place Stop order -> Toast confirms placement -> Order appears as stop order in TradeLog."
+- truth: "Error messages must be sanitized to [INTERNAL_URL]."
   status: failed
-  reason: "User reported: Request failed with status code 400: POST [INTERNAL_PROXY]/api/order/v1/positions same error for stop order as well."
-  severity: blocker
-  test: 4
-  root_cause: "Same as Market/Limit: Stop orders incorrectly routed to positions endpoint."
-  artifacts:
-    - path: "src/store/useTradeStore.ts"
-      issue: "Incorrect endpoint routing"
-  missing:
-    - "Route Stop orders to /v1/workingorders"
-  debug_session: ".planning/debug/order-execution-failures.md"
-
-- truth: "Error messages in toasts are sanitized and do not leak internal proxy URLs or secrets."
-  status: failed
-  reason: "User reported: Internal proxy URL [INTERNAL_PROXY] visible in toast error message."
+  reason: "User reports seeing [INTERNAL_PROXY] instead of [INTERNAL_URL]."
   severity: major
   test: 10
-  root_cause: "sanitizeErrorMessage regex is too restrictive (Vercel-only) and only replaces the domain, leaving paths and protocol visible."
+  root_cause: "Inconsistent sanitization tokens between api-utils.ts and actual runtime."
   artifacts:
     - path: "src/lib/api-utils.ts"
-      issue: "Faulty regex in sanitizeErrorMessage"
+      issue: "Token mismatch"
   missing:
-    - "Update sanitizeErrorMessage to strip full URLs from all origins (including localhost)"
+    - "Unify all sanitization tokens to [INTERNAL_URL]"
   debug_session: ".planning/debug/order-execution-failures.md"
