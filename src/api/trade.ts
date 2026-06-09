@@ -6,6 +6,7 @@ export interface MarketOrderParams {
   epic: string;
   size: number;
   direction: OrderDirection;
+  type?: OrderType;
   guaranteedStop?: boolean;
   stopLevel?: number;
   stopDistance?: number;

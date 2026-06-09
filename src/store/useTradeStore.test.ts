@@ -1,16 +1,29 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useTradeStore } from './useTradeStore';
 import { Order, Position } from '../types/trade';
+import { tradeApi } from '../api/trade';
+
+// Mock tradeApi
+vi.mock('../api/trade', () => ({
+  tradeApi: {
+    placeMarketOrder: vi.fn(),
+    placeLimitOrder: vi.fn(),
+    flattenPosition: vi.fn(),
+    cancelWorkingOrder: vi.fn(),
+    getConfirmation: vi.fn(),
+  }
+}));
 
 describe('useTradeStore', () => {
   beforeEach(() => {
     // Reset store state before each test
     useTradeStore.getState().clearOrders();
-    // Assuming we might need a way to clear positions too
     const state = useTradeStore.getState();
     if (typeof state.clearPositions === 'function') {
       state.clearPositions();
     }
+    useTradeStore.setState({ isExecuting: false });
+    vi.clearAllMocks();
   });
 
   it('should add a pending order', () => {
@@ -29,6 +42,67 @@ describe('useTradeStore', () => {
     const pendingOrders = useTradeStore.getState().pendingOrders;
     expect(pendingOrders['ref-123']).toEqual(mockOrder);
     expect(pendingOrders['ref-123'].status).toBe('PENDING');
+  });
+
+  it('should route MARKET orders to placeMarketOrder', async () => {
+    vi.mocked(tradeApi.placeMarketOrder).mockResolvedValue('ref-market');
+    
+    await useTradeStore.getState().placeOrder({
+      epic: 'AAPL',
+      size: 1,
+      direction: 'BUY',
+      // @ts-ignore - testing runtime behavior
+      type: 'MARKET'
+    });
+
+    expect(tradeApi.placeMarketOrder).toHaveBeenCalled();
+    expect(tradeApi.placeLimitOrder).not.toHaveBeenCalled();
+  });
+
+  it('should route LIMIT/STOP orders to placeLimitOrder', async () => {
+    vi.mocked(tradeApi.placeLimitOrder).mockResolvedValue('ref-limit');
+    
+    await useTradeStore.getState().placeOrder({
+      epic: 'AAPL',
+      size: 1,
+      direction: 'BUY',
+      // @ts-ignore - testing routing
+      type: 'LIMIT',
+      level: 150
+    });
+
+    expect(tradeApi.placeLimitOrder).toHaveBeenCalled();
+    expect(tradeApi.placeMarketOrder).not.toHaveBeenCalled();
+  });
+
+  it('should respect guaranteedStop preference', async () => {
+    vi.mocked(tradeApi.placeMarketOrder).mockResolvedValue('ref-gs');
+    
+    await useTradeStore.getState().placeOrder({
+      epic: 'AAPL',
+      size: 1,
+      direction: 'BUY',
+      guaranteedStop: false
+    });
+
+    const callArgs = vi.mocked(tradeApi.placeMarketOrder).mock.calls[0][0];
+    expect(callArgs.guaranteedStop).toBe(false);
+  });
+
+  it('should reset isExecuting if API call fails immediately', async () => {
+    vi.mocked(tradeApi.placeMarketOrder).mockRejectedValue(new Error('API Error'));
+    
+    try {
+      await useTradeStore.getState().placeOrder({
+        epic: 'AAPL',
+        size: 1,
+        direction: 'BUY'
+      });
+    } catch (e) {
+      // expected
+    }
+
+    expect(useTradeStore.getState().isExecuting).toBe(false);
   });
 
   it('should update order status', () => {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Order, Position, OrderStatus, TradeConfirmation } from '../types/trade';
-import { tradeApi, MarketOrderParams } from '../api/trade';
+import { tradeApi, MarketOrderParams, LimitOrderParams } from '../api/trade';
 
 interface TradeState {
   pendingOrders: Record<string, Order>;
@@ -22,7 +22,7 @@ interface TradeState {
   clearBuffer: () => void;
   startWatchdog: (dealReference: string) => void;
 
-  placeOrder: (params: MarketOrderParams & { bid?: number, ofr?: number }) => Promise<string>;
+  placeOrder: (params: (MarketOrderParams | LimitOrderParams) & { bid?: number, ofr?: number }) => Promise<string>;
   flattenPosition: (dealId: string) => Promise<void>;
   flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
@@ -49,23 +49,30 @@ export const useTradeStore = create<TradeState>()(
         try {
           const { bid, ofr, ...apiParams } = params;
           
-          // Auto-include Guaranteed Stop
+          // Respect user preference for Guaranteed Stop
           const finalParams = {
             ...apiParams,
-            guaranteedStop: true,
+            guaranteedStop: params.guaranteedStop ?? false,
           };
 
-          const dealReference = await tradeApi.placeMarketOrder(finalParams);
+          let dealReference: string;
+          const orderType = params.type || 'MARKET';
+
+          if (orderType === 'LIMIT' || orderType === 'STOP') {
+            dealReference = await tradeApi.placeLimitOrder(finalParams as any);
+          } else {
+            dealReference = await tradeApi.placeMarketOrder(finalParams as any);
+          }
           
           get().addPendingOrder(dealReference, {
             dealReference,
             epic: params.epic,
             size: params.size,
-            type: 'MARKET',
+            type: orderType,
             direction: params.direction,
             status: 'PENDING',
             timestamp: Date.now(),
-            guaranteedStop: true,
+            guaranteedStop: finalParams.guaranteedStop,
             stopLevel: params.stopLevel,
             stopDistance: params.stopDistance,
             bid,
@@ -73,11 +80,12 @@ export const useTradeStore = create<TradeState>()(
           });
 
           return dealReference;
+        } catch (error) {
+          set({ isExecuting: false });
+          throw error;
         } finally {
-          // We don't reset isExecuting here because we wait for confirmation
+          // We don't reset isExecuting here if successful because we wait for confirmation
           // handleConfirmation will reset it.
-          // BUT if the API call itself failed, catch block or error handling in tradeApi will throw
-          // So we might need a catch here if we want to reset it on IMMEDIATE API failure
         }
       },
 
