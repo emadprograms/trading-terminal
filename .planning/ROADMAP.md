@@ -78,12 +78,13 @@
   3. User can "Flatten" a single position or cancel a working order with one click.
   4. The system recovers order status within 2 seconds if WebSocket messages are missed.
 
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 - [x] 03-00-PLAN.md — Store & API Foundation
 - [x] 03-01-PLAN.md — Hybrid Sync & Watchdog
 - [x] 03-02-PLAN.md — UI & Management
-- [ ] 03-05-PLAN.md — Revised Execution Hardening & Orchestration
+- [x] 03-03-PLAN.md — Execution Hardening & Throttling
+- [ ] 03-04-PLAN.md — Order Execution Gap Closure
 
 **UI hint**: yes
 
@@ -94,6 +95,6 @@
 | 1. Auth & Infrastructure | 4/7 | In progress | - |
 | 2. Market Data Engine | 3/3 | Completed | Yes |
 | 2.1 Market Data Sync | 3/3 | Completed | Yes |
-| 3. Order Execution Layer | 3/4 | In Progress | - |
+| 3. Order Execution Layer | 4/5 | In Progress | - |
 | 4. Risk & Position Management | 0/0 | Not started | - |
 | 5. UI & Shortcut Orchestration | 0/0 | Not started | - |
