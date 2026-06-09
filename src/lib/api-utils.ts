@@ -35,15 +35,18 @@ export const sanitizeErrorMessage = (error: any): string => {
     message = JSON.stringify(error);
   }
 
-  // 1. Strip Proxy URLs (e.g., https://tt-proxy-*.vercel.app)
-  const proxyPattern = /https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.vercel\.app/gi;
-  message = message.replace(proxyPattern, '[INTERNAL_PROXY]');
+  // 1. Strip URLs aggressively (localhost, proxy, internal domains)
+  const urlPattern = /https?:\/\/[^\s]+/gi;
+  message = message.replace(urlPattern, '[INTERNAL_URL]');
 
   // 2. Strip sensitive headers
-  const sensitiveHeaders = ['x-security-token', 'CST', 'cst', 'X-Environment'];
+  const sensitiveHeaders = ['x-security-token', 'CST', 'X-Environment'];
   sensitiveHeaders.forEach(header => {
     const headerPattern = new RegExp(`${header}[:=]?\\s*[^,\\s\\"]+`, 'gi');
-    message = message.replace(headerPattern, `${header}: [REDACTED]`);
+    message = message.replace(headerPattern, (match) => {
+      const parts = match.split(/[:=]/);
+      return `${parts[0].trim()}: [REDACTED]`;
+    });
   });
 
   // 3. Fallback for generic errors
