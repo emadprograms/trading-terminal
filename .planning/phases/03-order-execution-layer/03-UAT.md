@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: regression
 phase: 03-order-execution-layer
 source: [03-00-SUMMARY.md, 03-01-SUMMARY.md, 03-02-SUMMARY.md, 03-03-SUMMARY.md]
 started: 2026-06-09T10:00:00Z
-updated: 2026-06-09T10:30:00Z
+updated: 2026-06-09T12:00:00Z
 ---
 
 ## Current Test
@@ -88,8 +88,8 @@ blocked: 7
 ## Gaps
 
 - truth: "Buttons must unlock immediately upon any API failure."
-  status: failed
-  reason: "UI lock persists because isExecuting reset is tied to specific catch blocks. Needs a global finally block in the store action."
+  status: regression
+  reason: "Attempted fix caused total backend connectivity loss. Reverted to f502491."
   severity: blocker
   test: 2
   root_cause: "Store action resets isExecuting in catch, but UI wrapper may swallow errors or delay state update."
@@ -98,11 +98,12 @@ blocked: 7
       issue: "isExecuting reset should be in finally block"
   missing:
     - "Move set({ isExecuting: false }) to a finally block in placeOrder"
-  debug_session: ".planning/debug/order-execution-failures.md"
+  next_attempt: "Apply surgically; verify using live logs to ensure no race conditions with connection handshake."
+  debug_session: ".planning/debug/phase-03-gap-closure-failure.md"
 
 - truth: "Market orders must not return 400 Bad Request."
-  status: failed
-  reason: "Sending guaranteedStop: false explicitly may be rejected by the API."
+  status: regression
+  reason: "Attempted fix caused total backend connectivity loss. Reverted to f502491."
   severity: blocker
   test: 2
   root_cause: "Payload includes explicit false for guaranteedStop."
@@ -111,11 +112,12 @@ blocked: 7
       issue: "Explicit false value for guaranteedStop in finalParams"
   missing:
     - "Update placeOrder to only include guaranteedStop if it is true"
-  debug_session: ".planning/debug/order-execution-failures.md"
+  next_attempt: "Verify payload against actual API requirements using a network interceptor before committing."
+  debug_session: ".planning/debug/phase-03-gap-closure-failure.md"
 
 - truth: "Limit and Stop orders must be routed to /v1/workingorders."
-  status: failed
-  reason: "User reports /v1/positions is still being called for all order types."
+  status: regression
+  reason: "Attempted fix caused total backend connectivity loss. Reverted to f502491."
   severity: blocker
   test: 3
   root_cause: "Either routing logic is bypassed or browser is running cached version of the store."
@@ -124,11 +126,12 @@ blocked: 7
       issue: "Verify routing logic is actually executed in the browser"
   missing:
     - "Verify and force-update store routing logic"
-  debug_session: ".planning/debug/order-execution-failures.md"
+  next_attempt: "Check Vercel/Cloudflare proxy configuration for /v1/workingorders support before re-implementing."
+  debug_session: ".planning/debug/phase-03-gap-closure-failure.md"
 
 - truth: "Error messages must be sanitized to [INTERNAL_URL]."
-  status: failed
-  reason: "User reports seeing [INTERNAL_PROXY] instead of [INTERNAL_URL]."
+  status: regression
+  reason: "Attempted fix caused total backend connectivity loss. Reverted to f502491."
   severity: major
   test: 10
   root_cause: "Inconsistent sanitization tokens between api-utils.ts and actual runtime."
@@ -137,4 +140,5 @@ blocked: 7
       issue: "Token mismatch"
   missing:
     - "Unify all sanitization tokens to [INTERNAL_URL]"
-  debug_session: ".planning/debug/order-execution-failures.md"
+  next_attempt: "Ensure sanitization is strictly applied to UI output, not to request/response headers or connection strings."
+  debug_session: ".planning/debug/phase-03-gap-closure-failure.md"

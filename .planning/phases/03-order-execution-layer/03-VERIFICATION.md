@@ -1,10 +1,14 @@
 # Phase 3 Verification Report
 
-## Status: PASSED
+## Status: REGRESSION
 
-All verification steps for Phase 3: Order Execution Layer have been completed successfully, including core integration, UI implementation, and professional-grade hardening.
+Phase 3 was previously marked as PASSED, but a critical regression was discovered during UAT gap closure. While automated tests continued to pass, the application suffered a total loss of backend connectivity in the live environment.
 
-### 1. Automated Testing
+**Root Cause Investigation**: See `.planning/debug/phase-03-gap-closure-failure.md` for the detailed report on the failed routing and state recovery changes.
+
+The system has been reverted to commit `f502491` to restore stability.
+
+### 1. Automated Testing (Last Known Stable State)
 - **Store Logic**: `src/store/useTradeStore.test.ts` (8/8 tests passed)
 - **API Integration**: `src/api/trade.test.ts` (4/4 tests passed)
 - **Hybrid Recovery**: `src/store/useTradeStore.hybrid.test.ts` & `src/store/useTradeStore.watchdog.test.ts` (5/5 tests passed)
@@ -12,8 +16,8 @@ All verification steps for Phase 3: Order Execution Layer have been completed su
 - **Execution Hardening**: `src/store/trade-logic.test.ts` (4/4 tests passed)
   - Verified throttled batch actions (Flatten All) and try-finally state safety.
 - **Risk & Slippage**: `src/store/useTradeStore.risk.test.ts` (6/6 tests passed)
-  - Verified Guaranteed SL automated inclusion and slippage guards.
-- **UI Components**: `src/components/TradeControls.test.tsx` & `src/components/TradeLog.test.tsx` (7/7 tests passed)
+  - Verified Guaranteed SL automated and slippage guards.
+- **UI Components**: `src/components/TradeControls.test.tsx` & `src/components/TradeLog.test.ts` (7/7 tests passed)
   - Verified row-level loading states, batch buttons, and risk inputs.
 
 **Total: 34 tests passed across 8 files.**
@@ -28,11 +32,5 @@ All verification steps for Phase 3: Order Execution Layer have been completed su
 - **Rate Limit Protection**: Implementation of T-03-06 mitigation (100ms Batch Throttling) protects against API rate limiting.
 - **Robustness**: Try-finally blocks ensure the UI never hangs in a loading state on network failure.
 
-### Commits Verified:
-- `5fce621`: feat(03-00): update trade types with missing fields
-- `787e5dd`: feat(03-02): implement pre-flight risk, flattening and cancel logic
-- `78ea910`: feat(03-02): install sonner and setup notifications
-- `7a8b169`: feat(03-02): refactor TradeControls and integrate with useTradeStore
-- `3c1bc5c`: feat(03-02): implement TradeLog UI and Sidebar integration
+**Current State**: Phase 3 is currently unstable due to the gap closure regression. It must be re-verified after the gaps are closed surgically.
 
-**Phase 3 is complete and verified.**
