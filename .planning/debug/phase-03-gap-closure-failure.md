@@ -52,3 +52,4 @@ Since the tests passed but the app failed, the issue likely resides in one of th
 - **Integration Testing**: Move beyond unit tests to actual integration tests against the staging/demo backend before pushing to `main`.
 - **Verify Proxy Config**: Ensure the Vercel/Cloudflare proxy is configured to handle both `/v1/positions` and `/v1/workingorders` correctly.
 
+
