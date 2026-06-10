@@ -81,11 +81,9 @@ export const useTradeStore = create<TradeState>()(
 
           return dealReference;
         } catch (error) {
-          set({ isExecuting: false });
           throw error;
         } finally {
-          // We don't reset isExecuting here if successful because we wait for confirmation
-          // handleConfirmation will reset it.
+          set({ isExecuting: false });
         }
       },
 
