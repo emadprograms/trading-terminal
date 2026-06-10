@@ -10,8 +10,12 @@ The following changes were introduced in the failed implementation:
 
 ### 1. Order Routing Logic (`src/store/useTradeStore.ts`)
 - **Change**: Explicitly routed order types to different endpoints.
-  - `Limit` / `Stop` $ightarrow$ `tradeApi.placeLimitOrder` $ightarrow$ `/v1/workingorders`
-  - `Market` $ightarrow$ `tradeApi.placeMarketOrder` $ightarrow$ `/v1/positions`
+  - `Limit` / `Stop` $
+ightarrow$ `tradeApi.placeLimitOrder` $
+ightarrow$ `/v1/workingorders`
+  - `Market` $
+ightarrow$ `tradeApi.placeMarketOrder` $
+ightarrow$ `/v1/positions`
 - **Intent**: Resolve UAT gaps where orders were being sent to the wrong endpoints.
 
 ### 2. State Recovery / UI Robustness (`src/store/useTradeStore.ts`)
@@ -47,3 +51,4 @@ Since the tests passed but the app failed, the issue likely resides in one of th
 - **Live Logging**: Implement more verbose logging around the `ky` client and proxy requests to see exactly where the request fails (e.g., 404, 403, or a network error).
 - **Integration Testing**: Move beyond unit tests to actual integration tests against the staging/demo backend before pushing to `main`.
 - **Verify Proxy Config**: Ensure the Vercel/Cloudflare proxy is configured to handle both `/v1/positions` and `/v1/workingorders` correctly.
+
