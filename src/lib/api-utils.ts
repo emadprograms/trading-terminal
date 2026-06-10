@@ -45,7 +45,7 @@ export const sanitizeErrorMessage = (error: any): string => {
     const headerPattern = new RegExp(`${header}[:=]?\\s*[^,\\s\\"]+`, 'gi');
     message = message.replace(headerPattern, (match) => {
       const parts = match.split(/[:=]/);
-      return `${parts[0].trim()}: [REDACTED]`;
+      return `${parts[0].trim()}: [INTERNAL_URL]`;
     });
   });
 
