@@ -58,6 +58,8 @@ export const useTradeStore = create<TradeState>()(
           let dealReference: string;
           const orderType = params.type || 'MARKET';
 
+          console.log(`[Surgical-Verify] Routing order type ${orderType} to ${orderType === 'LIMIT' || orderType === 'STOP' ? 'workingorders' : 'positions'}`);
+
           if (orderType === 'LIMIT' || orderType === 'STOP') {
             dealReference = await tradeApi.placeLimitOrder(finalParams as any);
           } else {
