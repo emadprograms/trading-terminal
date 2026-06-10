@@ -50,10 +50,10 @@ export const useTradeStore = create<TradeState>()(
           const { bid, ofr, ...apiParams } = params;
           
           // Respect user preference for Guaranteed Stop
-          const finalParams = {
-            ...apiParams,
-            guaranteedStop: params.guaranteedStop ?? false,
-          };
+          const finalParams = { ...apiParams };
+          if (params.guaranteedStop) {
+            finalParams.guaranteedStop = true;
+          }
 
           let dealReference: string;
           const orderType = params.type || 'MARKET';
