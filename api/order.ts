@@ -11,13 +11,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   try {
     const urlPath = req.url?.split('?')[0] || '';
     const subPath = urlPath.replace(/^\/api\/order/, '');
-    
+
     // Construct the Capital.com API path
     // Input: /v1/positions/{dealId} -> /api/v1/positions/{dealId}
     const targetPath = subPath.startsWith('/v1') ? `/api${subPath}` : `/api/v1${subPath}`;
-    
+
     console.log(`[StabilityTrace] Order handler: method=${req.method}, subPath="${subPath}", targetPath="${targetPath}"`);
-    
+
     await proxyRequest(req, res, targetPath);
     console.log('[StabilityTrace] Order handler completed');
   } catch (err) {
@@ -29,4 +29,4 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       res.end(JSON.stringify({ error: 'Internal Server Error', message: (err as Error).message }));
     }
   }
-}
+} 
