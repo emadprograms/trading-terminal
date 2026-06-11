@@ -86,7 +86,9 @@ export function TradeBadge({
   }
 
   return (
-    <div style={{
+    <div 
+      ref={badgeRef}
+      style={{
       position: 'absolute',
       transform: 'translateY(-50%)',
       right: '90px',
@@ -144,7 +146,6 @@ export function TradeBadge({
       )}
 
       <div 
-        ref={badgeRef}
         onPointerDown={(e) => onPointerDown?.(e)}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
