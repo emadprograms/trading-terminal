@@ -203,6 +203,7 @@ export function TradeBadge({
           background: '#f8f9fa'
         }}>
           <button 
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
             style={{ 
               background: 'transparent', 
