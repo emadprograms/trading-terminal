@@ -113,7 +113,7 @@ export const useTradeStore = create<TradeState>()(
         });
 
         try {
-          await tradeApi.flattenPosition(dealId, position);
+          const { usedFallback } = await tradeApi.flattenPosition(dealId, position);
           // If successful, immediately remove it locally.
           set((state) => {
              const newSet = new Set(state.closingDealIds);
@@ -124,7 +124,11 @@ export const useTradeStore = create<TradeState>()(
                  isExecuting: false
              };
           });
-          toast.success('Position closed');
+          if (usedFallback) {
+              toast.success('Position closed (Fallback used)');
+          } else {
+              toast.success('Position closed');
+          }
         } catch (error: any) {
           console.error(`Failed to close position ${dealId}:`, error);
           set((state) => {

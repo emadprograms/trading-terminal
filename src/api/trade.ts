@@ -73,10 +73,10 @@ export const tradeApi = {
   /**
    * Close an active position.
    */
-  async flattenPosition(dealId: string, position?: any): Promise<string> {
+  async flattenPosition(dealId: string, position?: any): Promise<{ dealReference: string, usedFallback: boolean }> {
     try {
       const response: any = await api.delete(`order/v1/positions/${dealId}`).json();
-      return response.dealReference;
+      return { dealReference: response.dealReference, usedFallback: false };
     } catch (error: any) {
       if (error?.response?.status === 403 && position) {
          console.warn(`[TradeAPI] DELETE /positions/${dealId} forbidden. Attempting opposite market order fallback...`);
@@ -88,7 +88,7 @@ export const tradeApi = {
               direction: oppositeDirection
             } 
          }).json();
-         return response.dealReference;
+         return { dealReference: response.dealReference, usedFallback: true };
       }
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
