@@ -28,19 +28,19 @@ export function TradeBadge({ marker, badgeRef, onClose }: TradeBadgeProps) {
         zIndex: 20,
         background: 'rgba(30, 41, 59, 0.9)',
         border: `1px solid ${marker.direction === 'BUY' ? '#26a69a' : '#ef5350'}`,
-        color: '#fff', padding: '4px 8px', borderRadius: '4px',
-        fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px',
+        color: '#fff', padding: '2px 6px', borderRadius: '4px',
+        fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px',
         boxShadow: '0 2px 6px rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)',
         whiteSpace: 'nowrap'
       }}>
       <span style={{ 
         background: marker.direction === 'BUY' ? '#26a69a' : '#ef5350',
         color: '#fff', 
-        padding: '2px 5px', 
+        padding: '1px 4px', 
         borderRadius: '3px',
         fontSize: '10px',
         fontWeight: '800',
-        marginRight: '2px'
+        marginRight: '1px'
       }}>
         {marker.size}
       </span>
@@ -50,7 +50,7 @@ export function TradeBadge({ marker, badgeRef, onClose }: TradeBadgeProps) {
           {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
         </span>
       ) : (
-        <span style={{ color: '#f59e0b', fontSize: '10px' }}>
+        <span style={{ color: '#f59e0b', fontSize: '9px' }}>
           {marker.label || 'ORDER'}
         </span>
       )}
@@ -60,9 +60,9 @@ export function TradeBadge({ marker, badgeRef, onClose }: TradeBadgeProps) {
           onClick={onClose}
           style={{ 
             background: 'rgba(0,0,0,0.2)', border: 'none', color: '#fff', 
-            borderRadius: '50%', width: '14px', height: '14px', 
+            borderRadius: '50%', width: '12px', height: '12px', 
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '9px', padding: 0, marginLeft: '4px'
+            fontSize: '8px', padding: 0, marginLeft: '2px'
           }}
         >
           ✕
