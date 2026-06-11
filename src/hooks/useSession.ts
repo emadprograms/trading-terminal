@@ -97,6 +97,17 @@ export function useSession(tickers: string[]) {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
+  // Periodic position sync — catches external changes (Capital.com app, other tabs, etc.)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      useTradeStore.getState().syncPositions();
+    }, 10_000); // every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   // Sync sessionTicker with available tickers
   useEffect(() => {
     if (tickers.length > 0) {

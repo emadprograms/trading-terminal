@@ -368,12 +368,8 @@ export const useTradeStore = create<TradeState>()(
 
       syncPositions: async () => {
         try {
-          console.log('[DEBUG-SYNC] Fetching positions and working orders from Capital.com...');
           const rawPositions = await tradeApi.fetchPositions();
           const rawOrders = await tradeApi.fetchWorkingOrders();
-          
-          console.log('[DEBUG-SYNC] Raw Positions:', JSON.stringify(rawPositions, null, 2));
-          console.log('[DEBUG-SYNC] Raw Orders:', JSON.stringify(rawOrders, null, 2));
 
           const mappedPositions: Position[] = rawPositions.map(raw => {
             const p = raw.position || raw;
