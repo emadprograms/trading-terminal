@@ -113,10 +113,15 @@ export const tradeApi = {
   /**
    * Update an existing position (e.g. Stop Loss).
    */
-  async updatePosition(dealId: string, params: { stopLevel?: number, guaranteedStop?: boolean }): Promise<string> {
+  async updatePosition(dealId: string, params: { stopLevel?: number, profitLevel?: number, guaranteedStop?: boolean }): Promise<string> {
     try {
-      const response: any = await api.put(`order/v1/positions/${dealId}`, { json: params }).json();
-      return response.dealReference;
+      const response = await api.put(`order/v1/positions/${dealId}`, { json: params });
+      let data: any = {};
+      const text = await response.text();
+      if (text) {
+          try { data = JSON.parse(text); } catch(e) {}
+      }
+      return data.dealReference || dealId;
     } catch (error: any) {
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }

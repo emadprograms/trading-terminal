@@ -246,7 +246,7 @@ export const useTradeStore = create<TradeState>()(
         } catch (error) {
           console.error(`Failed to update position SL ${dealId}:`, error);
           set({ isExecuting: false });
-          toast.error('Failed to update Stop Loss');
+          toast.error(`Failed: ${error.message}`);
         }
       },
 
@@ -274,7 +274,7 @@ export const useTradeStore = create<TradeState>()(
         } catch (error) {
           console.error(`Failed to update position TP ${dealId}:`, error);
           set({ isExecuting: false });
-          toast.error('Failed to update Take Profit');
+          toast.error(`Failed: ${error.message}`);
         }
       },
 
