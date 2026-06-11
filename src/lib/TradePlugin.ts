@@ -22,6 +22,8 @@ export interface ChartMarker {
     label?: string;
     isDashed?: boolean;
     parentPrice?: number;
+    hasSL?: boolean;
+    hasTP?: boolean;
 }
 
 interface TradeRenderItem {
@@ -60,8 +62,11 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     if (y === null) return;
 
                     let color = direction === 'BUY' ? '#2962ff' : '#f23645';
-                    if (item.isDashed) { // SL or TP
-                        color = '#facc15'; // solid yellow
+                    if (item.isDashed || item.id.endsWith('_SL')) { 
+                        color = '#facc15'; // solid yellow for SL
+                    }
+                    if (item.id.endsWith('_TP')) {
+                        color = '#089981'; // solid green for TP
                     }
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 1;

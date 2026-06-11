@@ -6,7 +6,7 @@ interface TradeBadgeProps {
   marker: ChartMarker;
   badgeRef: React.RefObject<HTMLDivElement | null>;
   onClose?: () => void;
-  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerDown?: (e: React.PointerEvent<HTMLDivElement>, suffix?: string) => void;
   onPointerMove?: React.PointerEventHandler<HTMLDivElement>;
   onPointerUp?: React.PointerEventHandler<HTMLDivElement>;
   onPointerCancel?: React.PointerEventHandler<HTMLDivElement>;
@@ -86,33 +86,86 @@ export function TradeBadge({
   }
 
   return (
-    <div 
-      ref={badgeRef}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-      onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave}
-      className="trade-badge-tv" 
-      style={{
-        position: 'absolute',
-        transform: 'translateY(-50%)',
-        right: '90px',
-        zIndex: 20,
-        cursor: cursor || 'default',
-        background: '#f8f9fa',
-        border: `1px solid ${borderColor}`,
-        borderRadius: '4px',
-        display: 'flex', 
-        alignItems: 'stretch',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-        overflow: 'hidden',
-        height: '18px',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif'
-      }}>
+    <div style={{
+      position: 'absolute',
+      transform: 'translateY(-50%)',
+      right: '90px',
+      zIndex: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
+    }}>
+      {isPosition && !marker.hasTP && (
+        <div 
+          onPointerDown={(e) => onPointerDown?.(e, '_TP')}
+          style={{
+            cursor: 'ns-resize',
+            background: '#ffffff',
+            border: `1px dashed ${tvGreen}`,
+            color: tvGreen,
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '600',
+            padding: '0 4px',
+            height: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif'
+          }}
+        >
+          TP
+        </div>
+      )}
       
-      {/* Size segment */}
+      {isPosition && !marker.hasSL && (
+        <div 
+          onPointerDown={(e) => onPointerDown?.(e, '_SL')}
+          style={{
+            cursor: 'ns-resize',
+            background: '#ffffff',
+            border: `1px dashed ${tvOrange}`,
+            color: tvOrange,
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '600',
+            padding: '0 4px',
+            height: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif'
+          }}
+        >
+          SL
+        </div>
+      )}
+
+      <div 
+        ref={badgeRef}
+        onPointerDown={(e) => onPointerDown?.(e)}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
+        className="trade-badge-tv" 
+        style={{
+          cursor: cursor || 'default',
+          background: '#f8f9fa',
+          border: `1px solid ${borderColor}`,
+          borderRadius: '4px',
+          display: 'flex', 
+          alignItems: 'stretch',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+          overflow: 'hidden',
+          height: '18px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif'
+        }}>
+        
+        {/* Size segment */}
       <div style={{ 
         background: sizeBg,
         color: sizeText, 
@@ -168,6 +221,7 @@ export function TradeBadge({
           </button>
         </div>
       )}
+    </div>
     </div>
   );
 }

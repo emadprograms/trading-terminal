@@ -86,29 +86,40 @@ function BadgeWrapper({
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const isDragging = React.useRef(false);
+  const draggedId = React.useRef<string | null>(null);
   
   React.useEffect(() => {
     onRegister(marker.id, ref);
   }, [marker.id, onRegister]);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (!marker.id.endsWith('_SL')) return;
+  const handlePointerDown = (e: React.PointerEvent, suffix?: string) => {
+    let targetId = marker.id;
+    if (suffix) {
+        targetId = marker.id + suffix;
+    } else if (!marker.id.endsWith('_SL') && !marker.id.endsWith('_TP')) {
+        return;
+    }
+    
     if (e.button !== 0) return; // Only left click
+    draggedId.current = targetId;
     isDragging.current = true;
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging.current || !onDragMarker) return;
-    onDragMarker(marker.id, e.clientY);
+    if (!isDragging.current || !onDragMarker || !draggedId.current) return;
+    onDragMarker(draggedId.current, e.clientY);
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDragging.current) return;
     isDragging.current = false;
     e.currentTarget.releasePointerCapture(e.pointerId);
-    if (onDropMarker) onDropMarker(marker.id);
+    if (onDropMarker && draggedId.current) {
+        onDropMarker(draggedId.current);
+    }
+    draggedId.current = null;
   };
 
   return (
@@ -122,7 +133,7 @@ function BadgeWrapper({
       onPointerCancel={handlePointerUp}
       onPointerEnter={() => onHoverMarker?.(marker.id)}
       onPointerLeave={() => onHoverMarker?.(null)}
-      cursor={marker.id.endsWith('_SL') ? 'ns-resize' : 'default'}
+      cursor={(marker.id.endsWith('_SL') || marker.id.endsWith('_TP')) ? 'ns-resize' : 'default'}
     />
   );
 }

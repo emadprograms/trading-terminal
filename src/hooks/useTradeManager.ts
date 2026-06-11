@@ -48,7 +48,9 @@ export function useTradeManager({
         price: p.entryPrice,
         direction: p.direction,
         size: p.size,
-        type: 'POSITION'
+        type: 'POSITION',
+        hasSL: !!p.stopLevel,
+        hasTP: !!p.profitLevel
       }];
 
       if (p.stopLevel) {
@@ -60,6 +62,20 @@ export function useTradeManager({
           size: p.size,
           type: 'ORDER',
           label: 'SL',
+          isDashed: true,
+          parentPrice: p.entryPrice
+        });
+      }
+
+      if (p.profitLevel) {
+        markers.push({
+          id: `${p.dealId}_TP`,
+          epic: p.epic,
+          price: p.profitLevel,
+          direction: p.direction === 'BUY' ? 'SELL' : 'BUY', // Take profit is opposite direction
+          size: p.size,
+          type: 'ORDER',
+          label: 'TP',
           isDashed: true,
           parentPrice: p.entryPrice
         });
@@ -92,7 +108,33 @@ export function useTradeManager({
 
   const markers = useMemo(() => {
     if (!dragPreview) return baseMarkers;
-    return baseMarkers.map(m => m.id === dragPreview.id ? { ...m, price: dragPreview.price } : m);
+    
+    const exists = baseMarkers.some(m => m.id === dragPreview.id);
+    if (exists) {
+      return baseMarkers.map(m => m.id === dragPreview.id ? { ...m, price: dragPreview.price } : m);
+    } else {
+      // Create a phantom marker for the new TP or SL being dragged
+      const isTP = dragPreview.id.endsWith('_TP');
+      const isSL = dragPreview.id.endsWith('_SL');
+      const parentId = dragPreview.id.replace('_TP', '').replace('_SL', '');
+      const parent = baseMarkers.find(m => m.id === parentId);
+      
+      if (parent) {
+        const phantom: ChartMarker = {
+          id: dragPreview.id,
+          epic: parent.epic,
+          price: dragPreview.price,
+          direction: parent.direction === 'BUY' ? 'SELL' : 'BUY',
+          size: parent.size,
+          type: 'ORDER',
+          label: isTP ? 'TP' : 'SL',
+          isDashed: true,
+          parentPrice: parent.price
+        };
+        return [...baseMarkers, phantom];
+      }
+    }
+    return baseMarkers;
   }, [baseMarkers, dragPreview]);
 
   // Update TradePlugin
@@ -121,7 +163,12 @@ export function useTradeManager({
 
   const onDropMarker = useCallback((id: string) => {
     if (dragPreview && dragPreview.id === id) {
-      useTradeStore.getState().updatePositionStopLoss(id.replace('_SL', ''), dragPreview.price);
+      const dealId = id.replace('_SL', '').replace('_TP', '');
+      if (id.endsWith('_SL')) {
+        useTradeStore.getState().updatePositionStopLoss(dealId, dragPreview.price);
+      } else if (id.endsWith('_TP')) {
+        useTradeStore.getState().updatePositionTakeProfit(dealId, dragPreview.price);
+      }
     }
     setDragPreview(null);
   }, [dragPreview]);
