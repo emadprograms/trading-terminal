@@ -58,7 +58,7 @@ export function ChartCanvas({
           key={marker.id} 
           marker={marker} 
           onRegister={onRegisterBadge} 
-          onClose={(onCloseTrade && !marker.id.endsWith('_SL')) ? () => onCloseTrade(marker.id) : undefined} 
+          onClose={onCloseTrade ? () => onCloseTrade(marker.id) : undefined} 
           onDragMarker={onDragMarker}
           onDropMarker={onDropMarker}
           onHoverMarker={onHoverMarker}
