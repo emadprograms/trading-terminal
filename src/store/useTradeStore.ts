@@ -214,9 +214,10 @@ export const useTradeStore = create<TradeState>()(
 
           const mappedPositions: Position[] = rawPositions.map(raw => {
             const p = raw.position || raw;
+            const m = raw.market || raw;
             return {
               dealId: p.dealId,
-              epic: p.epic,
+              epic: m.epic || p.epic,
               size: p.size,
               direction: p.direction,
               entryPrice: p.level || p.entryPrice || 0,
@@ -227,11 +228,12 @@ export const useTradeStore = create<TradeState>()(
           const pendingOrders: Record<string, Order> = {};
           rawOrders.forEach(raw => {
             const data = raw.workingOrderData || raw;
+            const m = raw.marketData || raw.market || raw;
             pendingOrders[data.dealId || data.dealReference] = {
               dealReference: data.dealId || data.dealReference,
               dealId: data.dealId,
               workingOrderId: data.dealId,
-              epic: data.epic,
+              epic: m.epic || data.epic,
               size: data.size,
               level: data.level,
               type: data.type || 'LIMIT',
