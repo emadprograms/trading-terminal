@@ -88,6 +88,11 @@ export function TradeBadge({
   return (
     <div 
       ref={badgeRef}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       style={{
       position: 'absolute',
       transform: 'translateY(-50%)',
@@ -147,11 +152,6 @@ export function TradeBadge({
 
       <div 
         onPointerDown={(e) => onPointerDown?.(e)}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerCancel}
-        onPointerEnter={onPointerEnter}
-        onPointerLeave={onPointerLeave}
         className="trade-badge-tv" 
         style={{
           cursor: cursor || 'default',
