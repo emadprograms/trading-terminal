@@ -11,6 +11,7 @@ interface UseTradeManagerParams {
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
   priceSeriesRef: React.MutableRefObject<ISeriesApi<'Candlestick'> | null>;
   tradePluginRef: React.MutableRefObject<TradePlugin | null>;
+  pluginVersion: number;
 }
 
 export function useTradeManager({
@@ -18,6 +19,7 @@ export function useTradeManager({
   chartData,
   priceSeriesRef,
   tradePluginRef,
+  pluginVersion,
 }: UseTradeManagerParams) {
   const positions = useTradeStore((state) => state.positions);
   const pendingOrders = useTradeStore((state) => state.pendingOrders);
@@ -72,7 +74,7 @@ export function useTradeManager({
     if (tradePluginRef.current) {
       tradePluginRef.current.setItems(markers);
     }
-  }, [markers, tradePluginRef]);
+  }, [markers, tradePluginRef, pluginVersion]);
 
   // Register badge refs
   const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {

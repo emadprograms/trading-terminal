@@ -137,6 +137,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
 
     registerBadgeRef(id: string, ref: React.RefObject<HTMLDivElement | null>) {
         this._badgeRefs.set(id, ref);
+        this._requestUpdate();
     }
 
     attached({ chart, series, requestUpdate }: SeriesAttachedParameter<Time, "Candlestick">) {
@@ -165,6 +166,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
             }
 
             return this._items.map(item => {
+                if (!item.price) return null;
                 const y = this._series!.priceToCoordinate(item.price);
                 
                 const ref = this._badgeRefs.get(item.id);
@@ -182,7 +184,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                     direction: item.direction,
                     id: item.id
                 };
-            }).filter(item => item.y !== null);
+            }).filter((item): item is TradeRenderItem => item !== null && item.y !== null);
         } catch(e) {
             console.error('TradePlugin _getViewData error:', e);
             return [];

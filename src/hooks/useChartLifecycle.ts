@@ -100,6 +100,7 @@ export function useChartLifecycle({
     rectPluginRef,
     tradePluginRef,
     updateShadingConfig,
+    pluginVersion,
   } = useChartPlugins({
     priceSeriesRef: initPriceSeriesRef,
     timeframe,
@@ -500,6 +501,7 @@ export function useChartLifecycle({
   return {
     volumeSeriesRef: initVolumeSeriesRef,
     tradePluginRef,
+    pluginVersion,
     isAtEnd,
     scrollToRealTime,
     isHydrated,

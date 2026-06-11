@@ -108,7 +108,8 @@ export default function ChartUnit({
     chartData: data.chartData, 
     chartContainerRef, 
     priceSeriesRef, 
-    tradePluginRef: chart.tradePluginRef 
+    tradePluginRef: chart.tradePluginRef,
+    pluginVersion: chart.pluginVersion
   });
 
   const hasExplicitSize = style.width || style.height;

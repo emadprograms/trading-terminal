@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ISeriesApi } from 'lightweight-charts';
 import { SessionShadingPlugin } from '../../lib/SessionShading';
 import { VolumeProfilePlugin } from '../../lib/VolumeProfilePlugin';
@@ -28,6 +28,8 @@ export function useChartPlugins({
   const rectPluginRef = useRef<RectanglePlugin | null>(null);
   const tradePluginRef = useRef<TradePlugin | null>(null);
 
+  const [pluginVersion, setPluginVersion] = useState(0);
+
   useEffect(() => {
     const series = priceSeriesRef.current;
     if (!series) return;
@@ -52,12 +54,13 @@ export function useChartPlugins({
     rayPluginRef.current.setRays(drawings.rays || []);
     rectPluginRef.current.setRects(drawings.rects || []);
 
+    setPluginVersion(v => v + 1);
 
     return () => {
         // Note: Lightweight Charts primitives are usually detached when series is removed, 
         // but if explicit cleanup is needed, it would go here.
     };
-  }, [priceSeriesRef]);
+  }, [priceSeriesRef, timeframe, showEth, drawings]);
 
   // Update Ray/Rect Plugins when synced drawings change
   useEffect(() => {
@@ -88,6 +91,7 @@ export function useChartPlugins({
     rayPluginRef, 
     rectPluginRef, 
     tradePluginRef, 
-    updateShadingConfig 
+    updateShadingConfig,
+    pluginVersion
   };
 }
