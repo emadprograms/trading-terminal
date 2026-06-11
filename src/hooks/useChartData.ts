@@ -55,8 +55,18 @@ export function useChartData({
   };
 
   const [localMasterData, setLocalMasterData] = useState<RawBar[]>([]);
-  const [timeframe, setTimeframe] = useState<Timeframe>(initialTf || '1H');
+  const [timeframe, setTimeframeLocal] = useState<Timeframe>(initialTf || '1H');
+
+  const setTimeframe = (tf: Timeframe) => {
+    setTimeframeLocal(tf);
+    useWorkspaceStore.getState().setTimeframe(chartId, tf);
+  };
   const [showEth, setShowEth] = useState<boolean>(initialEth || false);
+
+  // Initialize timeframe in store on mount
+  useEffect(() => {
+    useWorkspaceStore.getState().setTimeframe(chartId, timeframe);
+  }, []);
 
   const globalTime = usePlaybackStore((state) => state.currentTime);
 

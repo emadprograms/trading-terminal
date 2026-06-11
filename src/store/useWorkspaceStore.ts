@@ -7,12 +7,14 @@ interface WorkspaceState {
   tickers: Record<string, string>; // chartId -> ticker
   groups: Record<string, GroupColor>; // chartId -> group color
   groupTickers: Record<string, string>; // group color -> ticker
+  timeframes: Record<string, import('../types').Timeframe>; // chartId -> timeframe
 
   // Actions
   setSelectedId: (id: string) => void;
   setTicker: (id: string, ticker: string) => void;
   setGroup: (id: string, group: GroupColor) => void;
   setGroupTicker: (group: GroupColor, ticker: string) => void;
+  setTimeframe: (id: string, tf: import('../types').Timeframe) => void;
 }
 
 const validateTicker = (ticker: string): string => {
@@ -33,6 +35,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       tickers: {},
       groups: {},
       groupTickers: { red: 'SPY', blue: 'SPY', green: 'SPY', yellow: 'SPY' },
+      timeframes: {},
 
       setSelectedId: (id) => set({ selectedId: id }),
       
@@ -93,11 +96,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           groupTickers: { ...state.groupTickers, [group]: validated },
         }));
       },
+
+      setTimeframe: (id, tf) => {
+        set((state) => ({
+          timeframes: { ...state.timeframes, [id]: tf },
+        }));
+      },
     }),
     {
       name: 'workspace-storage', // unique name for localStorage key
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ groups: state.groups, groupTickers: state.groupTickers, tickers: state.tickers }),
+      partialize: (state) => ({ groups: state.groups, groupTickers: state.groupTickers, tickers: state.tickers, timeframes: state.timeframes }),
     }
   )
 );

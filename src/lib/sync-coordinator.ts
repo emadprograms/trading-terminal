@@ -7,7 +7,6 @@ import type { RawBar, Timeframe } from '../types';
 export class SyncCoordinator {
   private static instance: SyncCoordinator;
   private cache: Map<string, RawBar[]> = new Map();
-  private isPrefetching = false;
 
   private constructor() {}
 
@@ -22,31 +21,35 @@ export class SyncCoordinator {
     return `${ticker}_${timeframe}`;
   }
 
-  public async prefetchWatchlist(timeframe: Timeframe = '1H', targetCandles: number = 1000) {
-    if (this.isPrefetching) return;
-    this.isPrefetching = true;
-    
-    console.log(`[SyncCoordinator] Starting background prefetch for Watchlist...`);
+  public async prefetchWatchlist(timeframes: Timeframe[], targetCandles: number = 1000) {
+    console.log(`[SyncCoordinator] Starting background prefetch for Watchlist (${timeframes.join(', ')})...`);
     const symbols = useWatchlistStore.getState().symbols;
     
-    for (const ticker of symbols) {
-      const key = this.getCacheKey(ticker, timeframe);
-      if (this.cache.has(key)) continue;
+    for (const tf of timeframes) {
+      for (const ticker of symbols) {
+        const key = this.getCacheKey(ticker, tf);
+        if (this.cache.has(key)) continue;
 
-      try {
-        const toIso = new Date().toISOString();
-        const history = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
-        if (history && history.length > 0) {
-          this.cache.set(key, history);
+        // Mark as "fetching" with an empty array to prevent concurrent loops from fetching the same thing
+        this.cache.set(key, []);
+
+        try {
+          const toIso = new Date().toISOString();
+          const history = await fetchMarketData(ticker, toIso, targetCandles, tf);
+          if (history && history.length > 0) {
+            this.cache.set(key, history);
+          } else {
+            this.cache.delete(key); // clear empty lock if failed
+          }
+          // Small delay to avoid API rate limits
+          await new Promise(r => setTimeout(r, 200));
+        } catch (err) {
+          console.warn(`[SyncCoordinator] Failed to prefetch ${ticker}`, err);
+          this.cache.delete(key);
         }
-        // Small delay to avoid API rate limits
-        await new Promise(r => setTimeout(r, 200));
-      } catch (err) {
-        console.warn(`[SyncCoordinator] Failed to prefetch ${ticker}`, err);
       }
     }
-    this.isPrefetching = false;
-    console.log(`[SyncCoordinator] Watchlist prefetch complete.`);
+    console.log(`[SyncCoordinator] Watchlist prefetch complete for ${timeframes.join(', ')}.`);
   }
 
   /**

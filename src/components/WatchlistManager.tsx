@@ -28,16 +28,25 @@ export function WatchlistManager() {
     };
   }, [symbols]);
 
+  const timeframesMap = useWorkspaceStore((state) => state.timeframes);
+
   // 1b. Background Prefetching of historical data for instant loads
   useEffect(() => {
     if (isAuthenticated && symbols.length > 0) {
+      // Always pre-load 5min and 1D, plus whatever timeframes the user currently has open
+      const tfs = new Set<Timeframe>(['5min', '1D']);
+      Object.values(timeframesMap || {}).forEach(tf => {
+        if (tf) tfs.add(tf);
+      });
+      const timeframesToFetch = Array.from(tfs);
+
       // Use a timeout to ensure this doesn't block initial rendering
       const timer = setTimeout(() => {
-        syncCoordinator.prefetchWatchlist('1H', 1000);
+        syncCoordinator.prefetchWatchlist(timeframesToFetch, 1000);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, symbols]);
+  }, [isAuthenticated, symbols, timeframesMap]);
 
   // 2. Spacebar Keyboard Shortcut to cycle symbols
   useEffect(() => {
