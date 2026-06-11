@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useSessionStore } from '../store/useSessionStore';
 import { wsManager } from '../lib/ws-manager';
+import { useTradeStore } from '../store/useTradeStore';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -14,11 +15,12 @@ export function useSession(tickers: string[]) {
   const [entryTime, setEntryTime] = useState('09:20');
   const [isSessionStarted, setIsSessionStarted] = useState(false);
 
-  // Initialize WebSocket on authentication
+  // Initialize WebSocket and Sync State on authentication
   useEffect(() => {
     if (isAuthenticated && cst && securityToken) {
-      console.log('[StabilityTrace] Initializing WebSocket connection...');
+      console.log('[StabilityTrace] Initializing WebSocket connection and syncing positions...');
       wsManager.connect();
+      useTradeStore.getState().syncPositions();
     }
     return () => {
       wsManager.disconnect();

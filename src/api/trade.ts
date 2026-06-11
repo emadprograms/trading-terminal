@@ -93,4 +93,30 @@ export const tradeApi = {
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
   },
+
+  /**
+   * Fetch all open positions.
+   */
+  async fetchPositions(): Promise<any[]> {
+    try {
+      const response: any = await api.get('order/v1/positions').json();
+      return response.positions || [];
+    } catch (error: any) {
+      console.error('[TradeAPI] Failed to fetch positions:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch all working orders.
+   */
+  async fetchWorkingOrders(): Promise<any[]> {
+    try {
+      const response: any = await api.get('order/v1/workingorders').json();
+      return response.workingOrders || [];
+    } catch (error: any) {
+      console.error('[TradeAPI] Failed to fetch working orders:', error);
+      return [];
+    }
+  },
 };

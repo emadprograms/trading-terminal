@@ -28,7 +28,7 @@ interface TradeState {
   flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
-}
+  syncPositions: () => Promise<void>;
 
 const BUFFER_TTL = 30000; // 30 seconds
 const WATCHDOG_DELAY = 2000; // 2 seconds
@@ -199,6 +199,57 @@ export const useTradeStore = create<TradeState>()(
           }
         } finally {
           set({ isExecuting: false });
+        }
+      },
+
+      syncPositions: async () => {
+        try {
+          const rawPositions = await tradeApi.fetchPositions();
+          const rawOrders = await tradeApi.fetchWorkingOrders();
+          
+          const mappedPositions: Position[] = rawPositions.map(p => ({
+            dealId: p.position.dealId,
+            epic: p.position.epic,
+            size: p.position.size,
+            direction: p.position.direction,
+            entryPrice: p.position.level,
+            timestamp: new Date(p.position.createdDate).getTime(),
+          }));
+
+          const pendingOrders: Record<string, Order> = {};
+          rawOrders.forEach(o => {
+            const data = o.workingOrderData;
+            pendingOrders[data.dealId] = {
+              dealReference: data.dealId,
+              dealId: data.dealId,
+              workingOrderId: data.dealId,
+              epic: data.epic,
+              size: data.size,
+              level: data.level,
+              type: data.type || 'LIMIT',
+              direction: data.direction,
+              status: 'PENDING',
+              timestamp: new Date(data.createdDate).getTime(),
+            };
+          });
+          
+          set({ 
+            positions: mappedPositions,
+            // optionally overwrite pending orders with active working orders
+            // pendingOrders: pendingOrders
+          });
+          
+          // Actually, let's keep local pending orders (which might be market orders in transit)
+          // and just merge in the working orders from API.
+          set(state => ({
+            pendingOrders: {
+              ...state.pendingOrders,
+              ...pendingOrders
+            }
+          }));
+          
+        } catch (error) {
+          console.error('[TradeStore] Failed to sync positions:', error);
         }
       },
 
