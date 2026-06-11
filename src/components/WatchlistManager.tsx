@@ -4,6 +4,7 @@ import { wsManager } from '../lib/ws-manager';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { syncCoordinator } from '../lib/sync-coordinator';
 import { useSessionStore } from '../store/useSessionStore';
+import type { Timeframe } from '../types';
 
 export function WatchlistManager() {
   const symbols = useWatchlistStore((state) => state.symbols);
@@ -40,10 +41,10 @@ export function WatchlistManager() {
       });
       const timeframesToFetch = Array.from(tfs);
 
-      // Use a timeout to ensure this doesn't block initial rendering
+      // Use a longer timeout to ensure foreground chart loads complete first
       const timer = setTimeout(() => {
         syncCoordinator.prefetchWatchlist(timeframesToFetch, 1000);
-      }, 2000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, symbols, timeframesMap]);
