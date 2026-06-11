@@ -106,15 +106,16 @@ function BadgeWrapper({
   };
 
   return (
-    <div 
+    <TradeBadge 
+      marker={marker} 
+      badgeRef={ref} 
+      onClose={onClose}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      style={{ display: 'contents', cursor: marker.id.endsWith('_SL') ? 'ns-resize' : 'default' }}
-    >
-      <TradeBadge marker={marker} badgeRef={ref} onClose={onClose} />
-    </div>
+      cursor={marker.id.endsWith('_SL') ? 'ns-resize' : 'default'}
+    />
   );
 }
 

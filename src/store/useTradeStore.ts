@@ -393,6 +393,7 @@ export const useTradeStore = create<TradeState>()(
                   size: buffered.size,
                   direction: order.direction,
                   entryPrice: buffered.entryPrice!,
+                  stopLevel: buffered.stopLevel || order.stopLevel,
                   timestamp: buffered.timestamp,
                 });
               }, 0);

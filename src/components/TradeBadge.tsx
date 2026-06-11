@@ -6,9 +6,23 @@ interface TradeBadgeProps {
   marker: ChartMarker;
   badgeRef: React.RefObject<HTMLDivElement | null>;
   onClose?: () => void;
+  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerMove?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerUp?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerCancel?: React.PointerEventHandler<HTMLDivElement>;
+  cursor?: string;
 }
 
-export function TradeBadge({ marker, badgeRef, onClose }: TradeBadgeProps) {
+export function TradeBadge({ 
+  marker, 
+  badgeRef, 
+  onClose,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+  cursor
+}: TradeBadgeProps) {
   const currentPriceData = usePriceStore((state) => state.prices[marker.epic]);
   const currentPrice = marker.direction === 'BUY' ? currentPriceData?.bid : currentPriceData?.ask;
 
@@ -21,11 +35,16 @@ export function TradeBadge({ marker, badgeRef, onClose }: TradeBadgeProps) {
   return (
     <div 
       ref={badgeRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       className="trade-badge" style={{
         position: 'absolute',
         transform: 'translateY(-50%)',
         right: '90px',
         zIndex: 20,
+        cursor: cursor || 'default',
         background: 'rgba(30, 41, 59, 0.9)',
         border: `1px solid ${marker.direction === 'BUY' ? '#26a69a' : '#ef5350'}`,
         color: '#fff', padding: '2px 6px', borderRadius: '4px',
