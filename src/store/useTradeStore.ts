@@ -64,20 +64,16 @@ export const useTradeStore = create<TradeState>()(
           // Handle stopLoss logic
           if (params.stopDistance && params.stopDistance > 0) {
              const basePrice = (type === 'MARKET' || !type) 
-                 ? (params.direction === 'BUY' ? bid : ofr) 
+                 ? (params.direction === 'BUY' ? ofr : bid) 
                  : params.level;
                  
              if (basePrice !== undefined) {
-                 if (type === 'LIMIT' || type === 'STOP') {
-                     // For limit orders, we must calculate stopLevel
-                     const rawStop = params.direction === 'BUY' 
-                         ? basePrice - params.stopDistance 
-                         : basePrice + params.stopDistance;
-                     finalParams.stopLevel = parseFloat(rawStop.toFixed(5));
-                     delete finalParams.stopDistance;
-                 } else {
-                     // For market orders, send stopDistance natively, but explicitly set guaranteedStop to false
-                     finalParams.stopDistance = parseFloat(params.stopDistance.toString());
+                 const rawStop = params.direction === 'BUY' 
+                     ? basePrice - params.stopDistance 
+                     : basePrice + params.stopDistance;
+                 finalParams.stopLevel = parseFloat(rawStop.toFixed(5));
+                 delete finalParams.stopDistance;
+                 if (type === 'MARKET' || !type) {
                      finalParams.guaranteedStop = params.guaranteedStop || false;
                  }
              }
