@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft } from 'lucide-react';
+import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List } from 'lucide-react';
 import { TradeLog } from './TradeLog';
+import { Watchlist } from './Watchlist';
 
 interface SidebarProps {
   dbStatus: string;
@@ -38,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   layoutMode,
   setLayoutMode
 }) => {
-  const [showTradeLog, setShowTradeLog] = useState(false);
+  const [activePanel, setActivePanel] = useState<'tradeLog' | 'watchlist' | null>(null);
 
   return (
     <>
@@ -48,15 +49,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <button 
-          className={`btn-icon ${showTradeLog ? 'active' : ''}`} 
-          onClick={() => setShowTradeLog(!showTradeLog)} 
+          className={`btn-icon ${activePanel === 'tradeLog' ? 'active' : ''}`} 
+          onClick={() => setActivePanel(activePanel === 'tradeLog' ? null : 'tradeLog')} 
           title="Trade Log"
           style={{ 
-            color: showTradeLog ? 'var(--accent-green)' : 'var(--text-secondary)',
-            background: showTradeLog ? 'rgba(38, 166, 154, 0.1)' : 'transparent'
+            color: activePanel === 'tradeLog' ? 'var(--accent-green)' : 'var(--text-secondary)',
+            background: activePanel === 'tradeLog' ? 'rgba(38, 166, 154, 0.1)' : 'transparent'
           }}
         >
           <ClipboardList size={20} />
+        </button>
+
+        <button 
+          className={`btn-icon ${activePanel === 'watchlist' ? 'active' : ''}`} 
+          onClick={() => setActivePanel(activePanel === 'watchlist' ? null : 'watchlist')} 
+          title="Watchlist"
+          style={{ 
+            color: activePanel === 'watchlist' ? 'var(--accent-green)' : 'var(--text-secondary)',
+            background: activePanel === 'watchlist' ? 'rgba(38, 166, 154, 0.1)' : 'transparent',
+            marginTop: '8px'
+          }}
+        >
+          <List size={20} />
         </button>
 
         <div style={{ flex: 1 }}></div>
@@ -79,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </aside>
 
-      {showTradeLog && (
+      {activePanel === 'tradeLog' && (
         <div className="sidebar-panel" style={{
           width: '320px',
           background: 'rgba(0, 0, 0, 0.9)',
@@ -97,11 +111,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
             justifyContent: 'space-between'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Execution Log</h3>
-            <button className="btn-icon" onClick={() => setShowTradeLog(false)}>
+            <button className="btn-icon" onClick={() => setActivePanel(null)}>
               <ChevronLeft size={18} />
             </button>
           </div>
           <TradeLog />
+        </div>
+      )}
+
+      {activePanel === 'watchlist' && (
+        <div className="sidebar-panel" style={{
+          width: '280px',
+          background: 'rgba(0, 0, 0, 0.9)',
+          backdropFilter: 'var(--glass-blur)',
+          borderRight: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 90
+        }}>
+          <div style={{ 
+            padding: '16px', 
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Watchlist</h3>
+            <button className="btn-icon" onClick={() => setActivePanel(null)}>
+              <ChevronLeft size={18} />
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <Watchlist />
+          </div>
         </div>
       )}
     </>

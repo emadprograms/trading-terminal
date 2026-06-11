@@ -16,6 +16,7 @@ import { EnvToggle } from './components/EnvToggle';
 import { AccountSelector } from './components/AccountSelector';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useSessionStore } from './store/useSessionStore';
+import { WatchlistManager } from './components/WatchlistManager';
 
 export default function App() {
   console.log('[StabilityTrace] App Rendering');
@@ -142,6 +143,7 @@ export default function App() {
 
       </div>
       <Toaster theme="dark" position="top-right" richColors />
+      <WatchlistManager />
     </div>
   );
 }
