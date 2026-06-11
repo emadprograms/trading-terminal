@@ -88,7 +88,7 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
 
     // Determine body handling
     let requestBody: any = undefined;
-    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       console.log('[StabilityTrace] Reading request body');
       requestBody = await readBody(req);
       console.log(`[StabilityTrace] Body size: ${requestBody?.length || 0} bytes`);

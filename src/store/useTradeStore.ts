@@ -103,6 +103,9 @@ export const useTradeStore = create<TradeState>()(
       },
 
       flattenPosition: async (dealId) => {
+        const { positions } = get();
+        const position = positions.find(p => p.dealId === dealId);
+
         set((state) => {
           const newSet = new Set(state.closingDealIds);
           newSet.add(dealId);
@@ -110,7 +113,7 @@ export const useTradeStore = create<TradeState>()(
         });
 
         try {
-          await tradeApi.flattenPosition(dealId);
+          await tradeApi.flattenPosition(dealId, position);
           // If successful, immediately remove it locally.
           set((state) => {
              const newSet = new Set(state.closingDealIds);
@@ -162,7 +165,7 @@ export const useTradeStore = create<TradeState>()(
             });
 
             try {
-              await tradeApi.flattenPosition(pos.dealId);
+              await tradeApi.flattenPosition(pos.dealId, pos);
               set((state) => {
                 const newSet = new Set(state.closingDealIds);
                 newSet.delete(pos.dealId);

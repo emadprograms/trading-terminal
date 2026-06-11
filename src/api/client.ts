@@ -34,7 +34,7 @@ export const api = ky.create({
         // Proxy expects 'X-Environment' as per Task 4 behavior
         if (environment) newHeaders.set('X-Environment', environment)
 
-        const isMutation = ['POST', 'PUT', 'PATCH'].includes(request.method);
+        const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
         const requestOptions: RequestInit = {
           method: request.method,
           headers: newHeaders,
