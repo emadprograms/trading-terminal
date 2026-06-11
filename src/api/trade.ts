@@ -107,6 +107,18 @@ export const tradeApi = {
   },
 
   /**
+   * Update an existing position (e.g. Stop Loss).
+   */
+  async updatePosition(dealId: string, params: { stopLevel?: number, guaranteedStop?: boolean }): Promise<string> {
+    try {
+      const response: any = await api.put(`order/v1/positions/${dealId}`, { json: params }).json();
+      return response.dealReference;
+    } catch (error: any) {
+      throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
+    }
+  },
+
+  /**
    * Fetch all open positions.
    */
   async fetchPositions(): Promise<any[]> {

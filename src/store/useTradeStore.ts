@@ -27,6 +27,7 @@ interface TradeState {
   flattenPosition: (dealId: string) => Promise<void>;
   flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
+  updatePositionStopLoss: (dealId: string, stopLevel: number) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
 }
@@ -216,6 +217,34 @@ export const useTradeStore = create<TradeState>()(
           }
         } finally {
           set({ isExecuting: false });
+        }
+      },
+
+      updatePositionStopLoss: async (dealId, stopLevel) => {
+        const { positions } = get();
+        const position = positions.find(p => p.dealId === dealId);
+        if (!position) return;
+
+        set({ isExecuting: true });
+        try {
+          // Format stopLevel to prevent API errors
+          const formattedStopLevel = parseFloat(stopLevel.toFixed(5));
+          
+          await tradeApi.updatePosition(dealId, { stopLevel: formattedStopLevel });
+          
+          // Optimistically update the UI
+          set(state => ({
+            positions: state.positions.map(p => 
+              p.dealId === dealId ? { ...p, stopLevel: formattedStopLevel } : p
+            ),
+            isExecuting: false
+          }));
+          
+          toast.success('Stop Loss updated');
+        } catch (error) {
+          console.error(`Failed to update position SL ${dealId}:`, error);
+          set({ isExecuting: false });
+          toast.error('Failed to update Stop Loss');
         }
       },
 

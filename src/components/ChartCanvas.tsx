@@ -10,7 +10,8 @@ interface ChartCanvasProps {
   scrollToRealTime: () => void;
   markers: ChartMarker[];
   onRegisterBadge: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void;
-  onCloseTrade?: (id: string) => void;
+  onDragMarker?: (id: string, y: number) => void;
+  onDropMarker?: (id: string) => void;
   isHydrated: boolean;
 }
 
@@ -22,6 +23,8 @@ export function ChartCanvas({
   markers,
   onRegisterBadge,
   onCloseTrade,
+  onDragMarker,
+  onDropMarker,
   isHydrated
 }: ChartCanvasProps) {
   return (
@@ -53,6 +56,8 @@ export function ChartCanvas({
           marker={marker} 
           onRegister={onRegisterBadge} 
           onClose={(onCloseTrade && !marker.id.endsWith('_SL')) ? () => onCloseTrade(marker.id) : undefined} 
+          onDragMarker={onDragMarker}
+          onDropMarker={onDropMarker}
         />
       ))}
     </div>
@@ -63,18 +68,53 @@ export function ChartCanvas({
 function BadgeWrapper({ 
   marker, 
   onRegister, 
-  onClose 
+  onClose,
+  onDragMarker,
+  onDropMarker
 }: { 
   marker: ChartMarker, 
   onRegister: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void,
-  onClose?: () => void
+  onClose?: () => void,
+  onDragMarker?: (id: string, y: number) => void,
+  onDropMarker?: (id: string) => void
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
+  const isDragging = React.useRef(false);
   
   React.useEffect(() => {
     onRegister(marker.id, ref);
   }, [marker.id, onRegister]);
 
-  return <TradeBadge marker={marker} badgeRef={ref} onClose={onClose} />;
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!marker.id.endsWith('_SL')) return;
+    if (e.button !== 0) return; // Only left click
+    isDragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current || !onDragMarker) return;
+    onDragMarker(marker.id, e.clientY);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    if (onDropMarker) onDropMarker(marker.id);
+  };
+
+  return (
+    <div 
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{ display: 'contents', cursor: marker.id.endsWith('_SL') ? 'ns-resize' : 'default' }}
+    >
+      <TradeBadge marker={marker} badgeRef={ref} onClose={onClose} />
+    </div>
+  );
 }
 

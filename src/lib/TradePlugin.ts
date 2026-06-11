@@ -20,12 +20,16 @@ export interface ChartMarker {
     size: number;
     type: 'POSITION' | 'ORDER';
     label?: string;
+    isDashed?: boolean;
+    parentPrice?: number;
 }
 
 interface TradeRenderItem {
     y: Coordinate;
     direction: OrderDirection;
     id: string;
+    isDashed?: boolean;
+    parentY?: Coordinate | null;
 }
 
 class TradeRenderer implements ISeriesPrimitivePaneRenderer {
@@ -56,6 +60,12 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     const color = direction === 'BUY' ? '#26a69a' : '#ef5350';
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 1;
+                    
+                    if (item.isDashed) {
+                        ctx.setLineDash([4, 4]);
+                    } else {
+                        ctx.setLineDash([]);
+                    }
 
                     let badgeStart = rightEdge;
                     let badgeEnd = rightEdge;
@@ -79,8 +89,19 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         ctx.lineTo(rightEdge, y);
                         ctx.stroke();
                     }
+
+                    if (item.parentY !== undefined && item.parentY !== null) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([2, 4]);
+                        ctx.moveTo(badgeStart - 10, item.parentY);
+                        ctx.lineTo(badgeStart - 10, y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 });
 
+                ctx.setLineDash([]);
                 ctx.restore();
             });
         } catch (err) {
@@ -165,8 +186,8 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                 return [];
             }
 
-            return this._items.map(item => {
                 const y = item.price ? this._series!.priceToCoordinate(item.price) : null;
+                const parentY = item.parentPrice ? this._series!.priceToCoordinate(item.parentPrice) : null;
                 
                 const ref = this._badgeRefs.get(item.id);
                 if (ref && ref.current) {
@@ -181,7 +202,9 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                 return {
                     y: y as Coordinate,
                     direction: item.direction,
-                    id: item.id
+                    id: item.id,
+                    isDashed: item.isDashed,
+                    parentY: parentY as Coordinate | null
                 };
             }).filter((item): item is TradeRenderItem => item !== null && item.y !== null);
         } catch(e) {

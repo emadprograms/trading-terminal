@@ -36,8 +36,10 @@ export function useTradeManager({
     [pendingOrders, ticker]
   );
 
+  const [dragPreview, setDragPreview] = React.useState<{ id: string, price: number } | null>(null);
+
   // Map to ChartMarkers
-  const markers = useMemo((): ChartMarker[] => {
+  const baseMarkers = useMemo((): ChartMarker[] => {
     const posMarkers: ChartMarker[] = tickerPositions.flatMap(p => {
       const markers: ChartMarker[] = [{
         id: p.dealId,
@@ -56,7 +58,9 @@ export function useTradeManager({
           direction: p.direction === 'BUY' ? 'SELL' : 'BUY', // Stop loss is opposite direction
           size: p.size,
           type: 'ORDER',
-          label: 'SL'
+          label: 'SL',
+          isDashed: true,
+          parentPrice: p.entryPrice
         });
       }
 
@@ -85,6 +89,11 @@ export function useTradeManager({
     return [...posMarkers, ...orderMarkers];
   }, [tickerPositions, tickerOrders, currentPrices]);
 
+  const markers = useMemo(() => {
+    if (!dragPreview) return baseMarkers;
+    return baseMarkers.map(m => m.id === dragPreview.id ? { ...m, price: dragPreview.price } : m);
+  }, [baseMarkers, dragPreview]);
+
   // Update TradePlugin
   useEffect(() => {
     if (tradePluginRef.current) {
@@ -98,6 +107,23 @@ export function useTradeManager({
       tradePluginRef.current.registerBadgeRef(id, ref);
     }
   }, [tradePluginRef, pluginVersion]);
+
+  const onDragMarker = useCallback((id: string, clientY: number) => {
+    if (!chartContainerRef.current || !priceSeriesRef.current) return;
+    const rect = chartContainerRef.current.getBoundingClientRect();
+    const y = clientY - rect.top;
+    const price = priceSeriesRef.current.coordinateToPrice(y as any);
+    if (price !== null) {
+      setDragPreview({ id, price });
+    }
+  }, [chartContainerRef, priceSeriesRef]);
+
+  const onDropMarker = useCallback((id: string) => {
+    if (dragPreview && dragPreview.id === id) {
+      useTradeStore.getState().updatePositionStopLoss(id.replace('_SL', ''), dragPreview.price);
+    }
+    setDragPreview(null);
+  }, [dragPreview]);
 
   // Calculate Unrealized PnL for this ticker's positions
   const unrealizedPnL = useMemo(() => {

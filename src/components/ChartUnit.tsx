@@ -172,6 +172,8 @@ export default function ChartUnit({
           scrollToRealTime={chart.scrollToRealTime}
           markers={trade.markers}
           onRegisterBadge={trade.handleRegisterBadge}
+          onDragMarker={trade.onDragMarker}
+          onDropMarker={trade.onDropMarker}
           onCloseTrade={(id) => {
             if (id.endsWith('_SL')) return; // Do nothing for SL badges
             const marker = trade.markers.find(m => m.id === id);
