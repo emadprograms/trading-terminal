@@ -93,7 +93,7 @@ export function useTradeManager({
       }
 
       return {
-        id: o.dealReference,
+        id: o.dealId || o.dealReference,
         epic: o.epic,
         price,
         direction: o.direction,

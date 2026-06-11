@@ -72,24 +72,23 @@ export const tradeApi = {
 
   /**
    * Close an active position.
+   * For CFD accounts, we must place an opposite market order to net the position.
    */
   async flattenPosition(dealId: string, position?: any): Promise<{ dealReference: string, usedFallback: boolean }> {
+    if (!position) {
+        throw new Error('Position details required to close CFD position.');
+    }
     try {
-      const response: any = await api.delete(`order/v1/positions/${dealId}`).json();
+      const oppositeDirection = position.direction === 'BUY' ? 'SELL' : 'BUY';
+      const response: any = await api.post('order/v1/positions', { 
+         json: {
+           epic: position.epic,
+           size: position.size,
+           direction: oppositeDirection
+         } 
+      }).json();
       return { dealReference: response.dealReference, usedFallback: false };
     } catch (error: any) {
-      if (error?.response?.status === 403 && position) {
-         console.warn(`[TradeAPI] DELETE /positions/${dealId} forbidden. Attempting opposite market order fallback...`);
-         const oppositeDirection = position.direction === 'BUY' ? 'SELL' : 'BUY';
-         const response: any = await api.post('order/v1/positions', { 
-            json: {
-              epic: position.epic,
-              size: position.size,
-              direction: oppositeDirection
-            } 
-         }).json();
-         return { dealReference: response.dealReference, usedFallback: true };
-      }
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
   },

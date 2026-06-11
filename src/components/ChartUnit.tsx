@@ -176,7 +176,16 @@ export default function ChartUnit({
           onDropMarker={trade.onDropMarker}
           onHoverMarker={trade.onHoverMarker}
           onCloseTrade={(id) => {
-            if (id.endsWith('_SL')) return; // Do nothing for SL badges
+            if (id.endsWith('_SL')) {
+              const dealId = id.replace('_SL', '');
+              useTradeStore.getState().updatePositionStopLoss(dealId, 0); // or handle removal
+              return;
+            }
+            if (id.endsWith('_TP')) {
+              const dealId = id.replace('_TP', '');
+              useTradeStore.getState().updatePositionTakeProfit(dealId, 0); // or handle removal
+              return;
+            }
             const marker = trade.markers.find(m => m.id === id);
             if (marker?.type === 'POSITION') {
               useTradeStore.getState().flattenPosition(id);

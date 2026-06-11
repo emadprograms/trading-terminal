@@ -61,13 +61,15 @@ export const useTradeStore = create<TradeState>()(
           }
 
           // Calculate stopLevel if stopDistance is provided
-          if (params.stopDistance) {
+          if (params.stopDistance && params.stopDistance > 0) {
              const basePrice = (type === 'MARKET' || !type) 
-                 ? (params.direction === 'BUY' ? ofr : bid) 
+                 ? (params.direction === 'BUY' ? bid : ofr) 
                  : params.level;
                  
              if (basePrice !== undefined) {
                  // Format to 5 decimal places to prevent float precision errors
+                 // For a BUY order, SL is placed below the current bid price (you sell to close).
+                 // For a SELL order, SL is placed above the current ask price (you buy to close).
                  const rawStop = params.direction === 'BUY' 
                      ? basePrice - params.stopDistance 
                      : basePrice + params.stopDistance;
@@ -130,7 +132,7 @@ export const useTradeStore = create<TradeState>()(
         });
 
         try {
-          const { usedFallback } = await tradeApi.flattenPosition(dealId, position);
+          await tradeApi.flattenPosition(dealId, position);
           // If successful, immediately remove it locally.
           set((state) => {
              const newSet = new Set(state.closingDealIds);
@@ -141,11 +143,7 @@ export const useTradeStore = create<TradeState>()(
                  isExecuting: false
              };
           });
-          if (usedFallback) {
-              toast.success('Position closed (Fallback used)');
-          } else {
-              toast.success('Position closed');
-          }
+          toast.success('Position closed');
         } catch (error: any) {
           console.error(`Failed to close position ${dealId}:`, error);
           set((state) => {
@@ -245,6 +243,34 @@ export const useTradeStore = create<TradeState>()(
           console.error(`Failed to update position SL ${dealId}:`, error);
           set({ isExecuting: false });
           toast.error('Failed to update Stop Loss');
+        }
+      },
+
+      updatePositionTakeProfit: async (dealId, profitLevel) => {
+        const { positions } = get();
+        const position = positions.find(p => p.dealId === dealId);
+        if (!position) return;
+
+        set({ isExecuting: true });
+        try {
+          // Format profitLevel to prevent API errors
+          const formattedProfitLevel = parseFloat(profitLevel.toFixed(5));
+          
+          await tradeApi.updatePosition(dealId, { profitLevel: formattedProfitLevel });
+          
+          // Optimistically update the UI
+          set(state => ({
+            positions: state.positions.map(p => 
+              p.dealId === dealId ? { ...p, profitLevel: formattedProfitLevel } : p
+            ),
+            isExecuting: false
+          }));
+          
+          toast.success('Take Profit updated');
+        } catch (error) {
+          console.error(`Failed to update position TP ${dealId}:`, error);
+          set({ isExecuting: false });
+          toast.error('Failed to update Take Profit');
         }
       },
 
