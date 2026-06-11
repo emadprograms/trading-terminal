@@ -32,6 +32,56 @@ export function TradeBadge({
 
   const isPosition = marker.type === 'POSITION';
 
+  const tvBlue = '#2962ff';
+  const tvRed = '#f23645';
+  const tvGreen = '#089981';
+  const tvOrange = '#ff9800';
+
+  const isPosition = marker.type === 'POSITION';
+  const isBuy = marker.direction === 'BUY';
+  const isSL = marker.label === 'SL' || marker.id.endsWith('_SL');
+  const isTP = marker.label === 'TP';
+
+  let borderColor = tvBlue;
+  let sizeBg = tvBlue;
+  let sizeText = '#fff';
+  let textColor = '#333';
+  let closeColor = tvBlue;
+
+  if (isPosition) {
+     borderColor = isBuy ? tvBlue : tvRed;
+     sizeBg = isBuy ? tvBlue : tvRed;
+     closeColor = isBuy ? tvBlue : tvRed;
+     textColor = pnl >= 0 ? tvGreen : tvRed;
+  } else if (isSL) {
+     borderColor = tvOrange;
+     sizeBg = '#fff';
+     sizeText = tvOrange;
+     closeColor = tvOrange;
+     textColor = tvOrange;
+  } else if (isTP) {
+     borderColor = tvGreen;
+     sizeBg = '#fff';
+     sizeText = tvGreen;
+     closeColor = tvGreen;
+     textColor = tvGreen;
+  } else {
+     borderColor = tvOrange;
+     sizeBg = '#fff';
+     sizeText = tvOrange;
+     closeColor = tvOrange;
+     textColor = tvOrange;
+  }
+
+  let valueText = marker.label || 'ORDER';
+  if (isPosition) {
+     valueText = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD`;
+  } else if (marker.parentPrice !== undefined) {
+     const isSlBuy = marker.direction === 'BUY';
+     const hitPnl = (marker.price - marker.parentPrice) * marker.size * (isSlBuy ? -1 : 1);
+     valueText = `${hitPnl >= 0 ? '+' : ''}${hitPnl.toFixed(2)} USD`;
+  }
+
   return (
     <div 
       ref={badgeRef}
@@ -39,53 +89,79 @@ export function TradeBadge({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
-      className="trade-badge" style={{
+      className="trade-badge-tv" 
+      style={{
         position: 'absolute',
         transform: 'translateY(-50%)',
         right: '90px',
         zIndex: 20,
         cursor: cursor || 'default',
-        background: 'rgba(30, 41, 59, 0.9)',
-        border: `1px solid ${marker.direction === 'BUY' ? '#26a69a' : '#ef5350'}`,
-        color: '#fff', padding: '2px 6px', borderRadius: '4px',
-        fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)',
-        whiteSpace: 'nowrap'
+        background: '#ffffff',
+        border: `1px solid ${borderColor}`,
+        borderRadius: '4px',
+        display: 'flex', 
+        alignItems: 'stretch',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+        overflow: 'hidden',
+        height: '22px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif'
       }}>
-      <span style={{ 
-        background: marker.direction === 'BUY' ? '#26a69a' : '#ef5350',
-        color: '#fff', 
-        padding: '1px 4px', 
-        borderRadius: '3px',
-        fontSize: '10px',
-        fontWeight: '800',
-        marginRight: '1px'
+      
+      {/* Size segment */}
+      <div style={{ 
+        background: sizeBg,
+        color: sizeText, 
+        padding: '0 6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '11px',
+        fontWeight: '600'
       }}>
         {marker.size}
-      </span>
+      </div>
       
-      {isPosition ? (
-        <span style={{ color: pnl >= 0 ? '#26a69a' : '#ef5350' }}>
-          {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
-        </span>
-      ) : (
-        <span style={{ color: '#f59e0b', fontSize: '9px' }}>
-          {marker.label || 'ORDER'}
-        </span>
-      )}
+      {/* Value segment */}
+      <div style={{
+         padding: '0 8px',
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         fontSize: '11px',
+         fontWeight: '600',
+         color: textColor,
+         whiteSpace: 'nowrap',
+         borderLeft: sizeBg === '#fff' ? `1px solid #e0e3eb` : 'none'
+      }}>
+        {valueText}
+      </div>
 
+      {/* Close button */}
       {onClose && (
-        <button 
-          onClick={onClose}
-          style={{ 
-            background: 'rgba(0,0,0,0.2)', border: 'none', color: '#fff', 
-            borderRadius: '50%', width: '12px', height: '12px', 
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '8px', padding: 0, marginLeft: '2px'
-          }}
-        >
-          ✕
-        </button>
+        <div style={{
+          display: 'flex',
+          borderLeft: `1px solid #e0e3eb`,
+          background: '#fff'
+        }}>
+          <button 
+            onClick={onClose}
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              color: closeColor, 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              padding: '0 6px',
+              fontSize: '14px',
+              lineHeight: 1,
+              fontWeight: 'bold'
+            }}
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

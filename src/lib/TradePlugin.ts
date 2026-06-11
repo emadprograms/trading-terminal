@@ -57,7 +57,10 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     const { y, direction, id } = item;
                     if (y === null) return;
 
-                    const color = direction === 'BUY' ? '#26a69a' : '#ef5350';
+                    let color = direction === 'BUY' ? '#2962ff' : '#f23645';
+                    if (item.isDashed) { // SL or TP
+                        color = '#ff9800';
+                    }
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 1;
                     
