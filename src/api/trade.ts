@@ -124,16 +124,20 @@ export const tradeApi = {
       return data.dealReference || dealId;
     } catch (error: any) {
       if (error.response) {
+         let textBody = '';
          try {
-           const textBody = await error.response.text();
-           let parsed = null;
-           try { parsed = JSON.parse(textBody); } catch(e) {}
-           if (parsed && (parsed.errorCode || parsed.message)) {
-              throw new Error(`API Backend Error: ${parsed.errorCode || parsed.message}`);
-           } else {
-              throw new Error(`API Backend Error: ${textBody.substring(0, 100)}`);
-           }
+           textBody = await error.response.text();
          } catch(e) {}
+         
+         if (textBody) {
+             let parsed = null;
+             try { parsed = JSON.parse(textBody); } catch(e) {}
+             if (parsed && (parsed.errorCode || parsed.message)) {
+                throw new Error(`API Backend Error: ${parsed.errorCode || parsed.message}`);
+             } else {
+                throw new Error(`API Backend Error: ${textBody.substring(0, 100)}`);
+             }
+         }
       }
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }
