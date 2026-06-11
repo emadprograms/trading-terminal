@@ -102,7 +102,7 @@ export function TradeBadge({
         alignItems: 'stretch',
         boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
         overflow: 'hidden',
-        height: '22px',
+        height: '18px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif'
       }}>
       
@@ -110,7 +110,7 @@ export function TradeBadge({
       <div style={{ 
         background: sizeBg,
         color: sizeText, 
-        padding: '0 6px',
+        padding: '0 8px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -122,7 +122,7 @@ export function TradeBadge({
       
       {/* Value segment */}
       <div style={{
-         padding: '0 8px',
+         padding: '0 12px',
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'center',
@@ -152,7 +152,7 @@ export function TradeBadge({
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              padding: '0 6px',
+              padding: '0 8px',
               fontSize: '14px',
               lineHeight: 1,
               fontWeight: 'bold'
