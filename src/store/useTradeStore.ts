@@ -204,9 +204,13 @@ export const useTradeStore = create<TradeState>()(
 
       syncPositions: async () => {
         try {
+          console.log('[DEBUG-SYNC] Fetching positions and working orders from Capital.com...');
           const rawPositions = await tradeApi.fetchPositions();
           const rawOrders = await tradeApi.fetchWorkingOrders();
           
+          console.log('[DEBUG-SYNC] Raw Positions:', JSON.stringify(rawPositions, null, 2));
+          console.log('[DEBUG-SYNC] Raw Orders:', JSON.stringify(rawOrders, null, 2));
+
           const mappedPositions: Position[] = rawPositions.map(raw => {
             const p = raw.position || raw;
             return {
@@ -361,12 +365,18 @@ export const useTradeStore = create<TradeState>()(
         }),
 
       handleConfirmation: (rawPayload: any) => {
+        console.log('[DEBUG-PAYLOAD] Raw confirmation payload received:', JSON.stringify(rawPayload, null, 2));
+
         // Normalize Capital.com payload which might use dealStatus and level
         const payload: TradeConfirmation = {
           ...rawPayload,
           status: rawPayload.dealStatus || rawPayload.status,
           entryPrice: rawPayload.level || rawPayload.entryPrice || rawPayload.price,
+          // Sometimes Capital.com hides the dealId in affectedDeals
+          dealId: rawPayload.dealId || (rawPayload.affectedDeals && rawPayload.affectedDeals[0] && rawPayload.affectedDeals[0].dealId)
         };
+
+        console.log('[DEBUG-PAYLOAD] Normalized payload:', JSON.stringify(payload, null, 2));
 
         const { dealReference, status, dealId, workingOrderId, reason, entryPrice, epic, size, timestamp } = payload;
         
