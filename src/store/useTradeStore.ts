@@ -47,23 +47,25 @@ export const useTradeStore = create<TradeState>()(
       placeOrder: async (params) => {
         set({ isExecuting: true });
         try {
-          const { bid, ofr, ...apiParams } = params;
+          const { bid, ofr, type, ...apiParams } = params;
           
           // Respect user preference for Guaranteed Stop
-          const finalParams = { ...apiParams };
+          const finalParams: any = { ...apiParams };
           if (params.guaranteedStop) {
             finalParams.guaranteedStop = true;
           }
 
           let dealReference: string;
-          const orderType = params.type || 'MARKET';
+          const orderType = type || 'MARKET';
 
           console.log(`[Surgical-Verify] Routing order type ${orderType} to ${orderType === 'LIMIT' || orderType === 'STOP' ? 'workingorders' : 'positions'}`);
 
           if (orderType === 'LIMIT' || orderType === 'STOP') {
-            dealReference = await tradeApi.placeLimitOrder(finalParams as any);
+            finalParams.type = orderType;
+            finalParams.level = (params as LimitOrderParams).level;
+            dealReference = await tradeApi.placeLimitOrder(finalParams as LimitOrderParams);
           } else {
-            dealReference = await tradeApi.placeMarketOrder(finalParams as any);
+            dealReference = await tradeApi.placeMarketOrder(finalParams as MarketOrderParams);
           }
           
           get().addPendingOrder(dealReference, {

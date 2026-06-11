@@ -36,7 +36,7 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
     res.statusCode = 200;
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-env, CST, X-SECURITY-TOKEN');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Environment, CST, X-SECURITY-TOKEN, x-env');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.end();
     return;

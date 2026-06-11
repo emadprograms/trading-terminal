@@ -3,10 +3,11 @@ name: Auth Proxy
 on:
   workflow_dispatch:
     inputs:
-      env:
-        description: 'Target Environment (DEMO/LIVE)'
+      enable_live:
+        description: 'Enable LIVE Environment (DANGEROUS)'
         required: true
-        default: 'DEMO'
+        type: boolean
+        default: false
       duration:
         description: 'Run Duration (e.g., 1h, 30m, 6h)'
         required: true
@@ -39,7 +40,7 @@ jobs:
 
       - name: Start Hono Proxy
         env:
-          ENV: ${{ github.event.inputs.env }}
+          ENV: ${{ (inputs.enable_live == true || inputs.enable_live == 'true') && 'LIVE' || 'DEMO' }}
           CAPITAL_API_KEY: ${{ secrets.CAPITAL_API_KEY }}
           CAPITAL_USER: ${{ secrets.CAPITAL_USER }}
           CAPITAL_PASSWORD: ${{ secrets.CAPITAL_PASSWORD }}
