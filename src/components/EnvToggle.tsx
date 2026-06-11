@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Globe, FlaskConical, Loader2 } from 'lucide-react';
 import { useSessionStore } from '../store/useSessionStore';
+import { api } from '../api/client';
 
 interface EnvToggleProps {
   login: (params?: { environment: 'DEMO' | 'LIVE' }) => Promise<void>;
@@ -9,6 +10,15 @@ interface EnvToggleProps {
 
 export const EnvToggle: React.FC<EnvToggleProps> = ({ login, isLoggingIn }) => {
   const { environment } = useSessionStore();
+  const [proxyEnv, setProxyEnv] = useState<'DEMO' | 'LIVE' | null>(null);
+
+  useEffect(() => {
+    api.get('ping').json<{ status: string, env: string }>().then(data => {
+      if (data.env === 'LIVE' || data.env === 'DEMO') {
+        setProxyEnv(data.env as 'DEMO' | 'LIVE');
+      }
+    }).catch(err => console.error('[EnvToggle] Failed to check proxy env:', err));
+  }, []);
 
   const handleToggle = async (env: 'DEMO' | 'LIVE') => {
     if (env === environment) return;
@@ -19,6 +29,8 @@ export const EnvToggle: React.FC<EnvToggleProps> = ({ login, isLoggingIn }) => {
       console.error('[UAT] Failed to switch environment:', error);
     }
   };
+
+  const isLiveDisabled = isLoggingIn || (proxyEnv !== null && proxyEnv !== 'LIVE');
 
   return (
     <div className="env-toggle-container">
@@ -32,10 +44,11 @@ export const EnvToggle: React.FC<EnvToggleProps> = ({ login, isLoggingIn }) => {
         <span>DEMO</span>
       </button>
       <button 
-        className={`env-btn ${environment === 'LIVE' ? 'active' : ''} ${isLoggingIn ? 'loading' : ''}`}
+        className={`env-btn ${environment === 'LIVE' ? 'active' : ''} ${isLoggingIn ? 'loading' : ''} ${isLiveDisabled && !isLoggingIn ? 'disabled-live' : ''}`}
         onClick={() => handleToggle('LIVE')}
-        disabled={isLoggingIn}
+        disabled={isLiveDisabled}
         data-active={String(environment === 'LIVE')}
+        title={isLiveDisabled && !isLoggingIn ? "LIVE mode disabled on proxy" : ""}
       >
         {isLoggingIn && environment === 'LIVE' ? <Loader2 size={14} className="spin" data-testid="loading-spinner" /> : <Globe size={14} />}
         <span>LIVE</span>
@@ -74,6 +87,10 @@ export const EnvToggle: React.FC<EnvToggleProps> = ({ login, isLoggingIn }) => {
         .env-btn.loading {
           opacity: 0.6;
           cursor: wait;
+        }
+        .env-btn.disabled-live {
+          opacity: 0.3;
+          cursor: not-allowed;
         }
         .spin {
           animation: spin 1s linear infinite;

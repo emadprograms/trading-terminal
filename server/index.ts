@@ -35,7 +35,7 @@ const getApiTarget = (envHeader?: string) => {
     : { target: 'https://demo-api-capital.backend-capital.com', key: process.env.CAPITAL_API_KEY_DEMO || process.env.CAPITAL_API_KEY }
 }
 
-app.get('/ping', (c) => c.json({ status: 'OK' }))
+app.get('/ping', (c) => c.json({ status: 'OK', env: process.env.ENV || 'DEMO' }))
 
 app.post('/session', async (c) => {
   console.log(`[StabilityTrace] Handling /session request...`)

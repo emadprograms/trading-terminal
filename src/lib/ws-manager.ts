@@ -29,9 +29,11 @@ class WebSocketManager {
       return;
     }
 
-    // Note: Capital.com uses a shared streaming URL for both Demo and Live, but we separate them if the environment requires it.
-    // The authentication payload specifies the actual session.
-    const url = 'wss://api-streaming-capital.backend-capital.com/connect';
+    this.isExplicitlyDisconnected = false;
+
+    const url = environment === 'LIVE'
+      ? 'wss://api-streaming-capital.backend-capital.com/connect'
+      : 'wss://demo-api-streaming-capital.backend-capital.com/connect';
 
     console.log(`[WSManager] Connecting to ${url}...`);
     this.socket = new WebSocket(url);
@@ -57,7 +59,9 @@ class WebSocketManager {
 
     this.socket.onclose = (event) => {
       console.log(`[WSManager] Connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`);
-      this.scheduleReconnect();
+      if (!this.isExplicitlyDisconnected) {
+        this.scheduleReconnect();
+      }
     };
 
     this.socket.onerror = (error) => {
@@ -197,7 +201,10 @@ class WebSocketManager {
     }, delay);
   }
 
+  private isExplicitlyDisconnected: boolean = false;
+
   public disconnect(): void {
+    this.isExplicitlyDisconnected = true;
     if (this.socket) {
       this.socket.close();
       this.socket = null;
