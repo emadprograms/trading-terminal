@@ -30,7 +30,7 @@ export const EnvToggle: React.FC<EnvToggleProps> = ({ login, isLoggingIn }) => {
     }
   };
 
-  const isLiveDisabled = isLoggingIn || (proxyEnv !== null && proxyEnv !== 'LIVE');
+  const isLiveDisabled = isLoggingIn || proxyEnv !== 'LIVE';
 
   return (
     <div className="env-toggle-container">

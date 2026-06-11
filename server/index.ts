@@ -164,7 +164,7 @@ app.all('*', async (c) => {
     const response = await fetch(targetUrl, {
       method: c.req.method,
       headers: requestHeaders,
-      body: ['POST', 'PUT', 'PATCH'].includes(c.req.method) ? await c.req.blob() : undefined,
+      body: ['POST', 'PUT', 'PATCH'].includes(c.req.method) ? await c.req.arrayBuffer() : undefined,
     })
 
     console.log(`[StabilityTrace] Upstream ${targetUrl} responded with status: ${response.status}`)

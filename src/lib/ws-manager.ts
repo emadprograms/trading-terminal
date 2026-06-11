@@ -30,10 +30,9 @@ class WebSocketManager {
     }
 
     this.isExplicitlyDisconnected = false;
-
-    const url = environment === 'LIVE'
-      ? 'wss://api-streaming-capital.backend-capital.com/connect'
-      : 'wss://demo-api-streaming-capital.backend-capital.com/connect';
+    // Capital.com uses a shared streaming URL for both Demo and Live
+    // The authentication payload specifies the actual session.
+    const url = 'wss://api-streaming-capital.backend-capital.com/connect';
 
     console.log(`[WSManager] Connecting to ${url}...`);
     this.socket = new WebSocket(url);

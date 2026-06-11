@@ -179,7 +179,7 @@ export default function ChartUnit({
           onCloseTrade={(id) => {
             const marker = trade.markers.find(m => m.id === id);
             if (marker?.type === 'POSITION') {
-              useTradeStore.getState().closePosition(id);
+              useTradeStore.getState().flattenPosition(id);
             } else {
               // For orders, we might want a cancelOrder action in the future
               console.log('Cancel order:', id);

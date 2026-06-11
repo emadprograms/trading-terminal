@@ -31,9 +31,9 @@ export const AccountHeader: React.FC = () => {
       if (accounts.length > 0) {
         // Use selected account or fallback to first
         const account = accounts.find((a: any) => a.accountId === selectedAccountId) || accounts[0];
-        const bal = account.balance;
         
-        if (bal && typeof bal === 'object') {
+        if (account && account.balance) {
+          const bal = account.balance;
           console.log(`[AccountHeader] Mapping balance data for account ${account.accountId}`);
           return {
             balance: bal.balance,
