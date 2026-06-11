@@ -59,6 +59,22 @@ export const useTradeStore = create<TradeState>()(
             delete finalParams.guaranteedStop;
           }
 
+          // Calculate stopLevel if stopDistance is provided
+          if (params.stopDistance) {
+             const basePrice = (type === 'MARKET' || !type) 
+                 ? (params.direction === 'BUY' ? ofr : bid) 
+                 : params.level;
+                 
+             if (basePrice !== undefined) {
+                 // Format to 5 decimal places to prevent float precision errors
+                 const rawStop = params.direction === 'BUY' 
+                     ? basePrice - params.stopDistance 
+                     : basePrice + params.stopDistance;
+                 finalParams.stopLevel = parseFloat(rawStop.toFixed(5));
+             }
+             delete finalParams.stopDistance;
+          }
+
           // Remove any undefined fields to ensure clean payload
           Object.keys(finalParams).forEach(key => {
             if (finalParams[key] === undefined) {
