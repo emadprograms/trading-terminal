@@ -37,7 +37,6 @@ export function TradeBadge({
   const tvGreen = '#089981';
   const tvOrange = '#ff9800';
 
-  const isPosition = marker.type === 'POSITION';
   const isBuy = marker.direction === 'BUY';
   const isSL = marker.label === 'SL' || marker.id.endsWith('_SL');
   const isTP = marker.label === 'TP';
