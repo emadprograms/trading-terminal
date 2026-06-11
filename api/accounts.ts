@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Granular proxy handler for Account management.
- * Handles /api/accounts -> /api/v1/accounts
+ * Handles /api/accounts/v1/accounts -> Capital.com /api/v1/accounts
  */
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   console.log('[StabilityTrace] Accounts handler started');
@@ -11,12 +11,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const urlPath = req.url?.split('?')[0] || '';
     const subPath = urlPath.replace(/^\/api\/accounts/, '');
     
-    // Determine target path. 
-    // If we have a versioned subpath (e.g. /v1/...), we prepend /api so it becomes /api/v1/...
-    // Otherwise we just use /accounts and let the backend add /api/v1/...
-    const targetPath = subPath.startsWith('/v1') ? `/api${subPath}` : `/accounts${subPath}`;
+    // Construct the Capital.com API path
+    const targetPath = subPath.startsWith('/v1') ? `/api${subPath}` : `/api/v1/accounts${subPath}`;
     
-    console.log(`[StabilityTrace] Accounts handler: subPath="${subPath}", targetPath="${targetPath}"`);
+    console.log(`[StabilityTrace] Accounts handler: method=${req.method}, subPath="${subPath}", targetPath="${targetPath}"`);
     
     await proxyRequest(req, res, targetPath);
     console.log('[StabilityTrace] Accounts handler completed');
@@ -24,7 +22,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     console.error('[StabilityTrace] Accounts handler CRASH:', err);
     if (!res.headersSent) {
       res.statusCode = 500;
-      res.end('Internal Server Error');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.end(JSON.stringify({ error: 'Internal Server Error', message: (err as Error).message }));
     }
   }
 }

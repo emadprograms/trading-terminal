@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { request } from 'undici';
 import sessionHandler from './session';
-import { sharedAgent } from './_utils';
 import { Readable, PassThrough } from 'stream';
 
 vi.mock('undici', async (importOriginal) => {
@@ -40,12 +39,10 @@ function createMocks(options: any = {}) {
   return { req, res };
 }
 
-describe('session handler', () => {
+describe('session handler (direct-to-Capital.com)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.BACKEND_URL = 'https://tunnel.test';
-    process.env.CF_ACCESS_CLIENT_ID = 'test-id';
-    process.env.CF_ACCESS_CLIENT_SECRET = 'test-secret';
+    process.env.CAPITAL_API_KEY = 'test-api-key';
   });
 
   it('should handle OPTIONS preflight', async () => {
@@ -53,116 +50,95 @@ describe('session handler', () => {
 
     await sessionHandler(req, res);
     expect(res.statusCode).toBe(200);
-    expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', expect.stringContaining('POST'));
+    expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', expect.stringContaining('PUT'));
+    expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', expect.stringContaining('DELETE'));
   });
 
-  it('should inject Cloudflare Access Service Tokens and use sharedAgent', async () => {
+  it('should inject X-CAP-API-KEY and call Capital.com directly', async () => {
     (request as any).mockResolvedValue({
       statusCode: 200,
-      headers: { 'content-type': 'application/json' },
+      headers: { 
+        'content-type': 'application/json',
+        'cst': 'new-cst-token',
+        'x-security-token': 'new-security-token',
+      },
       body: {
         pipe: vi.fn((dest) => {
-          dest.end(JSON.stringify({ success: true }));
+          dest.end(JSON.stringify({ accountType: 'CFD' }));
         })
       },
     });
 
     const { req, res } = createMocks({
       method: 'POST',
-      body: JSON.stringify({ identifier: 'user', password: 'pass' }),
+      body: JSON.stringify({ identifier: 'user@test.com', password: 'pass123' }),
       headers: {
         'content-type': 'application/json',
-        'x-env': 'LIVE',
-        'host': 'localhost'
+        'x-environment': 'DEMO',
       }
     });
 
     await sessionHandler(req, res);
     
+    // Should call Capital.com demo URL directly
     expect(request).toHaveBeenCalledWith(
-      expect.stringContaining('https://tunnel.test'),
+      expect.stringContaining('demo-api-capital.backend-capital.com'),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
-          'CF-Access-Client-Id': 'test-id',
-          'CF-Access-Client-Secret': 'test-secret',
+          'X-CAP-API-KEY': 'test-api-key',
+          'Content-Type': 'application/json',
         }),
-        dispatcher: sharedAgent,
       })
     );
     expect(res.statusCode).toBe(200);
   });
 
-  it('should propagate upstream errors (4xx/5xx)', async () => {
+  it('should route to LIVE Capital.com when X-Environment is LIVE', async () => {
+    process.env.CAPITAL_API_KEY_LIVE = 'live-api-key';
+    
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { pipe: vi.fn() },
+    });
+
+    const { req, res } = createMocks({
+      method: 'POST',
+      body: JSON.stringify({ identifier: 'user', password: 'pass' }),
+      headers: { 'x-environment': 'LIVE' }
+    });
+
+    await sessionHandler(req, res);
+
+    expect(request).toHaveBeenCalledWith(
+      expect.stringContaining('api-capital.backend-capital.com'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-CAP-API-KEY': 'live-api-key',
+        }),
+      })
+    );
+  });
+
+  it('should propagate upstream errors', async () => {
     (request as any).mockResolvedValue({
       statusCode: 401,
       headers: { 'content-type': 'application/json' },
       body: {
         pipe: vi.fn((dest) => {
-          dest.end(JSON.stringify({ error: 'unauthorized' }));
+          dest.end(JSON.stringify({ errorCode: 'error.invalid.details' }));
         })
       },
     });
 
     const { req, res } = createMocks({
       method: 'POST',
-      body: JSON.stringify({ identifier: 'user', password: 'pass' }),
-      headers: { 'content-type': 'application/json' }
+      body: JSON.stringify({ identifier: 'bad', password: 'bad' }),
     });
 
     await sessionHandler(req, res);
     expect(res.statusCode).toBe(401);
-  });
-
-  it('should use BACKEND_URL and log [StabilityTrace]', async () => {
-    const consoleSpy = vi.spyOn(console, 'log');
-    
-    (request as any).mockResolvedValue({
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: { pipe: vi.fn() },
-    });
-
-    const { req, res } = createMocks({
-      method: 'POST',
-      body: JSON.stringify({ identifier: 'user', password: 'pass' }),
-    });
-
-    await sessionHandler(req, res);
-
-    expect(request).toHaveBeenCalledWith(
-      expect.stringContaining('https://tunnel.test'),
-      expect.anything()
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[StabilityTrace]'));
-  });
-
-  it('should strip host, connection, and content-length headers before proxying', async () => {
-    (request as any).mockResolvedValue({
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: { pipe: vi.fn() },
-    });
-
-    const { req, res } = createMocks({
-      method: 'POST',
-      headers: {
-        'host': 'localhost',
-        'connection': 'keep-alive',
-        'content-length': '123',
-        'x-custom-header': 'keep-me'
-      }
-    });
-
-    await sessionHandler(req, res);
-
-    const callArgs = (request as any).mock.calls[0][1];
-    const headers = callArgs.headers;
-    
-    expect(headers['host']).toBeUndefined();
-    expect(headers['connection']).toBeUndefined();
-    expect(headers['content-length']).toBeUndefined();
-    expect(headers['x-custom-header']).toBe('keep-me');
   });
 
   it('should read POST body as Buffer', async () => {
@@ -185,13 +161,89 @@ describe('session handler', () => {
   });
 });
 
-describe('market handler', () => {
+describe('order handler (direct-to-Capital.com)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.BACKEND_URL = 'https://tunnel.test';
+    process.env.CAPITAL_API_KEY = 'test-api-key';
   });
 
-  it('should forward authentication tokens and environment headers', async () => {
+  it('should forward PUT request body for position updates', async () => {
+    const orderHandler = (await import('./order')).default;
+    const testBody = JSON.stringify({ stopLevel: 100.5 });
+    
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { pipe: vi.fn() },
+    });
+
+    const { req, res } = createMocks({
+      method: 'PUT',
+      url: '/api/order/v1/positions/DEAL123',
+      body: testBody,
+      headers: { 
+        'content-type': 'application/json',
+        'cst': 'test-cst',
+        'x-security-token': 'test-token',
+      }
+    });
+
+    await orderHandler(req, res);
+
+    expect(request).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/positions/DEAL123'),
+      expect.objectContaining({
+        method: 'PUT',
+        headers: expect.objectContaining({
+          'X-CAP-API-KEY': 'test-api-key',
+          'CST': 'test-cst',
+          'X-SECURITY-TOKEN': 'test-token',
+        }),
+        body: expect.any(Buffer)
+      })
+    );
+  });
+
+  it('should forward DELETE request for closing positions', async () => {
+    const orderHandler = (await import('./order')).default;
+    
+    (request as any).mockResolvedValue({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { pipe: vi.fn() },
+    });
+
+    const { req, res } = createMocks({
+      method: 'DELETE',
+      url: '/api/order/v1/positions/DEAL456',
+      headers: { 
+        'cst': 'test-cst',
+        'x-security-token': 'test-token',
+      }
+    });
+
+    await orderHandler(req, res);
+
+    expect(request).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/positions/DEAL456'),
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({
+          'X-CAP-API-KEY': 'test-api-key',
+        }),
+      })
+    );
+    expect(res.statusCode).toBe(200);
+  });
+});
+
+describe('market handler (direct-to-Capital.com)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.CAPITAL_API_KEY = 'test-api-key';
+  });
+
+  it('should forward authentication tokens to Capital.com', async () => {
     const marketHandler = (await import('./market')).default;
     
     (request as any).mockResolvedValue({
@@ -201,64 +253,24 @@ describe('market handler', () => {
     });
 
     const { req, res } = createMocks({
-      url: '/api/market?epic=ABC',
+      url: '/api/market/v1/prices/AAPL?max=100',
       headers: {
         'cst': 'test-cst',
         'x-security-token': 'test-token',
-        'x-env': 'LIVE',
-        'accept': 'application/json',
-        'host': 'localhost'
+        'x-environment': 'DEMO',
       }
     });
 
     await marketHandler(req, res);
 
     expect(request).toHaveBeenCalledWith(
-      expect.stringContaining('https://tunnel.test/market'),
+      expect.stringContaining('demo-api-capital.backend-capital.com/api/v1/prices/AAPL'),
       expect.objectContaining({
         headers: expect.objectContaining({
-          'cst': 'test-cst',
-          'x-security-token': 'test-token',
-          'x-env': 'LIVE',
-          'accept': 'application/json'
+          'CST': 'test-cst',
+          'X-SECURITY-TOKEN': 'test-token',
+          'X-CAP-API-KEY': 'test-api-key',
         })
-      })
-    );
-  });
-});
-
-describe('order handler', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    process.env.BACKEND_URL = 'https://tunnel.test';
-  });
-
-  it('should forward request body as Buffer and preserve content-type', async () => {
-    const orderHandler = (await import('./order')).default;
-    const testBody = JSON.stringify({ epic: 'ABC', size: 1 });
-    
-    (request as any).mockResolvedValue({
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: { pipe: vi.fn() },
-    });
-
-    const { req, res } = createMocks({
-      method: 'POST',
-      body: testBody,
-      headers: { 'content-type': 'application/json' }
-    });
-
-    await orderHandler(req, res);
-
-    expect(request).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'content-type': 'application/json'
-        }),
-        body: expect.any(Buffer)
       })
     );
   });

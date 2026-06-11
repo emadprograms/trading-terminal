@@ -23,6 +23,7 @@ export interface Order {
   dealId?: string; // Filled when status becomes ACCEPTED
   workingOrderId?: string; // Filled when status becomes ACCEPTED for LIMIT/STOP orders
   guaranteedStop?: boolean; // Required for UI-02
+  stopLevel?: number; // Stop loss price level
   stopDistance?: number; // Added for precision risk parameters
   bid?: number; // Bid price for slippage tracking
   ofr?: number; // Offer/Ask price for slippage tracking
@@ -41,7 +42,8 @@ export interface Position {
   timestamp: number;
   guaranteedStop?: boolean; // Tracked for risk visibility
   stopDistance?: number; // Tracked for risk visibility
-  stopLevel?: number; // Added for stop loss rendering
+  stopLevel?: number; // Stop loss price level
+  profitLevel?: number; // Take profit price level
   unrealizedPnL?: number;
   currentPrice?: number;
 }

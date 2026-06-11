@@ -4,8 +4,9 @@ import { useSessionStore } from '../store/useSessionStore'
 const DEFAULT_PREFIX = '/api'
 
 /**
- * API client configured to use the granular Vercel proxy.
- * Secrets are injected server-side to prevent leaking to the browser.
+ * API client configured to use the Vercel serverless proxy.
+ * Secrets (X-CAP-API-KEY) are injected server-side by the proxy.
+ * The client only sends session tokens (CST, X-SECURITY-TOKEN) and environment selection.
  */
 export const api = ky.create({
   prefix: DEFAULT_PREFIX,
@@ -15,23 +16,18 @@ export const api = ky.create({
         const request = requestWrapper.request || requestWrapper;
 
         if (!request.url || request.url === 'undefined' || request.url.includes('/undefined')) {
-          console.error('[StabilityTrace] FATAL: Blocked request to undefined path!');
+          console.error('[API] Blocked request to undefined path:', request.url);
           throw new Error(`Blocked malformed API request to: ${request.url}`);
         }
 
         const { cst, securityToken, environment } = useSessionStore.getState()
         const newHeaders = new Headers(request.headers)
         
-        // INSTRUMENTATION: Trace token presence
-        console.log(`[StabilityTrace] Request to ${request.url}`);
-        console.log(`[StabilityTrace] Tokens: CST=${cst ? 'PRESENT' : 'MISSING'}, X-SECURITY-TOKEN=${securityToken ? 'PRESENT' : 'MISSING'}, ENV=${environment}`);
-        
-        // Pass through essential trading tokens
+        // Pass through session tokens (obtained via /session login)
         if (cst) newHeaders.set('CST', cst)
         if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
         
         // Pass through environment selection (LIVE vs DEMO)
-        // Proxy expects 'X-Environment' as per Task 4 behavior
         if (environment) newHeaders.set('X-Environment', environment)
 
         const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
@@ -61,12 +57,11 @@ export const api = ky.create({
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
             
             if (cst && securityToken) {
-              console.log('[StabilityTrace] Tokens captured successfully.');
               useSessionStore.getState().setTokens(cst, securityToken)
             }
           }
         } catch (e) {
-          console.error('[StabilityTrace] Token capture failed:', e)
+          console.error('[API] Token capture failed:', e)
         }
       }
     ]

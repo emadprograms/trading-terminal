@@ -23,11 +23,12 @@ interface TradeState {
   clearBuffer: () => void;
   startWatchdog: (dealReference: string) => void;
 
-  placeOrder: (params: (MarketOrderParams | LimitOrderParams) & { bid?: number, ofr?: number }) => Promise<string>;
+  placeOrder: (params: (MarketOrderParams | LimitOrderParams) & { bid?: number, ofr?: number, level?: number }) => Promise<string>;
   flattenPosition: (dealId: string) => Promise<void>;
   flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
   updatePositionStopLoss: (dealId: string, stopLevel: number) => Promise<void>;
+  updatePositionTakeProfit: (dealId: string, profitLevel: number) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
 }
@@ -232,10 +233,18 @@ export const useTradeStore = create<TradeState>()(
           // Format stopLevel to prevent API errors. Use null to clear it.
           const formattedStopLevel = stopLevel === 0 ? null : parseFloat(stopLevel.toFixed(5));
           
-          await tradeApi.updatePosition(dealId, { 
-             stopLevel: formattedStopLevel as any,
-             guaranteedStop: false 
-          });
+          // Do NOT send guaranteedStop: false — Capital.com rejects it with 403
+          // on instruments that don't support guaranteed stops
+          const params: Record<string, any> = { 
+             stopLevel: formattedStopLevel,
+          };
+          // Also send the current profitLevel to avoid it being cleared
+          if (position.profitLevel) {
+            params.profitLevel = position.profitLevel;
+          }
+
+          console.log(`[TradeStore] Updating SL for ${dealId}:`, JSON.stringify(params));
+          await tradeApi.updatePosition(dealId, params);
           
           // Optimistically update the UI
           set(state => ({
@@ -246,10 +255,10 @@ export const useTradeStore = create<TradeState>()(
           }));
           
           toast.success('Stop Loss updated');
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to update position SL ${dealId}:`, error);
           set({ isExecuting: false });
-          toast.error(`Failed: ${error.message}`);
+          toast.error(`Failed: ${error.message || 'Unknown error'}`);
         }
       },
 
@@ -263,10 +272,17 @@ export const useTradeStore = create<TradeState>()(
           // Format profitLevel to prevent API errors. Use null to clear it.
           const formattedProfitLevel = profitLevel === 0 ? null : parseFloat(profitLevel.toFixed(5));
           
-          await tradeApi.updatePosition(dealId, { 
-             profitLevel: formattedProfitLevel as any,
-             guaranteedStop: false 
-          });
+          // Do NOT send guaranteedStop: false — Capital.com rejects it with 403
+          const params: Record<string, any> = { 
+             profitLevel: formattedProfitLevel,
+          };
+          // Also send the current stopLevel to avoid it being cleared
+          if (position.stopLevel) {
+            params.stopLevel = position.stopLevel;
+          }
+
+          console.log(`[TradeStore] Updating TP for ${dealId}:`, JSON.stringify(params));
+          await tradeApi.updatePosition(dealId, params);
           
           // Optimistically update the UI
           set(state => ({
@@ -277,10 +293,10 @@ export const useTradeStore = create<TradeState>()(
           }));
           
           toast.success('Take Profit updated');
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to update position TP ${dealId}:`, error);
           set({ isExecuting: false });
-          toast.error(`Failed: ${error.message}`);
+          toast.error(`Failed: ${error.message || 'Unknown error'}`);
         }
       },
 
@@ -366,6 +382,7 @@ export const useTradeStore = create<TradeState>()(
               direction: p.direction,
               entryPrice: p.level || p.entryPrice || 0,
               stopLevel: p.stopLevel,
+              profitLevel: p.profitLevel,
               timestamp: new Date(p.createdDate || p.timestamp || Date.now()).getTime(),
             };
           });

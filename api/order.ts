@@ -3,7 +3,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Granular proxy handler for Order Execution.
- * Handles /api/order -> /api/v1/...
+ * Handles /api/order/v1/positions/... and /api/order/v1/workingorders/...
+ * Routes directly to Capital.com API.
  */
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   console.log('[StabilityTrace] Order handler started');
@@ -11,12 +12,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const urlPath = req.url?.split('?')[0] || '';
     const subPath = urlPath.replace(/^\/api\/order/, '');
     
-    // Determine target path. 
-    // If we have a versioned subpath (e.g. /v1/...), we prepend /api so it becomes /api/v1/...
-    // Otherwise we just use /order and let the backend add /api/v1/...
-    const targetPath = subPath.startsWith('/v1') ? `/api${subPath}` : `/order${subPath}`;
+    // Construct the Capital.com API path
+    // Input: /v1/positions/{dealId} -> /api/v1/positions/{dealId}
+    const targetPath = subPath.startsWith('/v1') ? `/api${subPath}` : `/api/v1${subPath}`;
     
-    console.log(`[StabilityTrace] Order handler: subPath="${subPath}", targetPath="${targetPath}"`);
+    console.log(`[StabilityTrace] Order handler: method=${req.method}, subPath="${subPath}", targetPath="${targetPath}"`);
     
     await proxyRequest(req, res, targetPath);
     console.log('[StabilityTrace] Order handler completed');
@@ -24,7 +24,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     console.error('[StabilityTrace] Order handler CRASH:', err);
     if (!res.headersSent) {
       res.statusCode = 500;
-      res.end('Internal Server Error');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.end(JSON.stringify({ error: 'Internal Server Error', message: (err as Error).message }));
     }
   }
 }

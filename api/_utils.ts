@@ -5,12 +5,35 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Shared undici Agent configured to force HTTP/1.1.
- * This resolves ALPN negotiation failures encountered with Cloudflare Tunnels.
  */
 console.log('[StabilityTrace] Initializing sharedAgent');
 export const sharedAgent = new Agent({
   allowH2: false,
 });
+
+/**
+ * Capital.com API base URLs
+ */
+const CAPITAL_DEMO_URL = 'https://demo-api-capital.backend-capital.com';
+const CAPITAL_LIVE_URL = 'https://api-capital.backend-capital.com';
+
+/**
+ * Resolve the Capital.com target URL and API key based on the environment.
+ * The environment is determined by the X-Environment header from the frontend.
+ */
+function getCapitalTarget(req: IncomingMessage): { baseUrl: string; apiKey: string } {
+  const envHeader = (req.headers['x-environment'] as string) || 'DEMO';
+  const isLive = envHeader.toUpperCase() === 'LIVE';
+
+  const apiKey = isLive
+    ? (process.env.CAPITAL_API_KEY_LIVE || process.env.CAPITAL_API_KEY || '')
+    : (process.env.CAPITAL_API_KEY_DEMO || process.env.CAPITAL_API_KEY || '');
+
+  return {
+    baseUrl: isLive ? CAPITAL_LIVE_URL : CAPITAL_DEMO_URL,
+    apiKey,
+  };
+}
 
 /**
  * Helper to read the request body from an IncomingMessage
@@ -24,7 +47,9 @@ async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
 }
 
 /**
- * Common proxy logic for granular handlers using Node.js (req, res) signature.
+ * Common proxy logic for granular handlers.
+ * Routes requests DIRECTLY to Capital.com, injecting the API key server-side.
+ * No Cloudflare Tunnel or Hono server in the chain.
  */
 export async function proxyRequest(req: IncomingMessage, res: ServerResponse, path: string) {
   const method = req.method || 'GET';
@@ -42,49 +67,36 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
     return;
   }
 
-  const backendUrl = process.env.BACKEND_URL;
-  if (!backendUrl) {
-    console.error('[StabilityTrace] FATAL: BACKEND_URL is not defined in environment');
+  // Resolve Capital.com target directly (no intermediate proxy)
+  const { baseUrl, apiKey } = getCapitalTarget(req);
+
+  if (!apiKey) {
+    console.error('[StabilityTrace] FATAL: CAPITAL_API_KEY is not defined in environment');
     res.statusCode = 500;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ error: 'Configuration Error', message: 'Upstream target missing' }));
+    res.end(JSON.stringify({ error: 'Configuration Error', message: 'API key not configured' }));
     return;
   }
 
   try {
-    // Reconstruct URL to preserve search params. req.url in Node.js is usually just the path + query.
-    const host = (req.headers['host'] as string) || 'localhost';
-    const protocol = req.headers['x-forwarded-proto'] === 'http' ? 'http' : 'https';
-    const fullUrl = new URL(req.url || '', `${protocol}://${host}`);
-    
-    const targetUrl = `${backendUrl.replace(/\/$/, '')}${path}${fullUrl.search}`;
-
+    const targetUrl = `${baseUrl}${path}`;
     console.log(`[StabilityTrace] Proxying ${method} ${path} -> ${targetUrl}`);
     
-    const requestHeaders: Record<string, string> = {};
-    Object.entries(req.headers).forEach(([key, value]) => {
-      // T-01.2-01: Strip hop-by-hop headers
-      if (!['host', 'connection', 'content-length', 'transfer-encoding'].includes(key.toLowerCase()) && value !== undefined) {
-        requestHeaders[key] = Array.isArray(value) ? value.join(', ') : value;
-      }
-    });
-
-    // Inject Cloudflare Access Service Tokens (T-01.2-02)
-    if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
-      requestHeaders['CF-Access-Client-Id'] = process.env.CF_ACCESS_CLIENT_ID;
-      requestHeaders['CF-Access-Client-Secret'] = process.env.CF_ACCESS_CLIENT_SECRET;
-    }
-
-    // INSTRUMENTATION: Log header presence for backend auth
-    const authHeaders = {
-      'CST': requestHeaders['CST'] ? 'PRESENT' : 'MISSING',
-      'X-SECURITY-TOKEN': requestHeaders['X-SECURITY-TOKEN'] ? 'PRESENT' : 'MISSING',
-      'CF-Access-Client-Id': requestHeaders['CF-Access-Client-Id'] ? 'PRESENT' : 'MISSING',
-      'CF-Access-Client-Secret': requestHeaders['CF-Access-Client-Secret'] ? 'PRESENT' : 'MISSING',
+    // Build headers for Capital.com
+    const requestHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-CAP-API-KEY': apiKey,
     };
-    console.log(`[StabilityTrace] Upstream Auth Headers:`, authHeaders);
 
-    console.log(`[StabilityTrace] Token Check - ID present: ${!!process.env.CF_ACCESS_CLIENT_ID}, Secret present: ${!!process.env.CF_ACCESS_CLIENT_SECRET}`);
+    // Forward auth tokens from the browser
+    const cst = req.headers['cst'] as string;
+    const securityToken = req.headers['x-security-token'] as string;
+    
+    if (cst) requestHeaders['CST'] = cst;
+    if (securityToken) requestHeaders['X-SECURITY-TOKEN'] = securityToken;
+
+    // INSTRUMENTATION: Log header presence for debugging
+    console.log(`[StabilityTrace] Upstream Auth: CST=${cst ? 'PRESENT' : 'MISSING'}, X-SECURITY-TOKEN=${securityToken ? 'PRESENT' : 'MISSING'}, X-CAP-API-KEY=PRESENT`);
 
     // Determine body handling
     let requestBody: any = undefined;
@@ -92,9 +104,12 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
       console.log('[StabilityTrace] Reading request body');
       requestBody = await readBody(req);
       console.log(`[StabilityTrace] Body size: ${requestBody?.length || 0} bytes`);
+      if (requestBody) {
+        console.log(`[StabilityTrace] Body content: ${requestBody.toString().substring(0, 200)}`);
+      }
     }
 
-    console.log('[StabilityTrace] Sending upstream request via undici');
+    console.log('[StabilityTrace] Sending request to Capital.com via undici');
     const { statusCode, headers, body } = await request(targetUrl, {
       method: method as any,
       headers: requestHeaders,
@@ -102,7 +117,7 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
       dispatcher: sharedAgent,
     });
 
-    console.log(`[StabilityTrace] Upstream Response: ${statusCode}`);
+    console.log(`[StabilityTrace] Capital.com Response: ${statusCode}`);
 
     // Set response headers
     Object.entries(headers).forEach(([key, value]) => {
@@ -132,7 +147,6 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
       res.end(JSON.stringify({ 
         error: 'Proxy Error', 
         message: (error as Error).message,
-        stack: (error as Error).stack 
       }));
     }
   }
