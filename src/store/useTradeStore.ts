@@ -29,6 +29,7 @@ interface TradeState {
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
+}
 
 const BUFFER_TTL = 30000; // 30 seconds
 const WATCHDOG_DELAY = 2000; // 2 seconds
