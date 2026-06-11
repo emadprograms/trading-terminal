@@ -275,7 +275,6 @@ export function useChartLifecycle({
   useEffect(() => {
     const tz = getTzForTicker(ticker);
     const isET = tz === 'America/New_York';
-    console.log(`[StabilityTrace] Updating shading config: ticker=${ticker}, tz=${tz}, isET=${isET}, showEth=${showEth}`);
     updateShadingConfig(isET);
   }, [ticker, timeframe, showEth, updateShadingConfig]);
 
