@@ -17,6 +17,7 @@ interface UseTradeManagerParams {
 export function useTradeManager({
   ticker,
   chartData,
+  chartContainerRef,
   priceSeriesRef,
   tradePluginRef,
   pluginVersion,
