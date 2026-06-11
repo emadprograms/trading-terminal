@@ -6,7 +6,7 @@ Trading Terminal is a professional-grade live market terminal connected to Capit
 
 - **Live Market Data**: Integrated with Capital.com's REST and WebSocket APIs for historical candles and real-time tick data.
 - **Ephemeral Backend**: Uses a lightweight Hono proxy (deployed via GitHub Actions/Cloudflare Tunnel) to securely bridge the browser to Capital.com's trading APIs.
-- **High-Performance Rendering**: Powered by `lightweight-charts` for fluid, sub-second price updates.
+- **High-Performance Rendering**: Powered by `lightweight-charts` for fluid, sub-second price updates. Includes zero-flicker chart reuse and instant in-memory history caching for rapid symbol switching.
 - **Zero-Friction Execution**: Optimized for speed with keyboard-driven trade execution and automated risk management.
 
 ## 🚀 Getting Started
