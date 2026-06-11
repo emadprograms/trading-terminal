@@ -55,11 +55,11 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                     const color = direction === 'BUY' ? '#26a69a' : '#ef5350';
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 1;
 
                     let badgeStart = rightEdge;
                     let badgeEnd = rightEdge;
-                    const gapPadding = 6;
+                    const gapPadding = 0;
 
                     const ref = this._badgeRefs.get(id);
                     if (ref && ref.current) {

@@ -27,7 +27,7 @@ export function TradeBadge({ marker, badgeRef, onClose }: TradeBadgeProps) {
         right: '90px',
         zIndex: 20,
         background: 'rgba(30, 41, 59, 0.9)',
-        border: `2px solid ${marker.direction === 'BUY' ? '#26a69a' : '#ef5350'}`,
+        border: `1px solid ${marker.direction === 'BUY' ? '#26a69a' : '#ef5350'}`,
         color: '#fff', padding: '4px 8px', borderRadius: '4px',
         fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px',
         boxShadow: '0 2px 6px rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)',
