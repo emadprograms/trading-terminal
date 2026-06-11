@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { accountApi } from '../api/account';
 import { useSessionStore } from '../store/useSessionStore';
 
@@ -49,6 +49,7 @@ export const AccountHeader: React.FC = () => {
     },
     enabled: isAuthenticated,
     refetchInterval: 10000,
+    placeholderData: keepPreviousData,
   });
 
   const formatCurrency = (val: any) => {

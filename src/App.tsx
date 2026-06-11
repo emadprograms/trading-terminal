@@ -6,7 +6,6 @@ import { Toaster } from 'sonner';
 import { useDatabase } from './hooks/useDatabase';
 import { useSession } from './hooks/useSession';
 import { useWorkspace } from './hooks/useWorkspace';
-import { usePortfolio } from './hooks/usePortfolio';
 import { useDrawings } from './hooks/useDrawings';
 
 // Components
@@ -77,12 +76,6 @@ export default function App() {
   } = useWorkspace();
 
   const {
-    totalRealized,
-    totalUnrealized,
-    handlePnLUpdate
-  } = usePortfolio();
-
-  const {
     drawings,
     handleUpdateDrawings
   } = useDrawings();
@@ -137,7 +130,6 @@ export default function App() {
               onSelectChart={handleSelectChart}
               onToggleMaximize={toggleMaximize}
               onUpdateDrawings={handleUpdateDrawings}
-              onPnLUpdate={handlePnLUpdate}
               onTickerChange={handleTickerChange}
               onTimeframeChange={handleTimeframeChange}
               onGroupChange={handleGroupChange}

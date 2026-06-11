@@ -235,7 +235,7 @@ export const useTradeStore = create<TradeState>()(
               workingOrderId: data.dealId,
               epic: m.epic || data.epic,
               size: data.size,
-              level: data.level,
+              level: data.level || data.orderLevel,
               type: data.type || 'LIMIT',
               direction: data.direction,
               status: 'PENDING',

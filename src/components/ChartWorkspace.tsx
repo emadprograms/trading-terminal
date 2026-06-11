@@ -20,7 +20,6 @@ interface ChartWorkspaceProps {
   onSelectChart: (id: number) => void;
   onToggleMaximize: (id: number) => void;
   onUpdateDrawings: (ticker: string, type: 'rays' | 'rects', items: any[]) => void;
-  onPnLUpdate: (id: number, r: number, u: number) => void;
   onTickerChange: (chartId: number, newTicker: string) => void;
   onTimeframeChange: (chartId: number, tf: Timeframe) => void;
   onGroupChange: (chartId: number, newGroup: GroupColor) => void;
@@ -46,7 +45,6 @@ export const ChartWorkspace: React.FC<ChartWorkspaceProps> = ({
   onSelectChart,
   onToggleMaximize,
   onUpdateDrawings,
-  onPnLUpdate,
   onTickerChange,
   onTimeframeChange,
   onGroupChange,
@@ -114,7 +112,6 @@ export const ChartWorkspace: React.FC<ChartWorkspaceProps> = ({
           onToggleMaximize={() => onToggleMaximize(i)}
           allDrawings={drawings}
           onUpdateDrawings={onUpdateDrawings}
-          onPnLUpdate={onPnLUpdate}
           onTimeframeChange={onTimeframeChange}
           groupColor={chartGroups[i.toString()] || 'none'}
           groupTicker={groupTickers[chartGroups[i.toString()] || 'none']}
