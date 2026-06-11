@@ -11,6 +11,7 @@ import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { ChartUnitProps } from '../types';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { parseInput } from '../lib/parsing';
+import { useTradeStore } from '../store/useTradeStore';
 
 export default function ChartUnit({ 
   id, 
@@ -175,9 +176,8 @@ export default function ChartUnit({
             const marker = trade.markers.find(m => m.id === id);
             if (marker?.type === 'POSITION') {
               useTradeStore.getState().flattenPosition(id);
-            } else {
-              // For orders, we might want a cancelOrder action in the future
-              console.log('Cancel order:', id);
+            } else if (marker) {
+              useTradeStore.getState().cancelWorkingOrder(id);
             }
           }}
           isHydrated={chart.isHydrated}
