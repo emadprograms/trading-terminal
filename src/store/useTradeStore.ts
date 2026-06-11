@@ -225,15 +225,15 @@ export const useTradeStore = create<TradeState>()(
 
         set({ isExecuting: true });
         try {
-          // Format stopLevel to prevent API errors
-          const formattedStopLevel = parseFloat(stopLevel.toFixed(5));
+          // Format stopLevel to prevent API errors. Use null to clear it.
+          const formattedStopLevel = stopLevel === 0 ? null : parseFloat(stopLevel.toFixed(5));
           
-          await tradeApi.updatePosition(dealId, { stopLevel: formattedStopLevel });
+          await tradeApi.updatePosition(dealId, { stopLevel: formattedStopLevel as any });
           
           // Optimistically update the UI
           set(state => ({
             positions: state.positions.map(p => 
-              p.dealId === dealId ? { ...p, stopLevel: formattedStopLevel } : p
+              p.dealId === dealId ? { ...p, stopLevel: stopLevel === 0 ? undefined : formattedStopLevel as number } : p
             ),
             isExecuting: false
           }));
@@ -253,15 +253,15 @@ export const useTradeStore = create<TradeState>()(
 
         set({ isExecuting: true });
         try {
-          // Format profitLevel to prevent API errors
-          const formattedProfitLevel = parseFloat(profitLevel.toFixed(5));
+          // Format profitLevel to prevent API errors. Use null to clear it.
+          const formattedProfitLevel = profitLevel === 0 ? null : parseFloat(profitLevel.toFixed(5));
           
-          await tradeApi.updatePosition(dealId, { profitLevel: formattedProfitLevel });
+          await tradeApi.updatePosition(dealId, { profitLevel: formattedProfitLevel as any });
           
           // Optimistically update the UI
           set(state => ({
             positions: state.positions.map(p => 
-              p.dealId === dealId ? { ...p, profitLevel: formattedProfitLevel } : p
+              p.dealId === dealId ? { ...p, profitLevel: profitLevel === 0 ? undefined : formattedProfitLevel as number } : p
             ),
             isExecuting: false
           }));

@@ -98,8 +98,13 @@ export const tradeApi = {
    */
   async cancelWorkingOrder(id: string): Promise<string> {
     try {
-      const response: any = await api.delete(`order/v1/workingorders/${id}`).json();
-      return response.dealReference;
+      const response = await api.delete(`order/v1/workingorders/${id}`);
+      let data: any = {};
+      const text = await response.text();
+      if (text) {
+          try { data = JSON.parse(text); } catch(e) {}
+      }
+      return data.dealReference || id;
     } catch (error: any) {
       throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
     }

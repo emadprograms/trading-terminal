@@ -12,7 +12,7 @@ export function TradeControls({ ticker }: TradeControlsProps) {
   const [tradeSize, setTradeSize] = useState(1);
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [level, setLevel] = useState<number>(0);
-  const [stopDistance, setStopDistance] = useState<number>(0);
+  const [stopDistance, setStopDistance] = useState<number>(1);
   const [guaranteedStop, setGuaranteedStop] = useState(false);
 
   const priceData = usePriceStore((state) => state.prices[ticker]);
