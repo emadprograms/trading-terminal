@@ -232,7 +232,10 @@ export const useTradeStore = create<TradeState>()(
           // Format stopLevel to prevent API errors. Use null to clear it.
           const formattedStopLevel = stopLevel === 0 ? null : parseFloat(stopLevel.toFixed(5));
           
-          await tradeApi.updatePosition(dealId, { stopLevel: formattedStopLevel as any });
+          await tradeApi.updatePosition(dealId, { 
+             stopLevel: formattedStopLevel as any,
+             guaranteedStop: false 
+          });
           
           // Optimistically update the UI
           set(state => ({
@@ -260,7 +263,10 @@ export const useTradeStore = create<TradeState>()(
           // Format profitLevel to prevent API errors. Use null to clear it.
           const formattedProfitLevel = profitLevel === 0 ? null : parseFloat(profitLevel.toFixed(5));
           
-          await tradeApi.updatePosition(dealId, { profitLevel: formattedProfitLevel as any });
+          await tradeApi.updatePosition(dealId, { 
+             profitLevel: formattedProfitLevel as any,
+             guaranteedStop: false 
+          });
           
           // Optimistically update the UI
           set(state => ({
