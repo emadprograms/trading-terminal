@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Maximize2, Minimize2, Search, ChevronDown, Clock, Minus, Square, Trash2, Settings } from 'lucide-react';
 import { BORDER_COLORS, DrawType, GroupColor, Timeframe } from '../types';
 import { usePriceStore } from '../store/usePriceStore';
+import { useTradeStore } from '../store/useTradeStore';
 
 interface ChartHeaderProps {
   ticker: string;
@@ -38,6 +39,19 @@ export function ChartHeader({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tickerSearch, setTickerSearch] = useState('');
   const price = usePriceStore((state) => state.prices[ticker]);
+  const positions = useTradeStore((state) => state.positions);
+
+  const tickerPositions = positions.filter(p => p.epic === ticker);
+  const unrealizedPnL = React.useMemo(() => {
+    if (!price) return 0;
+    return tickerPositions.reduce((total, pos) => {
+      const currentPrice = pos.direction === 'BUY' ? price.bid : price.ask;
+      const pnlPerUnit = pos.direction === 'BUY' 
+        ? currentPrice - pos.entryPrice 
+        : pos.entryPrice - currentPrice;
+      return total + (pnlPerUnit * pos.size);
+    }, 0);
+  }, [tickerPositions, price]);
 
   const tickerRef = useRef<HTMLDivElement>(null);
   const tfRef = useRef<HTMLDivElement>(null);
@@ -116,7 +130,7 @@ export function ChartHeader({
         </div>
 
         {/* LIVE PRICE DISPLAY */}
-        <div className="live-price-display">
+        <div className="live-price-display" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {!price ? (
             <span className="text-secondary" style={{fontSize: '12px', opacity: 0.5}}>Connecting...</span>
           ) : (
@@ -129,6 +143,15 @@ export function ChartHeader({
                 <span className="price-label">ASK</span>
                 <span className="price-value ask">{price.ask.toFixed(2)}</span>
               </div>
+            </div>
+          )}
+
+          {tickerPositions.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px', fontWeight: 600, borderLeft: '1px solid #334155', paddingLeft: '12px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '9px', textTransform: 'uppercase' }}>Unrealized PnL</span>
+              <span style={{ color: unrealizedPnL >= 0 ? '#26a69a' : '#ef5350' }}>
+                {unrealizedPnL > 0 ? '+' : ''}{unrealizedPnL.toFixed(2)}
+              </span>
             </div>
           )}
         </div>
