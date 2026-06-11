@@ -109,11 +109,17 @@ export const useTradeStore = create<TradeState>()(
             status: 'PENDING',
             timestamp: Date.now(),
             guaranteedStop: finalParams.guaranteedStop,
-            stopLevel: params.stopLevel,
+            stopLevel: finalParams.stopLevel,
             stopDistance: params.stopDistance,
             bid,
             ofr
           });
+
+          // Sync positions after a short delay to get the real data from Capital.com
+          // (including the stopLevel that the confirmation response doesn't include)
+          setTimeout(() => {
+            get().syncPositions();
+          }, 3000);
 
           return dealReference;
         } catch (error) {
