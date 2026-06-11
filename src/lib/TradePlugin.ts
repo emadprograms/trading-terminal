@@ -92,13 +92,31 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                     // Only draw connecting line if this specific badge is hovered
                     if (this._hoveredId === id && item.parentY !== undefined && item.parentY !== null) {
+                        const lineX = badgeStart - 12;
                         ctx.save();
+                        ctx.strokeStyle = color; // use the badge's color (yellow for SL)
+                        ctx.fillStyle = '#1e293b'; // center of bubble matches chart bg
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([]); // solid line
+                        
+                        // Vertical line
                         ctx.beginPath();
-                        ctx.setLineDash([2, 4]);
-                        ctx.strokeStyle = '#facc15'; // yellow connector
-                        ctx.moveTo(badgeStart - 10, item.parentY);
-                        ctx.lineTo(badgeStart - 10, y);
+                        ctx.moveTo(lineX, item.parentY);
+                        ctx.lineTo(lineX, y);
                         ctx.stroke();
+
+                        // Bubble at parent price
+                        ctx.beginPath();
+                        ctx.arc(lineX, item.parentY, 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        // Bubble at SL/TP price
+                        ctx.beginPath();
+                        ctx.arc(lineX, y, 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.stroke();
+
                         ctx.restore();
                     }
                 });

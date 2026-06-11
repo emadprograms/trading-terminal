@@ -116,7 +116,7 @@ export function TradeBadge({
       <div style={{ 
         background: sizeBg,
         color: sizeText, 
-        padding: '0 8px',
+        padding: '0 6px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -128,7 +128,7 @@ export function TradeBadge({
       
       {/* Value segment */}
       <div style={{
-         padding: '0 12px',
+         padding: '0 8px',
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'center',
@@ -158,11 +158,10 @@ export function TradeBadge({
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              padding: '0 10px',
-              fontSize: '18px',
+              padding: '0 6px',
+              fontSize: '15px',
               lineHeight: 1,
-              fontWeight: 'bold',
-              paddingBottom: '2px' // optical alignment for the x character
+              fontWeight: 'normal'
             }}
           >
             ×
