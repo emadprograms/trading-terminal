@@ -110,22 +110,26 @@ export const useTradeStore = create<TradeState>()(
         });
 
         try {
-          const dealReference = await tradeApi.flattenPosition(dealId);
-          get().addPendingOrder(dealReference, {
-            dealReference,
-            epic: '',
-            size: 0,
-            type: 'MARKET',
-            direction: 'SELL',
-            status: 'PENDING',
-            timestamp: Date.now(),
+          await tradeApi.flattenPosition(dealId);
+          // If successful, immediately remove it locally.
+          set((state) => {
+             const newSet = new Set(state.closingDealIds);
+             newSet.delete(dealId);
+             return { 
+                 positions: state.positions.filter(p => p.dealId !== dealId),
+                 closingDealIds: newSet,
+                 isExecuting: false
+             };
           });
-        } finally {
+          toast.success('Position closed');
+        } catch (error) {
+          console.error(`Failed to close position ${dealId}:`, error);
           set((state) => {
             const newSet = new Set(state.closingDealIds);
             newSet.delete(dealId);
-            return { closingDealIds: newSet };
+            return { closingDealIds: newSet, isExecuting: false };
           });
+          toast.error('Failed to close position');
         }
       },
 
@@ -144,10 +148,16 @@ export const useTradeStore = create<TradeState>()(
 
             try {
               await tradeApi.flattenPosition(pos.dealId);
-              // We don't wait for confirmation in the loop, just fire the DELETE
+              set((state) => {
+                const newSet = new Set(state.closingDealIds);
+                newSet.delete(pos.dealId);
+                return { 
+                    positions: state.positions.filter(p => p.dealId !== pos.dealId),
+                    closingDealIds: newSet 
+                };
+              });
             } catch (e) {
-              console.error(`Failed to flatten ${pos.dealId}:`, e);
-            } finally {
+              console.error(`Failed to close position ${pos.dealId}:`, e);
               set((state) => {
                 const newSet = new Set(state.closingDealIds);
                 newSet.delete(pos.dealId);
