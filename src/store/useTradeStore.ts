@@ -306,7 +306,14 @@ export const useTradeStore = create<TradeState>()(
           };
         }),
 
-      handleConfirmation: (payload) => {
+      handleConfirmation: (rawPayload: any) => {
+        // Normalize Capital.com payload which might use dealStatus and level
+        const payload: TradeConfirmation = {
+          ...rawPayload,
+          status: rawPayload.dealStatus || rawPayload.status,
+          entryPrice: rawPayload.level || rawPayload.entryPrice || rawPayload.price,
+        };
+
         const { dealReference, status, dealId, workingOrderId, reason, entryPrice, epic, size, timestamp } = payload;
         
         const { watchdogTimers } = get();
