@@ -23,7 +23,6 @@ export function useChartInit({
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
-    const tz = getTzForTicker(ticker);
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -39,22 +38,19 @@ export function useChartInit({
       localization: {
         timeFormatter: (time: Time) => {
           const date = new Date((time as number) * 1000);
-          if (timeframe === '1D') {
-            return date.toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
-          }
-          return date.toLocaleString('en-US', { timeZone: tz, hour12: false, month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          return date.toLocaleString('en-US', { hour12: false, month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
       },
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.1)',
-        timeVisible: timeframe !== '1D',
+        timeVisible: true,
         secondsVisible: false,
         shiftVisibleRangeOnNewBar: false,
         rightOffset: 15,
         tickMarkFormatter: (time: Time, tickMarkType: TickMarkType) => {
           const date = new Date((time as number) * 1000);
-          if (tickMarkType <= 2) return date.toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
-          return date.toLocaleString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+          if (tickMarkType <= 2) return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+          return date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
       },
       handleScroll: true,
@@ -126,7 +122,7 @@ export function useChartInit({
       priceSeriesRef.current = null;
       volumeSeriesRef.current = null;
     };
-  }, [chartContainerRef, ticker, timeframe, onAtEndChange]);
+  }, [chartContainerRef]); // REMOVED ticker and timeframe so canvas is reused!
 
   return { chartRef, priceSeriesRef, volumeSeriesRef, lastBarSpacingRef };
 }

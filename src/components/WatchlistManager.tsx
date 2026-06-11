@@ -2,9 +2,12 @@ import { useEffect, useRef } from 'react';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { wsManager } from '../lib/ws-manager';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { syncCoordinator } from '../lib/sync-coordinator';
+import { useSessionStore } from '../store/useSessionStore';
 
 export function WatchlistManager() {
   const symbols = useWatchlistStore((state) => state.symbols);
+  const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
   const prevSymbolsRef = useRef<string[]>([]);
 
   // 1. WebSocket Subscriptions for Watchlist
@@ -24,6 +27,17 @@ export function WatchlistManager() {
       // If we unsubscribed on unmount, hot-reloads might drop subscriptions.
     };
   }, [symbols]);
+
+  // 1b. Background Prefetching of historical data for instant loads
+  useEffect(() => {
+    if (isAuthenticated && symbols.length > 0) {
+      // Use a timeout to ensure this doesn't block initial rendering
+      const timer = setTimeout(() => {
+        syncCoordinator.prefetchWatchlist('1H', 1000);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, symbols]);
 
   // 2. Spacebar Keyboard Shortcut to cycle symbols
   useEffect(() => {

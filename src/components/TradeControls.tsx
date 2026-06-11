@@ -18,9 +18,22 @@ export function TradeControls({ ticker }: TradeControlsProps) {
   const priceData = usePriceStore((state) => state.prices[ticker]);
   const placeOrder = useTradeStore((state) => state.placeOrder);
   const isExecuting = useTradeStore((state) => state.isExecuting);
+  const positions = useTradeStore((state) => state.positions);
 
   const bid = priceData?.bid;
   const ask = priceData?.ask;
+
+  const tickerPositions = positions.filter(p => p.epic === ticker);
+  const unrealizedPnL = React.useMemo(() => {
+    if (!priceData) return 0;
+    return tickerPositions.reduce((total, pos) => {
+      const currentPrice = pos.direction === 'BUY' ? priceData.bid : priceData.ask;
+      const pnlPerUnit = pos.direction === 'BUY' 
+        ? currentPrice - pos.entryPrice 
+        : pos.entryPrice - currentPrice;
+      return total + (pnlPerUnit * pos.size);
+    }, 0);
+  }, [tickerPositions, priceData]);
 
   // Sync level with price when switching to LIMIT if level is 0
   const handleTypeChange = (type: OrderType) => {
@@ -172,6 +185,26 @@ export function TradeControls({ ticker }: TradeControlsProps) {
           </div>
         )}
       </div>
+
+      {tickerPositions.length > 0 && (
+        <div style={{ 
+          width: '100%', 
+          marginTop: '4px',
+          paddingTop: '4px',
+          borderTop: '1px solid #334155',
+          display: 'flex', 
+          justifyContent: 'space-between',
+          fontSize: '11px'
+        }}>
+          <span style={{ color: '#94a3b8' }}>Unrealized PnL</span>
+          <span style={{ 
+            color: unrealizedPnL >= 0 ? '#26a69a' : '#ef5350',
+            fontWeight: 'bold' 
+          }}>
+            {unrealizedPnL > 0 ? '+' : ''}{unrealizedPnL.toFixed(2)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

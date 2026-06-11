@@ -36,9 +36,8 @@ export function useChartPlugins({
     const series = priceSeriesRef.current;
     if (!series) return;
 
-    const isET = (new Date().getTimezoneOffset() === -240); // Simplified ET check for init, will be updated by ticker logic in lifecycle
-
-    shadingPluginRef.current = new SessionShadingPlugin(timeframe, isET && showEth);
+    // Initialization ignores ticker/timeframe since they are updated dynamically via lifecycle methods
+    shadingPluginRef.current = new SessionShadingPlugin('1H', false);
     series.attachPrimitive(shadingPluginRef.current);
 
     vpPluginRef.current = new VolumeProfilePlugin();
@@ -67,7 +66,7 @@ export function useChartPlugins({
             try { series.detachPrimitive(tradePluginRef.current!); } catch(e) {}
         }
     };
-  }, [priceSeriesRef, ticker, timeframe]);
+  }, [priceSeriesRef]); // REMOVED ticker and timeframe so plugins are reused
 
   // Update Ray/Rect Plugins when synced drawings change
   useEffect(() => {

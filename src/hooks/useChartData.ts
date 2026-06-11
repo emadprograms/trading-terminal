@@ -100,8 +100,22 @@ export function useChartData({
       
       const targetCandles = 1000;
       
-      console.log(`[useChartData] Syncing ${ticker} at ${timeframe}`);
-      const data = await syncCoordinator.syncTicker(ticker, timeframe, selectedDate, targetCandles);
+      const data = await syncCoordinator.syncTicker(
+        ticker, 
+        timeframe, 
+        selectedDate, 
+        targetCandles,
+        (cachedData) => {
+          if (cancelled) return;
+          console.log(`[useChartData] Instant cache hit for ${ticker}`);
+          if (cachedData && cachedData.length > 0) {
+            earliestLoadedDateRef.current = cachedData[0].time;
+          }
+          dataTimeframeRef.current = timeframe;
+          setLocalMasterData(cachedData as RawBar[]);
+          setIsLoadingHistory(false);
+        }
+      );
       
       if (cancelled) return;
       

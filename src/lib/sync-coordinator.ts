@@ -1,10 +1,13 @@
 import { wsManager } from './ws-manager';
 import { fetchMarketData, fetchHistoricalChunk } from './db';
 import { usePriceStore } from '../store/usePriceStore';
+import { useWatchlistStore } from '../store/useWatchlistStore';
 import type { RawBar, Timeframe } from '../types';
 
 export class SyncCoordinator {
   private static instance: SyncCoordinator;
+  private cache: Map<string, RawBar[]> = new Map();
+  private isPrefetching = false;
 
   private constructor() {}
 
@@ -13,6 +16,37 @@ export class SyncCoordinator {
       SyncCoordinator.instance = new SyncCoordinator();
     }
     return SyncCoordinator.instance;
+  }
+
+  public getCacheKey(ticker: string, timeframe: Timeframe): string {
+    return `${ticker}_${timeframe}`;
+  }
+
+  public async prefetchWatchlist(timeframe: Timeframe = '1H', targetCandles: number = 1000) {
+    if (this.isPrefetching) return;
+    this.isPrefetching = true;
+    
+    console.log(`[SyncCoordinator] Starting background prefetch for Watchlist...`);
+    const symbols = useWatchlistStore.getState().symbols;
+    
+    for (const ticker of symbols) {
+      const key = this.getCacheKey(ticker, timeframe);
+      if (this.cache.has(key)) continue;
+
+      try {
+        const toIso = new Date().toISOString();
+        const history = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
+        if (history && history.length > 0) {
+          this.cache.set(key, history);
+        }
+        // Small delay to avoid API rate limits
+        await new Promise(r => setTimeout(r, 200));
+      } catch (err) {
+        console.warn(`[SyncCoordinator] Failed to prefetch ${ticker}`, err);
+      }
+    }
+    this.isPrefetching = false;
+    console.log(`[SyncCoordinator] Watchlist prefetch complete.`);
   }
 
   /**
@@ -26,20 +60,35 @@ export class SyncCoordinator {
     ticker: string, 
     timeframe: Timeframe, 
     toIso: string, 
-    targetCandles: number
+    targetCandles: number,
+    onCacheHit?: (data: RawBar[]) => void
   ): Promise<RawBar[]> {
     console.log(`[SyncCoordinator] Starting sync for ${ticker} (${timeframe})`);
 
-    // 1. Subscribe with buffering enabled
+    // 1. Check Cache
+    const cacheKey = this.getCacheKey(ticker, timeframe);
+    let history = this.cache.get(cacheKey) || [];
+
+    if (history.length > 0) {
+      console.log(`[SyncCoordinator] Cache hit for ${ticker}. Returning immediately.`);
+      if (onCacheHit) onCacheHit(history);
+    }
+
+    // 2. Subscribe with buffering enabled
     wsManager.subscribe(ticker, true);
 
-    // 2. Fetch initial history
-    let history = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
-    
-    if (!history || history.length === 0) {
-      wsManager.setBuffering(ticker, false);
-      return [];
+    // 3. Fetch initial history if cache was empty
+    if (history.length === 0) {
+      history = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
+      if (!history || history.length === 0) {
+        wsManager.setBuffering(ticker, false);
+        return [];
+      }
+      this.cache.set(cacheKey, history);
+      if (onCacheHit) onCacheHit(history);
     }
+
+    // No need to redeclare history here
 
     const lastRestCandle = history[history.length - 1];
     const lastRestTimeMs = new Date(lastRestCandle.time.replace(' ', 'T') + 'Z').getTime();
@@ -81,6 +130,10 @@ export class SyncCoordinator {
             history.push(bar);
           }
         }
+        
+        // Update cache with bridged data
+        this.cache.set(cacheKey, history);
+        
         console.log(`[SyncCoordinator] Bridge complete for ${ticker}. Added ${bridgeData.length} bars.`);
       }
     }

@@ -24,7 +24,6 @@ export function useTradeManager({
 }: UseTradeManagerParams) {
   const positions = useTradeStore((state) => state.positions);
   const pendingOrders = useTradeStore((state) => state.pendingOrders);
-  const currentPrices = usePriceStore((state) => state.prices[ticker]);
 
   // Filter positions and orders for this ticker
   const tickerPositions = useMemo(() => 
@@ -87,9 +86,9 @@ export function useTradeManager({
     const orderMarkers: ChartMarker[] = tickerOrders.map(o => {
       let price = o.level || 0;
       
-      // For Market orders, use current price while pending
-      if (o.type === 'MARKET' && !o.level && currentPrices) {
-        price = o.direction === 'BUY' ? currentPrices.ask : currentPrices.bid;
+      // For Market orders, default to 0 and let plugin handle or wait for execution
+      if (o.type === 'MARKET' && !o.level) {
+        price = 0;
       }
 
       return {
@@ -104,7 +103,7 @@ export function useTradeManager({
     });
 
     return [...posMarkers, ...orderMarkers];
-  }, [tickerPositions, tickerOrders, currentPrices]);
+  }, [tickerPositions, tickerOrders]);
 
   const markers = useMemo(() => {
     if (!dragPreview) return baseMarkers;
@@ -173,22 +172,9 @@ export function useTradeManager({
     setDragPreview(null);
   }, [dragPreview]);
 
-  // Calculate Unrealized PnL for this ticker's positions
-  const unrealizedPnL = useMemo(() => {
-    if (!currentPrices) return 0;
-    
-    return tickerPositions.reduce((total, pos) => {
-      const currentPrice = pos.direction === 'BUY' ? currentPrices.bid : currentPrices.ask;
-      const pnlPerUnit = pos.direction === 'BUY' 
-        ? currentPrice - pos.entryPrice 
-        : pos.entryPrice - currentPrice;
-      return total + (pnlPerUnit * pos.size);
-    }, 0);
-  }, [tickerPositions, currentPrices]);
-
-  // Realized PnL is currently not tracked per-ticker in the store, 
-  // but we can expose a placeholder or track it globally.
+  // PnL calculation has been decoupled and moved to TradeControls.tsx to prevent re-renders
   const realizedPnL = 0; 
+  const unrealizedPnL = 0;
 
   const onHoverMarker = useCallback((id: string | null) => {
     if (tradePluginRef.current) {
