@@ -39,6 +39,16 @@ function getCapitalTarget(req: IncomingMessage): { baseUrl: string; apiKey: stri
  * Helper to read the request body from an IncomingMessage
  */
 async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
+  // Handle pre-parsed body (e.g. if Vercel body parser wasn't successfully disabled)
+  const vReq = req as any;
+  if (vReq.body !== undefined) {
+    if (Buffer.isBuffer(vReq.body)) return vReq.body;
+    if (typeof vReq.body === 'string') return Buffer.from(vReq.body);
+    if (typeof vReq.body === 'object') return Buffer.from(JSON.stringify(vReq.body));
+    return Buffer.from(String(vReq.body));
+  }
+
+  // Handle stream (default when bodyParser is disabled)
   const chunks = [];
   for await (const chunk of req) {
     chunks.push(chunk);

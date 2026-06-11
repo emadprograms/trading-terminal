@@ -1,6 +1,12 @@
 import { proxyRequest } from './_utils.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 /**
  * Granular proxy handler for Market Data.
  * Handles /api/market/v1/... -> Capital.com /api/v1/...

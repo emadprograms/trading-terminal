@@ -1,6 +1,12 @@
 import { proxyRequest } from './_utils.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 /**
  * Granular proxy handler for Account management.
  * Handles /api/accounts/v1/accounts -> Capital.com /api/v1/accounts

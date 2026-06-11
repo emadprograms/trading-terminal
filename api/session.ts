@@ -1,6 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { Agent, request } from 'undici';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 /**
  * Capital.com API base URLs
  */

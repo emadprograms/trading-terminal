@@ -1,6 +1,12 @@
 import { proxyRequest } from './_utils.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 /**
  * Granular proxy handler for Order Execution.
  * Handles /api/order/v1/positions/... and /api/order/v1/workingorders/...
