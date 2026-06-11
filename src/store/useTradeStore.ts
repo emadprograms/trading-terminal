@@ -207,20 +207,23 @@ export const useTradeStore = create<TradeState>()(
           const rawPositions = await tradeApi.fetchPositions();
           const rawOrders = await tradeApi.fetchWorkingOrders();
           
-          const mappedPositions: Position[] = rawPositions.map(p => ({
-            dealId: p.position.dealId,
-            epic: p.position.epic,
-            size: p.position.size,
-            direction: p.position.direction,
-            entryPrice: p.position.level,
-            timestamp: new Date(p.position.createdDate).getTime(),
-          }));
+          const mappedPositions: Position[] = rawPositions.map(raw => {
+            const p = raw.position || raw;
+            return {
+              dealId: p.dealId,
+              epic: p.epic,
+              size: p.size,
+              direction: p.direction,
+              entryPrice: p.level || p.entryPrice || 0,
+              timestamp: new Date(p.createdDate || p.timestamp || Date.now()).getTime(),
+            };
+          });
 
           const pendingOrders: Record<string, Order> = {};
-          rawOrders.forEach(o => {
-            const data = o.workingOrderData;
-            pendingOrders[data.dealId] = {
-              dealReference: data.dealId,
+          rawOrders.forEach(raw => {
+            const data = raw.workingOrderData || raw;
+            pendingOrders[data.dealId || data.dealReference] = {
+              dealReference: data.dealId || data.dealReference,
               dealId: data.dealId,
               workingOrderId: data.dealId,
               epic: data.epic,
@@ -229,7 +232,7 @@ export const useTradeStore = create<TradeState>()(
               type: data.type || 'LIMIT',
               direction: data.direction,
               status: 'PENDING',
-              timestamp: new Date(data.createdDate).getTime(),
+              timestamp: new Date(data.createdDate || data.timestamp || Date.now()).getTime(),
             };
           });
           
