@@ -164,6 +164,19 @@ export const useTradeStore = create<TradeState>()(
       },
 
       cancelWorkingOrder: async (workingOrderId) => {
+        const { pendingOrders } = get();
+        // If it's a stuck market order, we can't cancel it via API. Just remove it locally.
+        const order = pendingOrders[workingOrderId] || Object.values(pendingOrders).find(o => o.dealReference === workingOrderId);
+        
+        if (order && order.type === 'MARKET') {
+            set(state => {
+                const newOrders = { ...state.pendingOrders };
+                delete newOrders[order.dealReference];
+                return { pendingOrders: newOrders, isExecuting: false };
+            });
+            return;
+        }
+
         set({ isExecuting: true });
         try {
           const dealReference = await tradeApi.cancelWorkingOrder(workingOrderId);
@@ -176,8 +189,10 @@ export const useTradeStore = create<TradeState>()(
             status: 'PENDING',
             timestamp: Date.now(),
           });
-        } finally {
-          // Resetting isExecuting happens in handleConfirmation
+        } catch (error) {
+          console.error(`Failed to cancel working order ${workingOrderId}:`, error);
+          set({ isExecuting: false });
+          toast.error(`Failed to cancel order`);
         }
       },
 
