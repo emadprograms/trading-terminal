@@ -103,6 +103,7 @@ export function useChartLifecycle({
     pluginVersion,
   } = useChartPlugins({
     priceSeriesRef: initPriceSeriesRef,
+    ticker,
     timeframe,
     showEth,
     showVP,
