@@ -47,7 +47,7 @@ export function TradeBadge({
 
   let borderColor = tvBlue;
   let sizeBg = tvBlue;
-  let sizeText = '#fff';
+  let sizeText = '#ffffff';
   let textColor = '#333';
   let closeColor = tvBlue;
 
@@ -58,19 +58,19 @@ export function TradeBadge({
      textColor = pnl >= 0 ? tvGreen : tvRed;
   } else if (isSL) {
      borderColor = tvOrange;
-     sizeBg = '#fff';
+     sizeBg = '#f8f9fa';
      sizeText = tvOrange;
      closeColor = tvOrange;
      textColor = tvOrange;
   } else if (isTP) {
      borderColor = tvGreen;
-     sizeBg = '#fff';
+     sizeBg = '#f8f9fa';
      sizeText = tvGreen;
      closeColor = tvGreen;
      textColor = tvGreen;
   } else {
      borderColor = tvOrange;
-     sizeBg = '#fff';
+     sizeBg = '#f8f9fa';
      sizeText = tvOrange;
      closeColor = tvOrange;
      textColor = tvOrange;
@@ -101,7 +101,7 @@ export function TradeBadge({
         right: '90px',
         zIndex: 20,
         cursor: cursor || 'default',
-        background: '#ffffff',
+        background: '#f8f9fa',
         border: `1px solid ${borderColor}`,
         borderRadius: '4px',
         display: 'flex', 
@@ -136,7 +136,7 @@ export function TradeBadge({
          fontWeight: '600',
          color: textColor,
          whiteSpace: 'nowrap',
-         borderLeft: sizeBg === '#fff' ? `1px solid #e0e3eb` : 'none'
+         borderLeft: sizeBg === '#f8f9fa' ? `1px solid #e0e3eb` : 'none'
       }}>
         {valueText}
       </div>
@@ -146,7 +146,7 @@ export function TradeBadge({
         <div style={{
           display: 'flex',
           borderLeft: `1px solid #e0e3eb`,
-          background: '#fff'
+          background: '#f8f9fa'
         }}>
           <button 
             onClick={onClose}
