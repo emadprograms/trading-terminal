@@ -87,7 +87,7 @@ export function useSession(tickers: string[]) {
 
     const interval = setInterval(async () => {
       try {
-        await api.get('ping');
+        await api.get(`ping?_t=${Date.now()}`);
         console.log('[StabilityTrace] Session keep-alive ping successful.');
       } catch (error) {
         console.error('[StabilityTrace] Session keep-alive ping failed:', error);

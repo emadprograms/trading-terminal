@@ -205,7 +205,7 @@ export const tradeApi = {
    */
   async fetchPositions(): Promise<any[]> {
     try {
-      const response: any = await api.get('order/v1/positions').json();
+      const response: any = await api.get(`order/v1/positions?_t=${Date.now()}`).json();
       return response.positions || [];
     } catch (error: any) {
       console.error('[TradeAPI] Failed to fetch positions:', error);
@@ -219,7 +219,7 @@ export const tradeApi = {
    */
   async fetchWorkingOrders(): Promise<any[]> {
     try {
-      const response: any = await api.get('order/v1/workingorders').json();
+      const response: any = await api.get(`order/v1/workingorders?_t=${Date.now()}`).json();
       return response.workingOrders || [];
     } catch (error: any) {
       console.error('[TradeAPI] Failed to fetch working orders:', error);
