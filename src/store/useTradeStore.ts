@@ -165,9 +165,14 @@ export const useTradeStore = create<TradeState>()(
 
       cancelWorkingOrder: async (workingOrderId) => {
         const { pendingOrders } = get();
-        // If it's a stuck market order, we can't cancel it via API. Just remove it locally.
-        const order = pendingOrders[workingOrderId] || Object.values(pendingOrders).find(o => o.dealReference === workingOrderId);
+        // Find the actual order object
+        const order = pendingOrders[workingOrderId] || Object.values(pendingOrders).find(o => 
+          o.dealReference === workingOrderId || 
+          o.workingOrderId === workingOrderId || 
+          o.dealId === workingOrderId
+        );
         
+        // If it's a stuck market order, we can't cancel it via API. Just remove it locally.
         if (order && order.type === 'MARKET') {
             set(state => {
                 const newOrders = { ...state.pendingOrders };
@@ -179,15 +184,18 @@ export const useTradeStore = create<TradeState>()(
 
         set({ isExecuting: true });
         try {
-          const dealReference = await tradeApi.cancelWorkingOrder(workingOrderId);
-          get().addPendingOrder(dealReference, {
-            dealReference,
-            epic: '',
-            size: 0,
-            type: 'STOP',
-            direction: 'BUY', 
-            status: 'PENDING',
-            timestamp: Date.now(),
+          const apiOrderId = order?.workingOrderId || order?.dealId || workingOrderId;
+          await tradeApi.cancelWorkingOrder(apiOrderId);
+          
+          // Successfully cancelled! Remove it locally.
+          set(state => {
+            const newOrders = { ...state.pendingOrders };
+            if (order) {
+                delete newOrders[order.dealReference];
+            } else {
+                delete newOrders[workingOrderId];
+            }
+            return { pendingOrders: newOrders, isExecuting: false };
           });
         } catch (error) {
           console.error(`Failed to cancel working order ${workingOrderId}:`, error);
