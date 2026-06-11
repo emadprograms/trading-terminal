@@ -152,10 +152,11 @@ export function TradeBadge({
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              padding: '0 8px',
-              fontSize: '14px',
+              padding: '0 10px',
+              fontSize: '18px',
               lineHeight: 1,
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              paddingBottom: '2px' // optical alignment for the x character
             }}
           >
             ×
