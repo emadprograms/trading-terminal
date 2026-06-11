@@ -52,7 +52,7 @@ export function ChartCanvas({
           key={marker.id} 
           marker={marker} 
           onRegister={onRegisterBadge} 
-          onClose={onCloseTrade ? () => onCloseTrade(marker.id) : undefined} 
+          onClose={(onCloseTrade && !marker.id.endsWith('_SL')) ? () => onCloseTrade(marker.id) : undefined} 
         />
       ))}
     </div>

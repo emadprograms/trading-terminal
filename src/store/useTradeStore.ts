@@ -300,6 +300,7 @@ export const useTradeStore = create<TradeState>()(
               size: p.size,
               direction: p.direction,
               entryPrice: p.level || p.entryPrice || 0,
+              stopLevel: p.stopLevel,
               timestamp: new Date(p.createdDate || p.timestamp || Date.now()).getTime(),
             };
           });
@@ -454,6 +455,7 @@ export const useTradeStore = create<TradeState>()(
           ...rawPayload,
           status: rawPayload.dealStatus || rawPayload.status,
           entryPrice: rawPayload.level || rawPayload.entryPrice || rawPayload.price,
+          stopLevel: rawPayload.stopLevel,
           // Sometimes Capital.com hides the dealId in affectedDeals
           dealId: rawPayload.dealId || (rawPayload.affectedDeals && rawPayload.affectedDeals[0] && rawPayload.affectedDeals[0].dealId)
         };
@@ -543,6 +545,7 @@ export const useTradeStore = create<TradeState>()(
                 size,
                 direction: order.direction,
                 entryPrice,
+                stopLevel: payload.stopLevel || order.stopLevel,
                 timestamp,
               });
             }, 0);

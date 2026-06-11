@@ -38,14 +38,30 @@ export function useTradeManager({
 
   // Map to ChartMarkers
   const markers = useMemo((): ChartMarker[] => {
-    const posMarkers: ChartMarker[] = tickerPositions.map(p => ({
-      id: p.dealId,
-      epic: p.epic,
-      price: p.entryPrice,
-      direction: p.direction,
-      size: p.size,
-      type: 'POSITION'
-    }));
+    const posMarkers: ChartMarker[] = tickerPositions.flatMap(p => {
+      const markers: ChartMarker[] = [{
+        id: p.dealId,
+        epic: p.epic,
+        price: p.entryPrice,
+        direction: p.direction,
+        size: p.size,
+        type: 'POSITION'
+      }];
+
+      if (p.stopLevel) {
+        markers.push({
+          id: `${p.dealId}_SL`,
+          epic: p.epic,
+          price: p.stopLevel,
+          direction: p.direction === 'BUY' ? 'SELL' : 'BUY', // Stop loss is opposite direction
+          size: p.size,
+          type: 'ORDER',
+          label: 'SL'
+        });
+      }
+
+      return markers;
+    });
 
     const orderMarkers: ChartMarker[] = tickerOrders.map(o => {
       let price = o.level || 0;

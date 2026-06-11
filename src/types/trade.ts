@@ -41,6 +41,7 @@ export interface Position {
   timestamp: number;
   guaranteedStop?: boolean; // Tracked for risk visibility
   stopDistance?: number; // Tracked for risk visibility
+  stopLevel?: number; // Added for stop loss rendering
   unrealizedPnL?: number;
   currentPrice?: number;
 }
@@ -57,6 +58,7 @@ export interface TradeConfirmation {
   epic: string;
   size: number;
   entryPrice?: number;
+  stopLevel?: number; // Added for stop loss visibility
   timestamp: number;
   reason?: string;
 }
