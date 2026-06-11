@@ -21,8 +21,12 @@ export class SyncCoordinator {
     return `${ticker}_${timeframe}`;
   }
 
+  private prefetchQueue: { ticker: string; tf: Timeframe }[] = [];
+  private isPrefetching = false;
+  private pendingFetches: Map<string, Promise<RawBar[]>> = new Map();
+
   public async prefetchWatchlist(timeframes: Timeframe[], targetCandles: number = 1000) {
-    console.log(`[SyncCoordinator] Starting background prefetch for Watchlist (${timeframes.join(', ')})...`);
+    console.log(`[SyncCoordinator] Queuing background prefetch for Watchlist (${timeframes.join(', ')})...`);
     const symbols = useWatchlistStore.getState().symbols;
     
     for (const tf of timeframes) {
@@ -30,26 +34,63 @@ export class SyncCoordinator {
         const key = this.getCacheKey(ticker, tf);
         if (this.cache.has(key)) continue;
 
-        // Mark as "fetching" with an empty array to prevent concurrent loops from fetching the same thing
-        this.cache.set(key, []);
-
-        try {
-          const toIso = new Date().toISOString();
-          const history = await fetchMarketData(ticker, toIso, targetCandles, tf);
-          if (history && history.length > 0) {
-            this.cache.set(key, history);
-          } else {
-            this.cache.delete(key); // clear empty lock if failed
-          }
-          // Small delay to avoid API rate limits
-          await new Promise(r => setTimeout(r, 200));
-        } catch (err) {
-          console.warn(`[SyncCoordinator] Failed to prefetch ${ticker}`, err);
-          this.cache.delete(key);
+        // Add to queue if not already queued
+        if (!this.prefetchQueue.some(item => item.ticker === ticker && item.tf === tf)) {
+          this.prefetchQueue.push({ ticker, tf });
         }
       }
     }
-    console.log(`[SyncCoordinator] Watchlist prefetch complete for ${timeframes.join(', ')}.`);
+
+    this.processPrefetchQueue(targetCandles);
+  }
+
+  private async processPrefetchQueue(targetCandles: number) {
+    if (this.isPrefetching) return;
+    this.isPrefetching = true;
+
+    while (this.prefetchQueue.length > 0) {
+      const item = this.prefetchQueue.shift();
+      if (!item) continue;
+
+      const { ticker, tf } = item;
+      const key = this.getCacheKey(ticker, tf);
+      
+      if (this.cache.has(key) && this.cache.get(key)!.length > 0) {
+        continue;
+      }
+
+      try {
+        const toIso = new Date().toISOString();
+        let history: RawBar[] = [];
+
+        if (this.pendingFetches.has(key)) {
+          history = await this.pendingFetches.get(key)!;
+        } else {
+          const fetchPromise = fetchMarketData(ticker, toIso, targetCandles, tf).then(data => {
+            this.pendingFetches.delete(key);
+            return data;
+          }).catch(err => {
+            this.pendingFetches.delete(key);
+            return [];
+          });
+          this.pendingFetches.set(key, fetchPromise);
+          history = await fetchPromise;
+        }
+
+        if (history && history.length > 0) {
+          this.cache.set(key, history);
+        } else {
+          this.cache.delete(key);
+        }
+        await new Promise(r => setTimeout(r, 200)); // 5 req/s max
+      } catch (err) {
+        console.warn(`[SyncCoordinator] Failed to prefetch ${ticker}`, err);
+        this.cache.delete(key);
+      }
+    }
+
+    this.isPrefetching = false;
+    console.log(`[SyncCoordinator] Watchlist prefetch queue complete.`);
   }
 
   /**
@@ -82,7 +123,23 @@ export class SyncCoordinator {
 
     // 3. Fetch initial history if cache was empty
     if (history.length === 0) {
-      history = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
+      // Check if there is already a fetch in flight
+      if (this.pendingFetches.has(cacheKey)) {
+        console.log(`[SyncCoordinator] Awaiting in-flight fetch for ${cacheKey}...`);
+        history = await this.pendingFetches.get(cacheKey)!;
+      } else {
+        const fetchPromise = fetchMarketData(ticker, toIso, targetCandles, timeframe).then(data => {
+          this.pendingFetches.delete(cacheKey);
+          return data;
+        }).catch(err => {
+          this.pendingFetches.delete(cacheKey);
+          return [];
+        });
+        
+        this.pendingFetches.set(cacheKey, fetchPromise);
+        history = await fetchPromise;
+      }
+
       if (!history || history.length === 0) {
         wsManager.setBuffering(ticker, false);
         return [];
