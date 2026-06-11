@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { toast } from 'sonner';
 import { Order, Position, OrderStatus, TradeConfirmation } from '../types/trade';
 import { tradeApi, MarketOrderParams, LimitOrderParams } from '../api/trade';
 
@@ -53,7 +54,16 @@ export const useTradeStore = create<TradeState>()(
           const finalParams: any = { ...apiParams };
           if (params.guaranteedStop) {
             finalParams.guaranteedStop = true;
+          } else {
+            delete finalParams.guaranteedStop;
           }
+
+          // Remove any undefined fields to ensure clean payload
+          Object.keys(finalParams).forEach(key => {
+            if (finalParams[key] === undefined) {
+              delete finalParams[key];
+            }
+          });
 
           let dealReference: string;
           const orderType = type || 'MARKET';
@@ -363,6 +373,14 @@ export const useTradeStore = create<TradeState>()(
             workingOrderId,
             reason: finalReason
           };
+
+          // Notify user of confirmation outcome
+          if (finalStatus === 'REJECTED') {
+            toast.error(`Order Rejected: ${finalReason || 'Unknown reason'}`);
+            console.error(`[TradeStore] Order ${dealReference} rejected:`, payload);
+          } else if (finalStatus === 'ACCEPTED') {
+            toast.success(`Order Confirmed: ${order.type} ${order.direction}`);
+          }
 
           if (status === 'ACCEPTED' && dealId && entryPrice) {
             setTimeout(() => {
