@@ -81,7 +81,7 @@ export function useTradeManager({
     if (tradePluginRef.current) {
       tradePluginRef.current.registerBadgeRef(id, ref);
     }
-  }, [tradePluginRef]);
+  }, [tradePluginRef, pluginVersion]);
 
   // Calculate Unrealized PnL for this ticker's positions
   const unrealizedPnL = useMemo(() => {

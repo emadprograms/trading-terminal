@@ -57,10 +57,15 @@ export function useChartPlugins({
     setPluginVersion(v => v + 1);
 
     return () => {
-        // Note: Lightweight Charts primitives are usually detached when series is removed, 
-        // but if explicit cleanup is needed, it would go here.
+        if (series) {
+            try { series.detachPrimitive(shadingPluginRef.current!); } catch(e) {}
+            try { series.detachPrimitive(vpPluginRef.current!); } catch(e) {}
+            try { series.detachPrimitive(rayPluginRef.current!); } catch(e) {}
+            try { series.detachPrimitive(rectPluginRef.current!); } catch(e) {}
+            try { series.detachPrimitive(tradePluginRef.current!); } catch(e) {}
+        }
     };
-  }, [priceSeriesRef, timeframe, showEth, drawings]);
+  }, [priceSeriesRef]);
 
   // Update Ray/Rect Plugins when synced drawings change
   useEffect(() => {
