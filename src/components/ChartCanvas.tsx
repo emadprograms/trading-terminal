@@ -10,8 +10,10 @@ interface ChartCanvasProps {
   scrollToRealTime: () => void;
   markers: ChartMarker[];
   onRegisterBadge: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void;
+  onCloseTrade?: (id: string) => void;
   onDragMarker?: (id: string, y: number) => void;
   onDropMarker?: (id: string) => void;
+  onHoverMarker?: (id: string | null) => void;
   isHydrated: boolean;
 }
 
@@ -25,6 +27,7 @@ export function ChartCanvas({
   onCloseTrade,
   onDragMarker,
   onDropMarker,
+  onHoverMarker,
   isHydrated
 }: ChartCanvasProps) {
   return (
@@ -58,6 +61,7 @@ export function ChartCanvas({
           onClose={(onCloseTrade && !marker.id.endsWith('_SL')) ? () => onCloseTrade(marker.id) : undefined} 
           onDragMarker={onDragMarker}
           onDropMarker={onDropMarker}
+          onHoverMarker={onHoverMarker}
         />
       ))}
     </div>
@@ -70,13 +74,15 @@ function BadgeWrapper({
   onRegister, 
   onClose,
   onDragMarker,
-  onDropMarker
+  onDropMarker,
+  onHoverMarker
 }: { 
   marker: ChartMarker, 
   onRegister: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void,
   onClose?: () => void,
   onDragMarker?: (id: string, y: number) => void,
-  onDropMarker?: (id: string) => void
+  onDropMarker?: (id: string) => void,
+  onHoverMarker?: (id: string | null) => void
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const isDragging = React.useRef(false);
@@ -114,6 +120,8 @@ function BadgeWrapper({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onPointerEnter={() => onHoverMarker?.(marker.id)}
+      onPointerLeave={() => onHoverMarker?.(null)}
       cursor={marker.id.endsWith('_SL') ? 'ns-resize' : 'default'}
     />
   );

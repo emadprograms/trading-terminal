@@ -35,10 +35,12 @@ interface TradeRenderItem {
 class TradeRenderer implements ISeriesPrimitivePaneRenderer {
     _items: TradeRenderItem[];
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
+    _hoveredId: string | null;
 
-    constructor(items: TradeRenderItem[], badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>) {
+    constructor(items: TradeRenderItem[], badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>, hoveredId: string | null) {
         this._items = items;
         this._badgeRefs = badgeRefs;
+        this._hoveredId = hoveredId;
     }
 
     draw(target: { useMediaCoordinateSpace: (callback: (scope: any) => void) => void }) {
@@ -59,16 +61,11 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                     let color = direction === 'BUY' ? '#2962ff' : '#f23645';
                     if (item.isDashed) { // SL or TP
-                        color = '#ff9800';
+                        color = '#facc15'; // solid yellow
                     }
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 1;
-                    
-                    if (item.isDashed) {
-                        ctx.setLineDash([4, 4]);
-                    } else {
-                        ctx.setLineDash([]);
-                    }
+                    ctx.setLineDash([]); // always solid
 
                     let badgeStart = rightEdge;
                     let badgeEnd = rightEdge;
@@ -93,10 +90,12 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         ctx.stroke();
                     }
 
-                    if (item.parentY !== undefined && item.parentY !== null) {
+                    // Only draw connecting line if this specific badge is hovered
+                    if (this._hoveredId === id && item.parentY !== undefined && item.parentY !== null) {
                         ctx.save();
                         ctx.beginPath();
                         ctx.setLineDash([2, 4]);
+                        ctx.strokeStyle = '#facc15'; // yellow connector
                         ctx.moveTo(badgeStart - 10, item.parentY);
                         ctx.lineTo(badgeStart - 10, y);
                         ctx.stroke();
@@ -127,10 +126,10 @@ class TradePaneView implements ISeriesPrimitivePaneView {
     renderer(): ISeriesPrimitivePaneRenderer {
         try {
             const items = this._plugin._getViewData();
-            return new TradeRenderer(items, this._plugin._badgeRefs);
+            return new TradeRenderer(items, this._plugin._badgeRefs, this._plugin._hoveredId);
         } catch(e) {
             console.error('TradePaneView renderer error:', e);
-            return new TradeRenderer([], new Map());
+            return new TradeRenderer([], new Map(), null);
         }
     }
 }
@@ -142,6 +141,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
     _requestUpdate: () => void;
     _items: ChartMarker[];
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
+    _hoveredId: string | null;
 
     constructor() {
         this._chart = null;
@@ -150,6 +150,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
         this._requestUpdate = () => {};
         this._items = [];
         this._badgeRefs = new Map();
+        this._hoveredId = null;
     }
 
     setItems(items: ChartMarker[]) {
@@ -157,6 +158,13 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
         this._requestUpdate();
         // Force a second update to ensure React has rendered the badges and getBoundingClientRect is accurate
         setTimeout(() => this._requestUpdate(), 0);
+    }
+
+    setHoveredId(id: string | null) {
+        if (this._hoveredId !== id) {
+            this._hoveredId = id;
+            this._requestUpdate();
+        }
     }
 
     registerBadgeRef(id: string, ref: React.RefObject<HTMLDivElement | null>) {

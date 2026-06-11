@@ -174,6 +174,7 @@ export default function ChartUnit({
           onRegisterBadge={trade.handleRegisterBadge}
           onDragMarker={trade.onDragMarker}
           onDropMarker={trade.onDropMarker}
+          onHoverMarker={trade.onHoverMarker}
           onCloseTrade={(id) => {
             if (id.endsWith('_SL')) return; // Do nothing for SL badges
             const marker = trade.markers.find(m => m.id === id);

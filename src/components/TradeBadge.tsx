@@ -10,6 +10,8 @@ interface TradeBadgeProps {
   onPointerMove?: React.PointerEventHandler<HTMLDivElement>;
   onPointerUp?: React.PointerEventHandler<HTMLDivElement>;
   onPointerCancel?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerEnter?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerLeave?: React.PointerEventHandler<HTMLDivElement>;
   cursor?: string;
 }
 
@@ -21,6 +23,8 @@ export function TradeBadge({
   onPointerMove,
   onPointerUp,
   onPointerCancel,
+  onPointerEnter,
+  onPointerLeave,
   cursor
 }: TradeBadgeProps) {
   const currentPriceData = usePriceStore((state) => state.prices[marker.epic]);
@@ -88,6 +92,8 @@ export function TradeBadge({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       className="trade-badge-tv" 
       style={{
         position: 'absolute',

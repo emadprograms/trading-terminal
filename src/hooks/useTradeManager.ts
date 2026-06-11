@@ -143,10 +143,19 @@ export function useTradeManager({
   // but we can expose a placeholder or track it globally.
   const realizedPnL = 0; 
 
+  const onHoverMarker = useCallback((id: string | null) => {
+    if (tradePluginRef.current) {
+      tradePluginRef.current.setHoveredId(id);
+    }
+  }, [tradePluginRef, pluginVersion]);
+
   return {
     markers,
     handleRegisterBadge,
     realizedPnL,
     unrealizedPnL,
+    onDragMarker,
+    onDropMarker,
+    onHoverMarker
   };
 }
