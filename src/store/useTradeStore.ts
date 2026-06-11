@@ -60,22 +60,26 @@ export const useTradeStore = create<TradeState>()(
             delete finalParams.guaranteedStop;
           }
 
-          // Calculate stopLevel if stopDistance is provided
+          // Handle stopLoss logic
           if (params.stopDistance && params.stopDistance > 0) {
              const basePrice = (type === 'MARKET' || !type) 
                  ? (params.direction === 'BUY' ? bid : ofr) 
                  : params.level;
                  
              if (basePrice !== undefined) {
-                 // Format to 5 decimal places to prevent float precision errors
-                 // For a BUY order, SL is placed below the current bid price (you sell to close).
-                 // For a SELL order, SL is placed above the current ask price (you buy to close).
-                 const rawStop = params.direction === 'BUY' 
-                     ? basePrice - params.stopDistance 
-                     : basePrice + params.stopDistance;
-                 finalParams.stopLevel = parseFloat(rawStop.toFixed(5));
+                 if (type === 'LIMIT' || type === 'STOP') {
+                     // For limit orders, we must calculate stopLevel
+                     const rawStop = params.direction === 'BUY' 
+                         ? basePrice - params.stopDistance 
+                         : basePrice + params.stopDistance;
+                     finalParams.stopLevel = parseFloat(rawStop.toFixed(5));
+                     delete finalParams.stopDistance;
+                 } else {
+                     // For market orders, send stopDistance natively, but explicitly set guaranteedStop to false
+                     finalParams.stopDistance = parseFloat(params.stopDistance.toString());
+                     finalParams.guaranteedStop = params.guaranteedStop || false;
+                 }
              }
-             delete finalParams.stopDistance;
           }
 
           // Remove any undefined fields to ensure clean payload
