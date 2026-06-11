@@ -265,13 +265,9 @@ export function useChartLifecycle({
         });
       }
 
-      } else if (initPriceSeriesRef.current && initVolumeSeriesRef.current) {
-        initPriceSeriesRef.current.setData([]);
-        initVolumeSeriesRef.current.setData([]);
-        lastDataCountRef.current = 0;
-    }
+      }
 
-  }, [chartData, isReplayMode, isLoadingHistory, syncViewport]);
+  }, [chartData, isReplayMode, syncViewport]);
 
   // 3b. Refresh shading plugin when ticker/timeframe/ETH changes
   useEffect(() => {
