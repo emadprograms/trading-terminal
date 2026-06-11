@@ -122,14 +122,29 @@ export const useTradeStore = create<TradeState>()(
              };
           });
           toast.success('Position closed');
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to close position ${dealId}:`, error);
           set((state) => {
             const newSet = new Set(state.closingDealIds);
             newSet.delete(dealId);
+            
+            // If it's a 404, it means the position is already closed (ghost position)
+            if (error.message && (error.message.includes('404') || error.message.toLowerCase().includes('not found'))) {
+                 return { 
+                     positions: state.positions.filter(p => p.dealId !== dealId),
+                     closingDealIds: newSet,
+                     isExecuting: false
+                 };
+            }
+            
             return { closingDealIds: newSet, isExecuting: false };
           });
-          toast.error('Failed to close position');
+          
+          if (error.message && (error.message.includes('404') || error.message.toLowerCase().includes('not found'))) {
+              toast.success('Ghost position cleared');
+          } else {
+              toast.error(`Failed to close: ${error.message || 'Unknown error'}`);
+          }
         }
       },
 
@@ -156,11 +171,19 @@ export const useTradeStore = create<TradeState>()(
                     closingDealIds: newSet 
                 };
               });
-            } catch (e) {
-              console.error(`Failed to close position ${pos.dealId}:`, e);
+            } catch (error: any) {
+              console.error(`Failed to close position ${pos.dealId}:`, error);
               set((state) => {
                 const newSet = new Set(state.closingDealIds);
                 newSet.delete(pos.dealId);
+                
+                if (error.message && (error.message.includes('404') || error.message.toLowerCase().includes('not found'))) {
+                     return { 
+                         positions: state.positions.filter(p => p.dealId !== pos.dealId),
+                         closingDealIds: newSet 
+                     };
+                }
+                
                 return { closingDealIds: newSet };
               });
             }
