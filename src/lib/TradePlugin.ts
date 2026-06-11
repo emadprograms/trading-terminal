@@ -185,7 +185,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
             if (!this._items.length || !this._series) {
                 return [];
             }
-
+            return this._items.map(item => {
                 const y = item.price ? this._series!.priceToCoordinate(item.price) : null;
                 const parentY = item.parentPrice ? this._series!.priceToCoordinate(item.parentPrice) : null;
                 
