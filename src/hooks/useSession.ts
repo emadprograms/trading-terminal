@@ -35,21 +35,32 @@ export function useSession(tickers: string[]) {
   // Auth Mutation
   const loginMutation = useMutation({
     mutationFn: async (params?: { credentials?: { identifier: string; password: string }, environment?: 'DEMO' | 'LIVE' }) => {
-      const { setEnvironment, clearTokens } = useSessionStore.getState();
+      const { setEnvironment, clearTokens, environment } = useSessionStore.getState();
+      const targetEnv = params?.environment || environment;
       
       if (params?.environment) {
         setEnvironment(params.environment);
         clearTokens();
       }
 
-      // Call the session endpoint directly to avoid any potential closure/variable resolution issues
-      const response = await api.post('session', { 
-        json: params?.credentials || { 
-          identifier: import.meta.env.VITE_CAPITAL_USER, 
-          password: import.meta.env.VITE_CAPITAL_PASSWORD 
-        } 
-      });
-      return response.json();
+      try {
+        const response = await api.post('session', { 
+          json: params?.credentials || { 
+            identifier: import.meta.env.VITE_CAPITAL_USER, 
+            password: import.meta.env.VITE_CAPITAL_PASSWORD 
+          },
+          headers: {
+            'X-Environment': targetEnv
+          }
+        });
+        return response.json();
+      } catch (e) {
+        if (params?.environment) {
+          // Revert environment if login failed
+          setEnvironment(environment);
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       console.log('[StabilityTrace] Login handshake successful.');

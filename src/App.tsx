@@ -49,6 +49,13 @@ export default function App() {
 
   const autoLoginAttempted = React.useRef(false);
 
+  useEffect(() => {
+    if (!isAuthenticated && !isLoggingIn && !autoLoginAttempted.current) {
+      autoLoginAttempted.current = true;
+      login().catch((err) => console.error('[App] Auto-login failed:', err));
+    }
+  }, [isAuthenticated, isLoggingIn, login]);
+
   const {
     layoutMode,
     setLayoutMode,

@@ -24,7 +24,12 @@ app.use('*', cors({
 }))
 
 const getApiTarget = (envHeader?: string) => {
-  const env = envHeader || process.env.ENV || 'DEMO'
+  const env = envHeader || process.env.ENV || 'DEMO';
+  
+  if (process.env.ENV === 'DEMO' && env === 'LIVE') {
+    throw new Error('LIVE_MODE_DISABLED');
+  }
+
   return env === 'LIVE' 
     ? { target: 'https://api-capital.backend-capital.com', key: process.env.CAPITAL_API_KEY_LIVE || process.env.CAPITAL_API_KEY }
     : { target: 'https://demo-api-capital.backend-capital.com', key: process.env.CAPITAL_API_KEY_DEMO || process.env.CAPITAL_API_KEY }
