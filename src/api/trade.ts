@@ -27,16 +27,23 @@ async function extractApiError(error: any): Promise<string> {
   if (error.response) {
     let textBody = '';
     try {
-      textBody = await error.response.text();
-    } catch (e) {}
+      // Clone the response so we don't hit "body stream already read" errors
+      textBody = await error.response.clone().text();
+    } catch (e) {
+      console.error('[TradeAPI] Failed to read error response text:', e);
+    }
     
     console.error(`[TradeAPI] HTTP ${status || '?'} response body:`, textBody || '(empty)');
     
     if (textBody) {
       let parsed = null;
       try { parsed = JSON.parse(textBody); } catch (e) {}
-      if (parsed && (parsed.errorCode || parsed.message)) {
-        return `${parsed.errorCode || ''}: ${parsed.message || ''}`.trim();
+      if (parsed) {
+        const code = parsed.errorCode || parsed.code || '';
+        const msg = parsed.developerMessage || parsed.message || parsed.reason || parsed.error || '';
+        if (code || msg) {
+          return `${code} ${msg}`.trim();
+        }
       }
       return textBody.substring(0, 200);
     }
