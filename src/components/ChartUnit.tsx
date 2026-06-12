@@ -98,6 +98,7 @@ export default function ChartUnit({
     showVP,
     highContrast,
     chartData: data.chartData,
+    boundaryTime: data.boundaryTime,
     localMasterData: data.localMasterData,
     isReplayMode,
     isLoadingHistory: data.isLoadingHistory,

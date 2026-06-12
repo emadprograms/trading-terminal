@@ -225,10 +225,11 @@ export function useChartData({
   }, [localMasterData, isLoadingHistory, ticker, chartRef, priceSeriesRef, timeframe]);
 
   // Memoized Chart Data
-  const chartData = useMemo(() => {
-    if (!localMasterData || localMasterData.length === 0) return [];
-    if (timeframe !== dataTimeframeRef.current) return [];
+  const chartDataResult = useMemo(() => {
+    if (!localMasterData || localMasterData.length === 0) return { data: [], boundaryTime: null };
+    if (timeframe !== dataTimeframeRef.current) return { data: [], boundaryTime: null };
     let localMasterDataState = [...localMasterData];
+    let boundaryTime: string | null = null;
 
     if (timeframe === '1D' && !showEth && getTzForTicker(ticker) !== 'UTC') {
       const intraday = syncCoordinator.getCache(ticker, '30min');
@@ -237,6 +238,7 @@ export function useChartData({
         const accurateRecentDaily = resampleData(rthIntraday, '1D');
         if (accurateRecentDaily.length > 0) {
           const oldestAccurateTime = accurateRecentDaily[0].time;
+          boundaryTime = oldestAccurateTime;
           localMasterDataState = [
             ...localMasterDataState.filter(b => b.time < oldestAccurateTime),
             ...accurateRecentDaily
@@ -259,8 +261,11 @@ export function useChartData({
     
     const result = resampleData(filtered, timeframe);
     console.log(`[DEBUG-BLANK] 🧮 chartData MEMO: masterLen=${localMasterData.length}, filteredLen=${filtered.length}, resampledLen=${result.length}, tf=${timeframe}, dataTfRef=${dataTimeframeRef.current}, match=${timeframe === dataTimeframeRef.current}`);
-    return result;
+    return { data: result, boundaryTime };
   }, [localMasterData, timeframe, showEth, isReplayMode, globalTime]);
+
+  const chartData = chartDataResult.data;
+  const boundaryTime = chartDataResult.boundaryTime;
 
   return {
     ticker,
@@ -271,6 +276,7 @@ export function useChartData({
     setShowEth,
     localMasterData,
     chartData,
+    boundaryTime,
     isLoadingHistory,
     pendingHistoryPrependRef,
   };

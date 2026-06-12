@@ -5,6 +5,7 @@ import { VolumeProfilePlugin } from '../../lib/VolumeProfilePlugin';
 import { HorizontalRayPlugin } from '../../lib/HorizontalRayPlugin';
 import { RectanglePlugin } from '../../lib/RectanglePlugin';
 import { TradePlugin } from '../../lib/TradePlugin';
+import { BoundaryLinePlugin } from '../../lib/BoundaryLinePlugin';
 import type { RayDrawing, RectDrawing, TickerDrawings, Timeframe } from '../../types';
 
 interface UseChartPluginsParams {
@@ -13,6 +14,7 @@ interface UseChartPluginsParams {
   timeframe: Timeframe;
   showEth: boolean;
   showVP: boolean;
+  boundaryTime: string | null;
   drawings: TickerDrawings;
 }
 
@@ -22,6 +24,7 @@ export function useChartPlugins({
   timeframe,
   showEth,
   showVP,
+  boundaryTime,
   drawings,
 }: UseChartPluginsParams) {
   const shadingPluginRef = useRef<SessionShadingPlugin | null>(null);
@@ -29,6 +32,7 @@ export function useChartPlugins({
   const rayPluginRef = useRef<HorizontalRayPlugin | null>(null);
   const rectPluginRef = useRef<RectanglePlugin | null>(null);
   const tradePluginRef = useRef<TradePlugin | null>(null);
+  const boundaryPluginRef = useRef<BoundaryLinePlugin | null>(null);
 
   const [pluginVersion, setPluginVersion] = useState(0);
 
@@ -52,6 +56,9 @@ export function useChartPlugins({
     tradePluginRef.current = new TradePlugin();
     series.attachPrimitive(tradePluginRef.current);
     
+    boundaryPluginRef.current = new BoundaryLinePlugin(null);
+    series.attachPrimitive(boundaryPluginRef.current);
+    
     rayPluginRef.current.setRays(drawings.rays || []);
     rectPluginRef.current.setRects(drawings.rects || []);
 
@@ -64,6 +71,7 @@ export function useChartPlugins({
             try { series.detachPrimitive(rayPluginRef.current!); } catch(e) {}
             try { series.detachPrimitive(rectPluginRef.current!); } catch(e) {}
             try { series.detachPrimitive(tradePluginRef.current!); } catch(e) {}
+            try { series.detachPrimitive(boundaryPluginRef.current!); } catch(e) {}
         }
     };
   }, [priceSeriesRef]); // REMOVED ticker and timeframe so plugins are reused
@@ -82,6 +90,13 @@ export function useChartPlugins({
           vpPluginRef.current.setEnabled(showVP);
       }
   }, [showVP]);
+
+  // Update Boundary Time
+  useEffect(() => {
+      if (boundaryPluginRef.current) {
+          boundaryPluginRef.current.setBoundaryTime(boundaryTime);
+      }
+  }, [boundaryTime]);
 
   // Update shading plugin config (Tz/ETH/Tf)
   // This is called from useChartLifecycle based on ticker/timeframe changes

@@ -40,6 +40,7 @@ interface UseChartLifecycleParams {
   showVP: boolean;
   highContrast: boolean;
   chartData: ChartBar[];
+  boundaryTime: string | null;
   localMasterData: RawBar[];
   isReplayMode: boolean;
   isLoadingHistory: boolean;
@@ -65,6 +66,7 @@ export function useChartLifecycle({
   showVP,
   highContrast,
   chartData,
+  boundaryTime,
   localMasterData,
   isReplayMode,
   isLoadingHistory,
@@ -109,6 +111,7 @@ export function useChartLifecycle({
     timeframe,
     showEth,
     showVP,
+    boundaryTime,
     drawings,
   });
 
