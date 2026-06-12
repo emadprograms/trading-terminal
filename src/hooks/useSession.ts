@@ -21,6 +21,7 @@ export function useSession(tickers: string[]) {
       console.log('[StabilityTrace] Initializing WebSocket connection and syncing positions...');
       wsManager.connect();
       useTradeStore.getState().syncPositions();
+      useTradeStore.getState().syncExecutions();
     }
     return () => {
       wsManager.disconnect();
@@ -103,6 +104,7 @@ export function useSession(tickers: string[]) {
 
     const interval = setInterval(() => {
       useTradeStore.getState().syncPositions();
+      useTradeStore.getState().syncExecutions();
     }, 10_000); // every 10 seconds
 
     return () => clearInterval(interval);

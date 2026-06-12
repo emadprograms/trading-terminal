@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { toast } from 'sonner';
-import { Order, Position, OrderStatus, TradeConfirmation } from '../types/trade';
+import { Order, Position, OrderStatus, TradeConfirmation, Execution } from '../types/trade';
 import { tradeApi, MarketOrderParams, LimitOrderParams } from '../api/trade';
 
 interface TradeState {
@@ -33,6 +33,7 @@ interface TradeState {
   updatePositionTakeProfit: (dealId: string, profitLevel: number) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
+  syncExecutions: () => Promise<void>;
 }
 
 const BUFFER_TTL = 30000; // 30 seconds
@@ -151,25 +152,13 @@ export const useTradeStore = create<TradeState>()(
         try {
           await tradeApi.flattenPosition(dealId, position);
           
-          // Get current price for exit marker
-          const priceStore = (await import('./usePriceStore')).usePriceStore;
-          const currentPriceObj = priceStore.getState().prices[position!.epic];
-          const exitPrice = currentPriceObj 
-              ? (position!.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
-              : position!.currentPrice || position!.entryPrice;
-
-          if (exitPrice) {
-            get().addExecution({
-              id: `${dealId}_EXIT_${Date.now()}`,
-              dealId: dealId,
-              epic: position!.epic,
-              size: position!.size,
-              price: exitPrice,
-              direction: position!.direction === 'BUY' ? 'SELL' : 'BUY',
-              timestamp: Date.now(),
-              action: 'EXIT'
-            });
-          }
+          // Fetch authoritative exit execution from Capital.com transaction history
+          setTimeout(() => {
+            get().syncExecutions();
+          }, 0);
+          setTimeout(() => {
+            get().syncExecutions();
+          }, 1000);
 
           // If successful, immediately remove it locally.
           set((state) => {
@@ -224,25 +213,6 @@ export const useTradeStore = create<TradeState>()(
             try {
               await tradeApi.flattenPosition(pos.dealId, pos);
 
-              const priceStore = (await import('./usePriceStore')).usePriceStore;
-              const currentPriceObj = priceStore.getState().prices[pos.epic];
-              const exitPrice = currentPriceObj 
-                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
-                  : pos.currentPrice || pos.entryPrice;
-
-              if (exitPrice) {
-                get().addExecution({
-                  id: `${pos.dealId}_EXIT_${Date.now()}`,
-                  dealId: pos.dealId,
-                  epic: pos.epic,
-                  size: pos.size,
-                  price: exitPrice,
-                  direction: pos.direction === 'BUY' ? 'SELL' : 'BUY',
-                  timestamp: Date.now(),
-                  action: 'EXIT'
-                });
-              }
-
               set((state) => {
                 const newSet = new Set(state.closingDealIds);
                 newSet.delete(pos.dealId);
@@ -273,6 +243,13 @@ export const useTradeStore = create<TradeState>()(
           }
         } finally {
           set({ isExecuting: false });
+          // Fetch authoritative exit executions from Capital.com transaction history
+          setTimeout(() => {
+            get().syncExecutions();
+          }, 0);
+          setTimeout(() => {
+            get().syncExecutions();
+          }, 1000);
         }
       },
 
@@ -471,6 +448,30 @@ export const useTradeStore = create<TradeState>()(
           
         } catch (error) {
           console.error('[TradeStore] Failed to sync positions:', error);
+        }
+      },
+
+      syncExecutions: async () => {
+        try {
+          const rawTransactions = await tradeApi.fetchTransactionHistory();
+          const mappedExecutions: Execution[] = rawTransactions.map(t => {
+            const rawDate = t.dateUTC || t.date;
+            const timestamp = rawDate ? new Date(rawDate).getTime() : Date.now();
+            return {
+              id: t.id || String(t.reference || '') || `${t.epic || t.instrument || ''}_${timestamp}`,
+              dealId: String(t.reference || t.dealId || ''),
+              epic: t.epic || t.instrument || '',
+              size: Math.abs(t.size || t.amount || 0),
+              price: t.price || t.level || 0,
+              direction: t.direction || (t.amount > 0 ? 'BUY' : 'SELL'),
+              timestamp,
+              action: t.reference ? 'EXIT' : 'ENTRY'
+            };
+          });
+
+          set({ executions: mappedExecutions });
+        } catch (error) {
+          console.error('[TradeStore] Failed to sync executions:', error);
         }
       },
 
@@ -699,16 +700,13 @@ export const useTradeStore = create<TradeState>()(
           positions: [...state.positions.filter((p) => p.dealId !== position.dealId), position],
         }));
         
-        get().addExecution({
-          id: `${position.dealId}_ENTRY_${Date.now()}`,
-          dealId: position.dealId,
-          epic: position.epic,
-          size: position.size,
-          price: position.entryPrice,
-          direction: position.direction,
-          timestamp: position.timestamp || Date.now(),
-          action: 'ENTRY'
-        });
+        // Fetch authoritative execution from Capital.com transaction history
+        setTimeout(() => {
+          get().syncExecutions();
+        }, 0);
+        setTimeout(() => {
+          get().syncExecutions();
+        }, 1000);
       },
 
       removePosition: (dealId) => 

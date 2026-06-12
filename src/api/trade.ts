@@ -186,4 +186,18 @@ export const tradeApi = {
       return [];
     }
   },
+
+  /**
+   * Fetch transaction history for executions.
+   * GET /api/v1/history/transactions
+   */
+  async fetchTransactionHistory(lastPeriodSeconds = 2592000): Promise<any[]> {
+    try {
+      const data = await fetchTradeApi('get', `order/v1/history/transactions?type=TRADE&lastPeriod=${lastPeriodSeconds}&_t=${Date.now()}`);
+      return data.transactions || [];
+    } catch (error: any) {
+      console.error('[TradeAPI] Failed to fetch transaction history:', error);
+      return [];
+    }
+  },
 };
