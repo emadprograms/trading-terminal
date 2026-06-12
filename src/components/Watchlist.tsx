@@ -121,8 +121,8 @@ export const Watchlist: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', position: 'relative' }} ref={searchContainerRef}>
-        <form onSubmit={handleAdd} style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ padding: '8px', borderBottom: '1px solid var(--border-color)', position: 'relative' }} ref={searchContainerRef}>
+        <form onSubmit={handleAdd} style={{ display: 'flex', gap: '4px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
             <input
@@ -236,7 +236,7 @@ export const Watchlist: React.FC = () => {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '4px 8px',
+                  padding: '4px',
                   cursor: 'grab',
                   borderBottom: isDragOver ? '2px solid var(--accent-green)' : '1px solid rgba(255, 255, 255, 0.02)',
                   borderTop: '1px solid transparent', // Keep height consistent
@@ -256,9 +256,9 @@ export const Watchlist: React.FC = () => {
                     toggleMark(symbol);
                   }}
                   style={{
-                    width: '16px',
+                    width: '12px',
                     height: '24px',
-                    marginRight: '8px',
+                    marginRight: '4px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -277,7 +277,7 @@ export const Watchlist: React.FC = () => {
                   {symbol}
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '8px', minWidth: '50px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '4px', minWidth: '45px' }}>
                   <span style={{ fontSize: '12px', color: price ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                     {price ? price.bid.toFixed(2) : '---'}
                   </span>
@@ -296,7 +296,7 @@ export const Watchlist: React.FC = () => {
                     border: 'none',
                     color: 'var(--text-secondary)',
                     cursor: 'pointer',
-                    padding: '4px',
+                    padding: '2px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
