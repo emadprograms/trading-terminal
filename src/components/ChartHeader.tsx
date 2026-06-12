@@ -14,8 +14,6 @@ interface ChartHeaderProps {
   setShowEth: (v: boolean) => void;
   showVP: boolean;
   setShowVP: (v: boolean) => void;
-  highContrast: boolean;
-  setHighContrast: (v: boolean) => void;
   isDrawingMode: boolean;
   setIsDrawingMode: (v: boolean) => void;
   drawType: DrawType;
@@ -32,7 +30,6 @@ interface ChartHeaderProps {
 
 export function ChartHeader({
   ticker, setTicker, timeframe, setTimeframe, showEth, setShowEth, showVP, setShowVP,
-  highContrast, setHighContrast,
   isDrawingMode, setIsDrawingMode, drawType, setDrawType, tickers, groupColor,
   onGroupChange, onTickerChange, onUpdateDrawings, isMaximized, onToggleMaximize,
   onSelect
@@ -231,18 +228,6 @@ export function ChartHeader({
                 >
                   <span>Volume Profile (VP)</span>
                   <div className={`switch-track ${showVP ? 'active' : ''}`} style={{zoom: 0.8}}>
-                    <div className="switch-thumb" />
-                  </div>
-                </div>
-                <div 
-                  className={`dropdown-item ${highContrast ? 'active' : ''}`}
-                  onClick={() => {
-                    setHighContrast(!highContrast);
-                    setIsSettingsOpen(false);
-                  }}
-                >
-                  <span>High Contrast (HC)</span>
-                  <div className={`switch-track ${highContrast ? 'active' : ''}`} style={{zoom: 0.8}}>
                     <div className="switch-thumb" />
                   </div>
                 </div>

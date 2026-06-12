@@ -42,7 +42,7 @@ export default function ChartUnit({
   const isSelected = selectedId === id.toString();
 
   const [showVP, setShowVP] = React.useState(false);
-  const [highContrast, setHighContrast] = React.useState(false);
+  const highContrast = useWorkspaceStore((state) => state.globalHighContrast);
 
   // 1. Data management
   const data = useChartData({ 
@@ -150,8 +150,6 @@ export default function ChartUnit({
         setShowEth={data.setShowEth}
         showVP={showVP}
         setShowVP={setShowVP}
-        highContrast={highContrast}
-        setHighContrast={setHighContrast}
         isDrawingMode={keyboard.isDrawingMode}
         setIsDrawingMode={keyboard.setIsDrawingMode}
         drawType={keyboard.drawType}

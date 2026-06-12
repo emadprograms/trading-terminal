@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, Sun, Moon } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 // Hooks
@@ -16,6 +16,7 @@ import { EnvToggle } from './components/EnvToggle';
 import { AccountSelector } from './components/AccountSelector';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useSessionStore } from './store/useSessionStore';
+import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { WatchlistManager } from './components/WatchlistManager';
 
 export default function App() {
@@ -100,7 +101,14 @@ export default function App() {
           <ErrorBoundary fallback={<div style={{ color: 'var(--accent-red)', fontSize: '10px' }}>Header Error</div>}>
             <AccountHeader />
           </ErrorBoundary>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              className="btn-icon" 
+              onClick={() => useWorkspaceStore.getState().toggleGlobalHighContrast()}
+              title="Toggle High Contrast Mode"
+            >
+              {useWorkspaceStore((state) => state.globalHighContrast) ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             <ErrorBoundary fallback={null}>
               <AccountSelector />
             </ErrorBoundary>
