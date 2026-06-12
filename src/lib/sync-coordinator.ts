@@ -170,15 +170,15 @@ export class SyncCoordinator {
         }
         this.cache.set(cacheKey, history);
 
-        if (timeframe === '1D' && getTzForTicker(ticker) !== 'UTC') {
-          const intraKey = this.getCacheKey(ticker, '30min');
-          if (!this.cache.has(intraKey)) {
-            const intra = await this.fetchWithRetry(ticker, toIso, 1000, '30min');
-            this.cache.set(intraKey, intra);
-          }
-        }
-        
         if (onCacheHit) onCacheHit(history);
+      }
+
+      if (timeframe === '1D' && getTzForTicker(ticker) !== 'UTC') {
+        const intraKey = this.getCacheKey(ticker, '30min');
+        if (!this.cache.has(intraKey)) {
+          const intra = await this.fetchWithRetry(ticker, toIso, 1000, '30min');
+          this.cache.set(intraKey, intra);
+        }
       }
 
       const lastRestCandle = history[history.length - 1];
@@ -249,7 +249,7 @@ export class SyncCoordinator {
       }
 
       console.log(`[DEBUG-BLANK] ✅ SyncCoordinator.syncTicker DONE: ${ticker} (${timeframe}), returning ${history.length} bars`);
-      return history;
+      return [...history];
     } finally {
       this.activeSyncs--;
     }
