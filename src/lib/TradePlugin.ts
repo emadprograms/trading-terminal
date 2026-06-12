@@ -102,24 +102,40 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         const { x, direction } = item;
                         const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
                         
+                        let scale = 1;
+                        const logicalRange = this._chart!.timeScale().getVisibleLogicalRange();
+                        if (logicalRange) {
+                            const width = this._chart!.timeScale().width();
+                            const barsVisible = logicalRange.to - logicalRange.from;
+                            const barSpacing = width / barsVisible;
+                            if (barSpacing < 8) {
+                                scale = Math.max(0.3, barSpacing / 8);
+                            }
+                        }
+                        
                         const isBuy = direction === 'BUY';
                         ctx.fillStyle = isBuy ? '#007aff' : '#ff3b30';
                         ctx.beginPath();
+                        
+                        const h = 8 * scale;
+                        const w = 4 * scale;
+                        const offset = 6 * scale;
+                        
                         if (isBuy) {
                             // Up Triangle BELOW the candle low
-                            ctx.moveTo(x, yPos + 6);      // Top tip
-                            ctx.lineTo(x + 4, yPos + 14); // Bottom right
-                            ctx.lineTo(x - 4, yPos + 14); // Bottom left
+                            ctx.moveTo(x, yPos + offset);
+                            ctx.lineTo(x + w, yPos + offset + h);
+                            ctx.lineTo(x - w, yPos + offset + h);
                         } else {
                             // Down Triangle ABOVE the candle high
-                            ctx.moveTo(x, yPos - 6);      // Bottom tip
-                            ctx.lineTo(x + 4, yPos - 14); // Top right
-                            ctx.lineTo(x - 4, yPos - 14); // Top left
+                            ctx.moveTo(x, yPos - offset);
+                            ctx.lineTo(x + w, yPos - offset - h);
+                            ctx.lineTo(x - w, yPos - offset - h);
                         }
                         ctx.closePath();
                         ctx.fill();
                         
-                        ctx.lineWidth = 1.5;
+                        ctx.lineWidth = Math.max(0.8, 1.5 * scale);
                         ctx.strokeStyle = '#ffffff';
                         ctx.stroke();
                         
