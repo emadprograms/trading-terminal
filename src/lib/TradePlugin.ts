@@ -18,7 +18,8 @@ export interface ChartMarker {
     price: number;
     direction: OrderDirection;
     size: number;
-    type: 'POSITION' | 'ORDER';
+    type: 'POSITION' | 'ORDER' | 'EXECUTION';
+    time?: Time; // Used for EXECUTION markers
     label?: string;
     isDashed?: boolean;
     parentPrice?: number;
@@ -30,8 +31,10 @@ interface TradeRenderItem {
     y: Coordinate;
     direction: OrderDirection;
     id: string;
+    type: 'POSITION' | 'ORDER' | 'EXECUTION';
     isDashed?: boolean;
     parentY?: Coordinate | null;
+    x?: Coordinate | null; // For EXECUTION
 }
 
 class TradeRenderer implements ISeriesPrimitivePaneRenderer {
@@ -90,6 +93,34 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         badgeEnd = badgeRect.right - canvasRect.left + gapPadding;
                     }
 
+                    if (item.type === 'EXECUTION' && item.x !== undefined && item.x !== null) {
+                        // Draw sleek modern chevron arrow for executions
+                        ctx.save();
+                        const { x, y, direction } = item;
+                        
+                        ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
+                        ctx.beginPath();
+                        if (direction === 'BUY') {
+                            // Up Arrow Chevron
+                            ctx.moveTo(x, y + 5);      // Top tip (closest to price)
+                            ctx.lineTo(x + 5, y + 17); // Bottom right
+                            ctx.lineTo(x, y + 13);     // Middle cutout
+                            ctx.lineTo(x - 5, y + 17); // Bottom left
+                        } else {
+                            // Down Arrow Chevron
+                            ctx.moveTo(x, y - 5);      // Bottom tip (closest to price)
+                            ctx.lineTo(x + 5, y - 17); // Top right
+                            ctx.lineTo(x, y - 13);     // Middle cutout
+                            ctx.lineTo(x - 5, y - 17); // Top left
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        ctx.restore();
+                        return; // Done drawing EXECUTION
+                    }
+
+                    // For POSITION and ORDER
                     ctx.beginPath();
                     ctx.moveTo(0, y);
                     ctx.lineTo(Math.max(0, badgeStart), y);
@@ -133,7 +164,7 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     }
                 });
 
-                // Draw Hovered Execution Arrows
+                // Draw Hovered Execution Sideways Arrows
                 this._hoveredExecutions.forEach(exec => {
                     const arrowLen = 14;
                     const halfH = 5;
@@ -142,13 +173,10 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     ctx.save();
                     ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
                     ctx.beginPath();
-                    // Draw sideways arrow pointing RIGHT at (x, y)
-                    ctx.moveTo(x - arrowLen, y - halfH);
-                    ctx.lineTo(x - 4, y - halfH);
-                    ctx.lineTo(x - 4, y - halfH - 3);
-                    ctx.lineTo(x, y); // arrow tip pointing to the exact price on the candle
-                    ctx.lineTo(x - 4, y + halfH + 3);
-                    ctx.lineTo(x - 4, y + halfH);
+                    // Sleek sideways modern pointer
+                    ctx.moveTo(x, y); // Pointer tip exactly at the price on the candle
+                    ctx.lineTo(x - arrowLen, y - halfH);
+                    ctx.lineTo(x - arrowLen + 3, y); // Cutout
                     ctx.lineTo(x - arrowLen, y + halfH);
                     ctx.closePath();
                     ctx.fill();
@@ -251,12 +279,20 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
 
     _getViewData(): TradeRenderItem[] {
         try {
-            if (!this._items.length || !this._series) {
-                return [];
-            }
+            if (!this._series || !this._chart) return [];
+
             return this._items.map(item => {
-                const y = item.price ? this._series!.priceToCoordinate(item.price) : null;
-                const parentY = item.parentPrice ? this._series!.priceToCoordinate(item.parentPrice) : null;
+                const y = this._series!.priceToCoordinate(item.price);
+                
+                let x = null;
+                if (item.time) {
+                    x = this._chart!.timeScale().timeToCoordinate(item.time);
+                }
+
+                let parentY = null;
+                if (item.parentPrice) {
+                    parentY = this._series!.priceToCoordinate(item.parentPrice);
+                }
                 
                 const ref = this._badgeRefs.get(item.id);
                 if (ref && ref.current) {
@@ -272,10 +308,12 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                     y: y as Coordinate,
                     direction: item.direction,
                     id: item.id,
+                    type: item.type,
                     isDashed: item.isDashed,
-                    parentY: parentY as Coordinate | null
+                    parentY: parentY as Coordinate | null,
+                    x: x as Coordinate | null
                 };
-            }).filter((item): item is TradeRenderItem => item !== null && item.y !== null);
+            }).filter(item => item.y !== null);
         } catch(e) {
             console.error('TradePlugin _getViewData error:', e);
             return [];

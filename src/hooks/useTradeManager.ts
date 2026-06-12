@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { useTradeStore } from '../store/useTradeStore';
 import { usePriceStore } from '../store/usePriceStore';
-import type { ISeriesApi, SeriesMarker, Time } from 'lightweight-charts';
+import type { ISeriesApi, Time } from 'lightweight-charts';
 import type { ChartBar } from '../types';
 import type { TradePlugin, ChartMarker } from '../lib/TradePlugin';
 
@@ -110,8 +110,30 @@ export function useTradeManager({
       };
     });
 
-    return [...posMarkers, ...orderMarkers];
-  }, [tickerPositions, tickerOrders]);
+    const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
+       // Find the closest bar timestamp <= execution timestamp
+       let matchBar = chartData[0];
+       for (const bar of chartData) {
+         if (new Date(bar.time + 'Z').getTime() <= e.timestamp) {
+           matchBar = bar;
+         } else {
+           break;
+         }
+       }
+       
+       return {
+         id: e.id,
+         epic: e.epic,
+         price: e.price,
+         direction: e.direction,
+         size: e.size,
+         type: 'EXECUTION',
+         time: Math.floor(new Date(matchBar ? matchBar.time + 'Z' : 0).getTime() / 1000) as Time,
+       };
+    });
+
+    return [...posMarkers, ...orderMarkers, ...executionMarkers];
+  }, [tickerPositions, tickerOrders, tickerExecutions, chartData]);
 
   const markers = useMemo(() => {
     if (!dragPreview) return baseMarkers;
@@ -151,41 +173,8 @@ export function useTradeManager({
     }
   }, [markers, tradePluginRef, pluginVersion]);
 
-  // Render native execution markers
+  // Subscribe to crosshair move to detect hover over executions
   useEffect(() => {
-    if (!priceSeriesRef.current || chartData.length === 0) return;
-
-    const nativeMarkers: SeriesMarker<Time>[] = [];
-    tickerExecutions.forEach(e => {
-       // Find the closest bar timestamp <= execution timestamp
-       let matchBar = chartData[0];
-       for (const bar of chartData) {
-         if (new Date(bar.time + 'Z').getTime() <= e.timestamp) {
-           matchBar = bar;
-         } else {
-           break;
-         }
-       }
-       
-       nativeMarkers.push({
-         time: Math.floor(new Date(matchBar.time + 'Z').getTime() / 1000) as Time,
-         position: e.direction === 'BUY' ? 'belowBar' : 'aboveBar',
-         color: e.direction === 'BUY' ? '#2962ff' : '#f23645',
-         shape: e.direction === 'BUY' ? 'arrowUp' : 'arrowDown',
-         id: e.id,
-         text: ''
-       });
-    });
-
-    nativeMarkers.sort((a, b) => (a.time as number) - (b.time as number));
-    
-    try {
-      priceSeriesRef.current.setMarkers(nativeMarkers);
-    } catch (err) {
-      console.warn('[TradeManager] Failed to set markers:', err);
-    }
-
-    // Subscribe to crosshair move to detect hover over executions
     if (chartRef.current && tradePluginRef.current) {
       const handleCrosshairMove = (param: any) => {
         if (!param.time || !param.point || !priceSeriesRef.current || !tradePluginRef.current) {
@@ -195,7 +184,7 @@ export function useTradeManager({
 
         const exactTime = param.time as number;
         // Find executions that match this exact candle
-        const hovered = nativeMarkers.filter(m => m.time === exactTime);
+        const hovered = markers.filter(m => m.type === 'EXECUTION' && m.time === exactTime);
         if (hovered.length > 0) {
           // Pass the physical coordinates to TradePlugin
           const executionsToRender = hovered.map(hMarker => {
@@ -224,7 +213,7 @@ export function useTradeManager({
         } catch(e) {}
       };
     }
-  }, [tickerExecutions, chartData, priceSeriesRef, chartRef, tradePluginRef]);
+  }, [tickerExecutions, markers, priceSeriesRef, chartRef, tradePluginRef]);
 
   // Register badge refs
   const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {
