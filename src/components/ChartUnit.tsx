@@ -12,6 +12,7 @@ import type { ChartUnitProps } from '../types';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { parseInput } from '../lib/parsing';
 import { useTradeStore } from '../store/useTradeStore';
+import { useWatchlistStore } from '../store/useWatchlistStore';
 
 export default function ChartUnit({ 
   id, 
@@ -69,13 +70,14 @@ export default function ChartUnit({
   }, [onTickerChange]);
 
   const handleNavigateWatchlist = React.useCallback((direction: 1 | -1) => {
-    if (!tickers || tickers.length === 0) return;
-    const currentIndex = tickers.indexOf(data.ticker);
+    const watchlistSymbols = useWatchlistStore.getState().symbols;
+    if (!watchlistSymbols || watchlistSymbols.length === 0) return;
+    const currentIndex = watchlistSymbols.indexOf(data.ticker);
     let nextIndex = currentIndex === -1 ? 0 : currentIndex + direction;
-    if (nextIndex >= tickers.length) nextIndex = 0;
-    if (nextIndex < 0) nextIndex = tickers.length - 1;
-    handleTickerUpdate(tickers[nextIndex]);
-  }, [tickers, data.ticker, handleTickerUpdate]);
+    if (nextIndex >= watchlistSymbols.length) nextIndex = 0;
+    if (nextIndex < 0) nextIndex = watchlistSymbols.length - 1;
+    handleTickerUpdate(watchlistSymbols[nextIndex]);
+  }, [data.ticker, handleTickerUpdate]);
 
   // 2. Keyboard & Drawing state
   const keyboard = useKeyboardShortcuts({ 
