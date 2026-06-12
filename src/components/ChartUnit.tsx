@@ -68,6 +68,14 @@ export default function ChartUnit({
     }
   }, [onTickerChange]);
 
+  const handleNavigateWatchlist = React.useCallback((direction: 1 | -1) => {
+    if (!tickers || tickers.length === 0) return;
+    const currentIndex = tickers.indexOf(data.ticker);
+    let nextIndex = currentIndex === -1 ? 0 : currentIndex + direction;
+    if (nextIndex >= tickers.length) nextIndex = 0;
+    if (nextIndex < 0) nextIndex = tickers.length - 1;
+    handleTickerUpdate(tickers[nextIndex]);
+  }, [tickers, data.ticker, handleTickerUpdate]);
 
   // 2. Keyboard & Drawing state
   const keyboard = useKeyboardShortcuts({ 
@@ -75,7 +83,8 @@ export default function ChartUnit({
     onUpdateDrawings, 
     ticker: data.ticker,
     setShowEth: data.setShowEth,
-    isSelected
+    isSelected,
+    onNavigateWatchlist: handleNavigateWatchlist
   });
 
   // 4. Chart lifecycle

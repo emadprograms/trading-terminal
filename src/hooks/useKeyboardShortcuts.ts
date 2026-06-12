@@ -7,6 +7,7 @@ interface UseKeyboardShortcutsParams {
   ticker: string;
   setShowEth: React.Dispatch<React.SetStateAction<boolean>>;
   isSelected: boolean;
+  onNavigateWatchlist: (direction: 1 | -1) => void;
 }
 
 export function useKeyboardShortcuts({
@@ -15,6 +16,7 @@ export function useKeyboardShortcuts({
   ticker,
   setShowEth,
   isSelected,
+  onNavigateWatchlist,
 }: UseKeyboardShortcutsParams) {
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [drawType, setDrawType] = useState<DrawType>('ray');
@@ -83,6 +85,15 @@ export function useKeyboardShortcuts({
         }
         setIsDrawingMode(false);
         setRectAnchor(null);
+        return;
+      }
+
+      if (e.key === ' ' || e.code === 'Space') {
+        if (!keyboardActionRef.current.active) {
+          e.preventDefault();
+          onNavigateWatchlist(e.shiftKey ? -1 : 1);
+          return;
+        }
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -115,7 +126,7 @@ export function useKeyboardShortcuts({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [chartContainerRef, drawType, onUpdateDrawings, setShowEth, updateKeyboardAction, isSelected]);
+  }, [chartContainerRef, drawType, onUpdateDrawings, setShowEth, updateKeyboardAction, isSelected, onNavigateWatchlist]);
 
   return {
     isDrawingMode,
