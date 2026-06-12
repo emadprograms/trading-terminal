@@ -280,13 +280,16 @@ export function useChartLifecycle({
       lastTfRef.current = timeframe;
       lastEthRef.current = showEth;
 
-      if (!isHydrated) {
-        console.log(`[DEBUG-BLANK] 💧 Scheduling hydration via requestAnimationFrame`);
-        requestAnimationFrame(() => {
-          console.log(`[DEBUG-BLANK] 💧 Hydration state updating to TRUE`);
-          setIsHydrated(true);
-        });
-      }
+      // ALWAYS schedule hydration after successful setData.
+      // Previously gated by `if (!isHydrated)`, but on cache hits the stale closure
+      // reads isHydrated=true (from before ticker change reset it to false),
+      // so hydration was never re-scheduled → isHydrated stuck false → blank chart.
+      // setIsHydrated(true) is idempotent when already true (no extra re-renders).
+      console.log(`[DEBUG-BLANK] 💧 Scheduling hydration via requestAnimationFrame (isHydrated was: ${isHydrated})`);
+      requestAnimationFrame(() => {
+        console.log(`[DEBUG-BLANK] 💧 Hydration state updating to TRUE`);
+        setIsHydrated(true);
+      });
 
       } else {
         console.warn(`[DEBUG-BLANK] ⚠️ Effect 3 skipped! Conditions not met: price=${!!initPriceSeriesRef.current}, vol=${!!initVolumeSeriesRef.current}, chart=${!!initChartRef.current}, data=${chartData.length}`);
