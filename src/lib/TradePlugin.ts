@@ -102,9 +102,10 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         const { x, direction } = item;
                         const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
                         
-                        ctx.fillStyle = direction === 'BUY' ? '#0062ff' : '#ff2a2a';
+                        const isBuy = direction === 'BUY';
+                        ctx.fillStyle = isBuy ? '#007aff' : '#ff3b30';
                         ctx.beginPath();
-                        if (direction === 'BUY') {
+                        if (isBuy) {
                             // Up Triangle BELOW the candle low
                             ctx.moveTo(x, yPos + 6);      // Top tip
                             ctx.lineTo(x + 4, yPos + 14); // Bottom right
@@ -117,6 +118,10 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         }
                         ctx.closePath();
                         ctx.fill();
+                        
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.stroke();
                         
                         ctx.restore();
                         return; // Done drawing EXECUTION
@@ -168,6 +173,7 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                 // Draw Hovered Execution Sideways Arrows
                 this._hoveredExecutions.forEach(exec => {
+                    const { x, y, direction } = exec;
                     const size = 5;
                     
                     ctx.save();
@@ -186,7 +192,7 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     
                     // Vibrant inner stroke
                     ctx.lineWidth = 2.5;
-                    ctx.strokeStyle = direction === 'BUY' ? '#0062ff' : '#ff2a2a';
+                    ctx.strokeStyle = direction === 'BUY' ? '#007aff' : '#ff3b30';
                     ctx.stroke();
                     
                     ctx.restore();

@@ -36,8 +36,8 @@ export function TradeBadge({
 
   const isPosition = marker.type === 'POSITION';
 
-  const tvBlue = '#0062ff';
-  const tvRed = '#ff2a2a';
+  const tvBlue = '#007aff';
+  const tvRed = '#ff3b30';
   const tvGreen = '#089981';
   const tvOrange = '#ff9800';
 
