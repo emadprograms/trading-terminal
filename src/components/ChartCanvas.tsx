@@ -44,18 +44,6 @@ export function ChartCanvas({
           pointerEvents: 'none' 
         }} />
       )}
-      
-      {/* Pane Separator Line */}
-      <div style={{
-        position: 'absolute',
-        bottom: '15%',
-        left: 0,
-        right: 0,
-        height: '1px',
-        backgroundColor: highContrast ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.1)',
-        pointerEvents: 'none',
-        zIndex: 5
-      }} />
 
       {isViewModified && (
         <button 
