@@ -54,8 +54,9 @@ export function useKeyboardShortcuts({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput = e.target && ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'TEXTAREA');
-      const isDigit1Or2 = e.code === 'Digit1' || e.code === 'Digit2' || e.key === '1' || e.key === '2';
-      const isTradeShortcut = (e.ctrlKey || e.altKey) && isDigit1Or2 && !e.shiftKey;
+      const keyLowerForShortcut = e.key.toLowerCase();
+      const isTradeShortcutKey = e.code === 'KeyQ' || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || ['q','w','a','s'].includes(keyLowerForShortcut);
+      const isTradeShortcut = e.altKey && isTradeShortcutKey && !e.shiftKey;
 
       if (isInput && !isTradeShortcut) return;
 
@@ -93,61 +94,49 @@ export function useKeyboardShortcuts({
       }
 
       if (e.altKey || e.ctrlKey) {
-        const isKey1 = e.code === 'Digit1' || e.key === '1';
-        const isKey2 = e.code === 'Digit2' || e.key === '2';
+        const keyLower = e.key.toLowerCase();
 
-        if ((isKey1 || isKey2) && !e.shiftKey) {
-          e.preventDefault();
-          toast.info(`Shortcut block reached: ${e.ctrlKey ? 'Ctrl' : 'Alt'} + ${isKey1 ? '1' : '2'}`);
-          
-          const ticker = currentTickerRef.current;
-          const settings = useSettingsStore.getState().getOrderSettings(ticker);
-          const size = isKey1 ? settings.tradeSize : settings.tradeSize / 2;
-          
-          if (size <= 0) {
-            toast.error('Invalid trade size');
+        if (e.altKey) {
+          const isKeyQ = e.code === 'KeyQ' || keyLower === 'q';
+          const isKeyW = e.code === 'KeyW' || keyLower === 'w';
+          const isKeyA = e.code === 'KeyA' || keyLower === 'a';
+          const isKeyS = e.code === 'KeyS' || keyLower === 's';
+
+          if ((isKeyQ || isKeyW || isKeyA || isKeyS) && !e.shiftKey) {
+            e.preventDefault();
+            
+            const ticker = currentTickerRef.current;
+            const settings = useSettingsStore.getState().getOrderSettings(ticker);
+            const isFullSize = isKeyQ || isKeyA;
+            const size = isFullSize ? settings.tradeSize : settings.tradeSize / 2;
+            
+            if (size <= 0) {
+              toast.error('Invalid trade size');
+              return;
+            }
+
+            const priceData = usePriceStore.getState().prices[ticker];
+            const direction = (isKeyQ || isKeyW) ? 'BUY' : 'SELL';
+            
+            const promise = useTradeStore.getState().placeOrder({
+              epic: ticker,
+              size,
+              direction,
+              type: 'MARKET',
+              stopDistance: settings.stopDistance || undefined,
+              guaranteedStop: settings.guaranteedStop,
+              bid: priceData?.bid,
+              ofr: priceData?.ask || priceData?.ofr
+            });
+            toast.promise(promise, {
+              loading: `Placing ${direction} ${size}...`,
+              success: 'Order Submitted',
+              error: (err) => err.message || 'Placement Failed'
+            });
             return;
           }
-
-          const priceData = usePriceStore.getState().prices[ticker];
-          
-          if (e.ctrlKey) {
-            const promise = useTradeStore.getState().placeOrder({
-              epic: ticker,
-              size,
-              direction: 'BUY',
-              type: 'MARKET',
-              stopDistance: settings.stopDistance || undefined,
-              guaranteedStop: settings.guaranteedStop,
-              bid: priceData?.bid,
-              ofr: priceData?.ask || priceData?.ofr
-            });
-            toast.promise(promise, {
-              loading: `Placing BUY ${size}...`,
-              success: 'Order Submitted',
-              error: (err) => err.message || 'Placement Failed'
-            });
-          } else if (e.altKey) {
-            const promise = useTradeStore.getState().placeOrder({
-              epic: ticker,
-              size,
-              direction: 'SELL',
-              type: 'MARKET',
-              stopDistance: settings.stopDistance || undefined,
-              guaranteedStop: settings.guaranteedStop,
-              bid: priceData?.bid,
-              ofr: priceData?.ask || priceData?.ofr
-            });
-            toast.promise(promise, {
-              loading: `Placing SELL ${size}...`,
-              success: 'Order Submitted',
-              error: (err) => err.message || 'Placement Failed'
-            });
-          }
-          return;
         }
 
-        const keyLower = e.key.toLowerCase();
         const isKeyJ = e.code === 'KeyJ' || e.keyCode === 74 || keyLower === 'j' || keyLower === '∆';
         const isKeyE = e.code === 'KeyE' || e.keyCode === 69 || keyLower === 'e' || keyLower === '´';
         const isKeyR = e.code === 'KeyR' || e.keyCode === 82 || keyLower === 'r' || keyLower === '‰';
