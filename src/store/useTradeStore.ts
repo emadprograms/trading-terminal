@@ -33,7 +33,6 @@ interface TradeState {
   updatePositionTakeProfit: (dealId: string, profitLevel: number) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
-  syncExecutions: () => Promise<void>;
 }
 
 const BUFFER_TTL = 30000; // 30 seconds
@@ -152,13 +151,28 @@ export const useTradeStore = create<TradeState>()(
         try {
           await tradeApi.flattenPosition(dealId, position);
           
-          // Fetch authoritative exit execution from Capital.com transaction history
-          setTimeout(() => {
-            get().syncExecutions();
-          }, 0);
-          setTimeout(() => {
-            get().syncExecutions();
-          }, 1000);
+          // Get current price for exit marker
+          const priceStore = (await import('./usePriceStore')).usePriceStore;
+          const currentPriceObj = priceStore.getState().prices[position!.epic];
+          const exitPrice = currentPriceObj 
+              ? (position!.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+              : position!.currentPrice || position!.entryPrice;
+
+          if (exitPrice) {
+            const execExists = get().executions.some(e => e.dealId === dealId && e.action === 'EXIT');
+            if (!execExists) {
+              get().addExecution({
+                id: `${dealId}_EXIT_${Date.now()}`,
+                dealId: dealId,
+                epic: position!.epic,
+                size: position!.size,
+                price: exitPrice,
+                direction: position!.direction === 'BUY' ? 'SELL' : 'BUY',
+                timestamp: Date.now(),
+                action: 'EXIT'
+              });
+            }
+          }
 
           // If successful, immediately remove it locally.
           set((state) => {
@@ -213,6 +227,28 @@ export const useTradeStore = create<TradeState>()(
             try {
               await tradeApi.flattenPosition(pos.dealId, pos);
 
+              const priceStore = (await import('./usePriceStore')).usePriceStore;
+              const currentPriceObj = priceStore.getState().prices[pos.epic];
+              const exitPrice = currentPriceObj 
+                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                  : pos.currentPrice || pos.entryPrice;
+
+              if (exitPrice) {
+                const execExists = get().executions.some(e => e.dealId === pos.dealId && e.action === 'EXIT');
+                if (!execExists) {
+                  get().addExecution({
+                    id: `${pos.dealId}_EXIT_${Date.now()}`,
+                    dealId: pos.dealId,
+                    epic: pos.epic,
+                    size: pos.size,
+                    price: exitPrice,
+                    direction: pos.direction === 'BUY' ? 'SELL' : 'BUY',
+                    timestamp: Date.now(),
+                    action: 'EXIT'
+                  });
+                }
+              }
+
               set((state) => {
                 const newSet = new Set(state.closingDealIds);
                 newSet.delete(pos.dealId);
@@ -243,13 +279,6 @@ export const useTradeStore = create<TradeState>()(
           }
         } finally {
           set({ isExecuting: false });
-          // Fetch authoritative exit executions from Capital.com transaction history
-          setTimeout(() => {
-            get().syncExecutions();
-          }, 0);
-          setTimeout(() => {
-            get().syncExecutions();
-          }, 1000);
         }
       },
 
@@ -430,16 +459,59 @@ export const useTradeStore = create<TradeState>()(
               timestamp: new Date(data.createdDate || data.timestamp || Date.now()).getTime(),
             };
           });
-          
-          set({ 
-            positions: mappedPositions,
-            // optionally overwrite pending orders with active working orders
-            // pendingOrders: pendingOrders
+
+          const state = get();
+          const newExecutions: Execution[] = [];
+          const priceStore = (await import('./usePriceStore')).usePriceStore;
+
+          // 1. Detect new positions (ENTRY)
+          mappedPositions.forEach(p => {
+            const exists = state.positions.some(old => old.dealId === p.dealId);
+            if (!exists) {
+              const execExists = state.executions.some(e => e.dealId === p.dealId && e.action === 'ENTRY');
+              if (!execExists) {
+                newExecutions.push({
+                  id: `${p.dealId}_ENTRY_${p.timestamp || Date.now()}`,
+                  dealId: p.dealId,
+                  epic: p.epic,
+                  size: p.size,
+                  price: p.entryPrice,
+                  direction: p.direction,
+                  timestamp: p.timestamp || Date.now(),
+                  action: 'ENTRY'
+                });
+              }
+            }
+          });
+
+          // 2. Detect closed positions (EXIT)
+          state.positions.forEach(p => {
+            const stillExists = mappedPositions.some(newPos => newPos.dealId === p.dealId);
+            if (!stillExists) {
+              const execExists = state.executions.some(e => e.dealId === p.dealId && e.action === 'EXIT');
+              if (!execExists) {
+                const currentPriceObj = priceStore.getState().prices[p.epic];
+                const exitPrice = currentPriceObj 
+                    ? (p.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                    : p.entryPrice;
+
+                newExecutions.push({
+                  id: `${p.dealId}_EXIT_${Date.now()}`,
+                  dealId: p.dealId,
+                  epic: p.epic,
+                  size: p.size,
+                  price: exitPrice,
+                  direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
+                  timestamp: Date.now(),
+                  action: 'EXIT'
+                });
+              }
+            }
           });
           
-          // Actually, let's keep local pending orders (which might be market orders in transit)
-          // and just merge in the working orders from API.
           set(state => ({
+            positions: mappedPositions,
+            executions: newExecutions.length > 0 ? [...state.executions, ...newExecutions] : state.executions,
             pendingOrders: {
               ...state.pendingOrders,
               ...pendingOrders
@@ -700,13 +772,20 @@ export const useTradeStore = create<TradeState>()(
           positions: [...state.positions.filter((p) => p.dealId !== position.dealId), position],
         }));
         
-        // Fetch authoritative execution from Capital.com transaction history
-        setTimeout(() => {
-          get().syncExecutions();
-        }, 0);
-        setTimeout(() => {
-          get().syncExecutions();
-        }, 1000);
+        const timestamp = position.timestamp || Date.now();
+        const execExists = get().executions.some(e => e.dealId === position.dealId && e.action === 'ENTRY');
+        if (!execExists) {
+          get().addExecution({
+            id: `${position.dealId}_ENTRY_${timestamp}`,
+            dealId: position.dealId,
+            epic: position.epic,
+            size: position.size,
+            price: position.entryPrice,
+            direction: position.direction,
+            timestamp,
+            action: 'ENTRY'
+          });
+        }
       },
 
       removePosition: (dealId) => 
@@ -723,7 +802,8 @@ export const useTradeStore = create<TradeState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         pendingOrders: state.pendingOrders,
-        executions: state.executions
+        executions: state.executions,
+        positions: state.positions
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
