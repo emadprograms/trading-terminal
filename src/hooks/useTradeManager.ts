@@ -188,21 +188,45 @@ export function useTradeManager({
         // Find executions that match this exact candle
         const hovered = markers.filter(m => m.type === 'EXECUTION' && m.time === exactTime);
         if (hovered.length > 0) {
-          // Pass the physical coordinates to TradePlugin
-          const executionsToRender = hovered.map(hMarker => {
+          let closestExec = null;
+          let minDistance = Infinity;
+
+          for (const hMarker of hovered) {
             const execData = tickerExecutions.find(e => e.id === hMarker.id);
-            if (!execData) return null;
+            if (!execData) continue;
+
             const y = priceSeriesRef.current!.priceToCoordinate(execData.price);
-            if (y === null) return null;
-            return {
-              x: param.point.x,
-              y,
-              direction: execData.direction,
-              action: execData.action
-            };
-          }).filter(Boolean) as any[];
-          
-          tradePluginRef.current.setHoveredExecutions(executionsToRender);
+            if (y === null) continue;
+
+            let arrowY = y;
+            if (hMarker.direction === 'BUY' && hMarker.candleLow !== undefined) {
+              arrowY = priceSeriesRef.current!.priceToCoordinate(hMarker.candleLow) ?? y;
+            } else if (hMarker.direction === 'SELL' && hMarker.candleHigh !== undefined) {
+              arrowY = priceSeriesRef.current!.priceToCoordinate(hMarker.candleHigh) ?? y;
+            }
+
+            // Distance can be to the triangle (arrowY) or to the price level (y)
+            const dist = Math.min(
+              Math.abs(param.point.y - arrowY),
+              Math.abs(param.point.y - y)
+            );
+
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestExec = {
+                x: param.point.x,
+                y,
+                direction: execData.direction,
+                action: execData.action
+              };
+            }
+          }
+
+          if (closestExec) {
+            tradePluginRef.current.setHoveredExecutions([closestExec]);
+          } else {
+            tradePluginRef.current.setHoveredExecutions([]);
+          }
         } else {
           tradePluginRef.current.setHoveredExecutions([]);
         }
