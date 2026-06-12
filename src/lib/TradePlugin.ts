@@ -102,7 +102,7 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         const { x, direction } = item;
                         const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
                         
-                        ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
+                        ctx.fillStyle = direction === 'BUY' ? '#0062ff' : '#ff2a2a';
                         ctx.beginPath();
                         if (direction === 'BUY') {
                             // Up Triangle BELOW the candle low
@@ -168,19 +168,27 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                 // Draw Hovered Execution Sideways Arrows
                 this._hoveredExecutions.forEach(exec => {
-                    const arrowLen = 14;
-                    const halfH = 5;
-                    const { x, y, direction } = exec;
+                    const size = 5;
                     
                     ctx.save();
-                    ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
                     ctx.beginPath();
-                    // Sleek sideways modern pointer (solid triangle)
-                    ctx.moveTo(x, y); // Pointer tip exactly at the price on the candle
-                    ctx.lineTo(x - arrowLen, y - halfH);
-                    ctx.lineTo(x - arrowLen, y + halfH);
-                    ctx.closePath();
-                    ctx.fill();
+                    ctx.moveTo(x - size - 2, y - size); // Top left
+                    ctx.lineTo(x - 2, y);               // Middle tip (slightly offset from crosshair)
+                    ctx.lineTo(x - size - 2, y + size); // Bottom left
+                    
+                    ctx.lineJoin = 'round';
+                    ctx.lineCap = 'round';
+                    
+                    // White outline
+                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                    
+                    // Vibrant inner stroke
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = direction === 'BUY' ? '#0062ff' : '#ff2a2a';
+                    ctx.stroke();
+                    
                     ctx.restore();
                 });
 
