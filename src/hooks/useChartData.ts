@@ -107,6 +107,7 @@ export function useChartData({
     async function load() {
       setLocalMasterData([]);
       setIsLoadingHistory(true);
+      console.log(`[DEBUG-BLANK] 📡 useChartData: Starting load for ${ticker} (${timeframe})`);
       
       const targetCandles = 1000;
       
@@ -138,7 +139,10 @@ export function useChartData({
       setIsLoadingHistory(false);
     }
     load();
-    return () => { cancelled = true; };
+    return () => { 
+      console.log(`[DEBUG-BLANK] 📡 useChartData: Cancelling load effect for ${ticker}`);
+      cancelled = true; 
+    };
   }, [ticker, selectedDate, timeframe, isAuthenticated]);
 
   // Infinite Scroll Listener
@@ -208,7 +212,9 @@ export function useChartData({
     }
     */
     
-    return resampleData(filtered, timeframe);
+    const result = resampleData(filtered, timeframe);
+    console.log(`[DEBUG-BLANK] 🧮 chartData MEMO: masterLen=${localMasterData.length}, filteredLen=${filtered.length}, resampledLen=${result.length}, tf=${timeframe}, dataTfRef=${dataTimeframeRef.current}, match=${timeframe === dataTimeframeRef.current}`);
+    return result;
   }, [localMasterData, timeframe, showEth, isReplayMode, globalTime]);
 
   return {
