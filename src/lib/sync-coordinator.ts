@@ -240,6 +240,42 @@ export class SyncCoordinator {
         }
       }
 
+      // 5b. Bridge Gap Detection for Companion 30min data (for 1D ETH toggling)
+      if (timeframe === '1D' && getTzForTicker(ticker) !== 'UTC') {
+        const intraKey = this.getCacheKey(ticker, '30min');
+        const intraCache = this.cache.get(intraKey);
+        
+        if (intraCache && intraCache.length > 0) {
+          const lastIntra = intraCache[intraCache.length - 1];
+          const lastIntraTimeMs = new Date(lastIntra.time.replace(' ', 'T') + 'Z').getTime();
+          
+          if (firstWsTimeMs - lastIntraTimeMs > 30 * 60000) {
+            console.log(`[SyncCoordinator] Companion 30min gap detected for ${ticker}. Fetching bridge...`);
+            if (!abortSignal || !abortSignal.aborted) {
+              const bridgeTo = new Date(firstWsTimeMs).toISOString();
+              const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, '30min');
+              
+              if (bridgeData && bridgeData.length > 0) {
+                const merged = [...intraCache, ...bridgeData];
+                const seen = new Set<string>();
+                const newIntra: RawBar[] = [];
+                
+                merged.sort((a, b) => a.time.localeCompare(b.time));
+                for (const bar of merged) {
+                  if (!seen.has(bar.time)) {
+                    seen.add(bar.time);
+                    newIntra.push(bar);
+                  }
+                }
+                
+                this.cache.set(intraKey, newIntra);
+                console.log(`[SyncCoordinator] Companion bridge complete for ${ticker}. Added ${bridgeData.length} bars.`);
+              }
+            }
+          }
+        }
+      }
+
       // 6. Replay buffered ticks to ensure store is up to date
       if (buffer.length > 0) {
         console.log(`[SyncCoordinator] Replaying ${buffer.length} buffered ticks for ${ticker}.`);
