@@ -164,15 +164,15 @@ export const Watchlist: React.FC = () => {
             top: '100%',
             left: '16px',
             right: '16px',
-            background: 'rgba(0, 0, 0, 0.95)',
-            backdropFilter: 'var(--glass-blur)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            marginTop: '4px',
+            background: 'rgba(28, 30, 35, 0.98)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '6px',
+            marginTop: '8px',
             maxHeight: '300px',
             overflowY: 'auto',
             zIndex: 100,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)',
           }}>
             {isSearching && searchResults.length === 0 ? (
               <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>Searching...</div>
