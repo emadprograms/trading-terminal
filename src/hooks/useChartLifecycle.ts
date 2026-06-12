@@ -90,7 +90,7 @@ export function useChartLifecycle({
     chartContainerRef,
     ticker,
     timeframe,
-    onAtEndChange: useCallback((atEnd: boolean) => setIsAtEnd(atEnd), []),
+    onViewStateChange: useCallback((atEnd: boolean, autoScale: boolean) => setIsViewModified(!atEnd || !autoScale), []),
   });
 
   const {
@@ -115,6 +115,7 @@ export function useChartLifecycle({
     syncViewport,
     checkAutoReveal,
     scrollToRealTime,
+    resetView,
   } = useChartViewport({
     chartRef,
     priceSeriesRef,
@@ -137,7 +138,7 @@ export function useChartLifecycle({
     onUpdateDrawings,
   });
 
-  const [isAtEnd, setIsAtEnd] = useState(true);
+  const [isViewModified, setIsViewModified] = useState(false);
   const [chartUpdateTick, setChartUpdateTick] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   
@@ -574,8 +575,8 @@ export function useChartLifecycle({
     volumeSeriesRef: initVolumeSeriesRef,
     tradePluginRef,
     pluginVersion,
-    isAtEnd,
-    scrollToRealTime,
+    isViewModified,
+    resetView,
     isHydrated,
   };
 }

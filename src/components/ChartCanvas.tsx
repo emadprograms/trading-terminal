@@ -1,13 +1,13 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { RefreshCcw } from 'lucide-react';
 import { TradeBadge } from './TradeBadge';
 import type { ChartMarker } from '../lib/TradePlugin';
 
 interface ChartCanvasProps {
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
   isDrawingMode: boolean;
-  isAtEnd: boolean;
-  scrollToRealTime: () => void;
+  isViewModified: boolean;
+  resetView: () => void;
   markers: ChartMarker[];
   onRegisterBadge: (id: string, ref: React.RefObject<HTMLDivElement | null>) => void;
   onCloseTrade?: (id: string) => void;
@@ -20,8 +20,8 @@ interface ChartCanvasProps {
 export function ChartCanvas({
   chartContainerRef,
   isDrawingMode,
-  isAtEnd,
-  scrollToRealTime,
+  isViewModified,
+  resetView,
   markers,
   onRegisterBadge,
   onCloseTrade,
@@ -43,13 +43,13 @@ export function ChartCanvas({
         }} />
       )}
 
-      {!isAtEnd && (
+      {isViewModified && (
         <button 
           className="scroll-to-end-btn"
-          onClick={scrollToRealTime}
-          title="Scroll to latest"
+          onClick={resetView}
+          title="Reset View"
         >
-          <ChevronRight size={18} />
+          <RefreshCcw size={16} />
         </button>
       )}
 

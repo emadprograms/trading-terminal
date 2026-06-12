@@ -24,6 +24,13 @@ export function useChartViewport({
     }
   }, [chartRef]);
 
+  const resetView = useCallback(() => {
+    if (chartRef.current) {
+      chartRef.current.timeScale().scrollToRealTime();
+      chartRef.current.priceScale('right').applyOptions({ autoScale: true });
+    }
+  }, [chartRef]);
+
   const syncViewport = useCallback((isSameContext: boolean) => {
     if (!chartRef.current || !priceSeriesRef.current || chartData.length === 0) return;
 
@@ -104,5 +111,6 @@ export function useChartViewport({
     syncViewport,
     checkAutoReveal,
     scrollToRealTime,
+    resetView,
   };
 }

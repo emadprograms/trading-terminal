@@ -168,8 +168,8 @@ export default function ChartUnit({
         <ChartCanvas
           chartContainerRef={chartContainerRef}
           isDrawingMode={keyboard.isDrawingMode}
-          isAtEnd={chart.isAtEnd}
-          scrollToRealTime={chart.scrollToRealTime}
+          isViewModified={chart.isViewModified}
+          resetView={chart.resetView}
           markers={trade.markers}
           onRegisterBadge={trade.handleRegisterBadge}
           onDragMarker={trade.onDragMarker}

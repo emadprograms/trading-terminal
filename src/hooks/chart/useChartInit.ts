@@ -7,14 +7,14 @@ interface UseChartInitParams {
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
   ticker: string;
   timeframe: Timeframe;
-  onAtEndChange: (atEnd: boolean) => void;
+  onViewStateChange: (atEnd: boolean, autoScale: boolean) => void;
 }
 
 export function useChartInit({
   chartContainerRef,
   ticker,
   timeframe,
-  onAtEndChange,
+  onViewStateChange,
 }: UseChartInitParams) {
   const chartRef = useRef<IChartApi | null>(null);
   const priceSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -68,10 +68,25 @@ export function useChartInit({
             if (bars.length > 0) {
                 const lastBarIndex = bars.length - 1;
                 const newAtEnd = logicalRange.to >= lastBarIndex - 0.5;
-                onAtEndChange(newAtEnd);
+                const autoScale = chart.priceScale('right').options().autoScale;
+                onViewStateChange(newAtEnd, autoScale !== false);
             }
         }
     });
+
+    const intervalId = setInterval(() => {
+        if (!priceSeriesRef.current) return;
+        const ts = chart.timeScale();
+        const logicalRange = ts.getVisibleLogicalRange();
+        const bars = priceSeriesRef.current.data();
+        let isAtEnd = true;
+        if (logicalRange && bars.length > 0) {
+            const lastBarIndex = bars.length - 1;
+            isAtEnd = logicalRange.to >= lastBarIndex - 0.5;
+        }
+        const autoScale = chart.priceScale('right').options().autoScale;
+        onViewStateChange(isAtEnd, autoScale !== false);
+    }, 250);
 
     chart.priceScale('right').applyOptions({
       scaleMargins: {
@@ -118,6 +133,7 @@ export function useChartInit({
 
     return () => {
       console.log(`[DEBUG-BLANK] 💥 useChartInit: DESTROYING chart instance`);
+      clearInterval(intervalId);
       resizeObserver.disconnect();
       chart.remove();
       chartRef.current = null;
