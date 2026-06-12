@@ -112,7 +112,8 @@ export class SyncCoordinator {
     timeframe: Timeframe, 
     toIso: string, 
     targetCandles: number,
-    onCacheHit?: (data: RawBar[]) => void
+    onCacheHit?: (data: RawBar[]) => void,
+    abortSignal?: AbortSignal
   ): Promise<RawBar[]> {
     console.log(`[DEBUG-BLANK] 🔄 SyncCoordinator.syncTicker START: ${ticker} (${timeframe})`);
     this.activeSyncs++;
@@ -134,6 +135,14 @@ export class SyncCoordinator {
 
       // 3. Fetch initial history if cache was empty — INDEPENDENT fetch, never shared
       if (!history || history.length === 0) {
+        if (abortSignal) {
+          await new Promise(r => setTimeout(r, 150));
+          if (abortSignal.aborted) {
+            console.log(`[SyncCoordinator] Initial fetch aborted for ${ticker} due to rapid switching`);
+            wsManager.setBuffering(ticker, false);
+            return [];
+          }
+        }
         history = await this.fetchWithRetry(ticker, toIso, targetCandles, timeframe);
 
         if (!history || history.length === 0) {
@@ -169,27 +178,38 @@ export class SyncCoordinator {
         const gapMins = Math.round((firstWsTimeMs - lastRestTimeMs) / 60000);
         console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. Fetching bridge...`);
         
-        const bridgeTo = new Date(firstWsTimeMs).toISOString();
-        const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
-        
-        if (bridgeData && bridgeData.length > 0) {
-          // Merge and deduplicate
-          const merged = [...history, ...bridgeData];
-          const seen = new Set<string>();
-          history = [];
-          
-          merged.sort((a, b) => a.time.localeCompare(b.time));
-          for (const bar of merged) {
-            if (!seen.has(bar.time)) {
-              seen.add(bar.time);
-              history.push(bar);
-            }
+        if (abortSignal) {
+          await new Promise(r => setTimeout(r, 150));
+          if (abortSignal.aborted) {
+            console.log(`[SyncCoordinator] Bridge fetch aborted for ${ticker} due to rapid switching`);
+            // We return just the history since the request was aborted
+            // The buffer will still be replayed below
           }
+        }
+
+        if (!abortSignal || !abortSignal.aborted) {
+          const bridgeTo = new Date(firstWsTimeMs).toISOString();
+          const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
           
-          // Update cache with bridged data
-          this.cache.set(cacheKey, history);
-          
-          console.log(`[SyncCoordinator] Bridge complete for ${ticker}. Added ${bridgeData.length} bars.`);
+          if (bridgeData && bridgeData.length > 0) {
+            // Merge and deduplicate
+            const merged = [...history, ...bridgeData];
+            const seen = new Set<string>();
+            history = [];
+            
+            merged.sort((a, b) => a.time.localeCompare(b.time));
+            for (const bar of merged) {
+              if (!seen.has(bar.time)) {
+                seen.add(bar.time);
+                history.push(bar);
+              }
+            }
+            
+            // Update cache with bridged data
+            this.cache.set(cacheKey, history);
+            
+            console.log(`[SyncCoordinator] Bridge complete for ${ticker}. Added ${bridgeData.length} bars.`);
+          }
         }
       }
 

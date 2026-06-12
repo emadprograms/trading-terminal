@@ -75,6 +75,7 @@ export function useChartData({
   const pendingHistoryPrependRef = useRef<HistoryPrependState | null>(null);
 
   const dataTimeframeRef = useRef(timeframe);
+  const dataTickerRef = useRef(ticker);
   const isFirstRender = useRef(true);
 
   const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
@@ -103,7 +104,10 @@ export function useChartData({
       return;
     }
 
+    pendingHistoryPrependRef.current = null;
     let cancelled = false;
+    const abortController = new AbortController();
+
     async function load() {
       setLocalMasterData([]);
       setIsLoadingHistory(true);
@@ -123,9 +127,11 @@ export function useChartData({
             earliestLoadedDateRef.current = cachedData[0].time;
           }
           dataTimeframeRef.current = timeframe;
+          dataTickerRef.current = ticker;
           setLocalMasterData(cachedData as RawBar[]);
           setIsLoadingHistory(false);
-        }
+        },
+        abortController.signal
       );
       
       if (cancelled) return;
@@ -135,6 +141,7 @@ export function useChartData({
         earliestLoadedDateRef.current = data[0].time;
       }
       dataTimeframeRef.current = timeframe;
+      dataTickerRef.current = ticker;
       setLocalMasterData(data as RawBar[]);
       setIsLoadingHistory(false);
     }
@@ -142,6 +149,7 @@ export function useChartData({
     return () => { 
       console.log(`[DEBUG-BLANK] 📡 useChartData: Cancelling load effect for ${ticker}`);
       cancelled = true; 
+      abortController.abort();
     };
   }, [ticker, selectedDate, timeframe, isAuthenticated]);
 
@@ -202,6 +210,7 @@ export function useChartData({
   const chartData = useMemo(() => {
     if (!localMasterData || localMasterData.length === 0) return [];
     if (timeframe !== dataTimeframeRef.current) return [];
+    if (ticker !== dataTickerRef.current) return [];
     
     let filtered = (showEth && timeframe !== '1D') ? localMasterData : localMasterData.filter(d => d.session === 'REG');
     
