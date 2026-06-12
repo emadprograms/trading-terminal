@@ -158,11 +158,11 @@ export function useChartLifecycle({
     if (highContrast) {
         initChartRef.current.applyOptions({
             layout: { background: { color: '#cccccc' }, textColor: '#000000' },
-            grid: { vertLines: { color: '#d1d5db' }, horzLines: { color: '#d1d5db' } },
-            timeScale: { borderColor: '#b0b8c4' }
+            grid: { vertLines: { color: 'rgba(0, 0, 0, 0.12)' }, horzLines: { color: 'rgba(0, 0, 0, 0.12)' } },
+            timeScale: { borderColor: '#a3a3a3' }
         });
         initChartRef.current.priceScale('right').applyOptions({
-            borderColor: '#b0b8c4'
+            borderColor: '#a3a3a3'
         });
         initPriceSeriesRef.current.applyOptions({
             upColor: '#ffffff',
@@ -203,10 +203,10 @@ export function useChartLifecycle({
     if (!currentData || currentData.length === 0) return;
     
     const newData = currentData.map((item: any) => {
-      let isUp = item.color === '#26a69a' || item.color === '#999999';
+      let isUp = item.color === '#26a69a' || item.color === 'rgba(0, 0, 0, 0.15)' || item.color === '#999999';
       return {
         ...item,
-        color: isUp ? (highContrast ? '#999999' : '#26a69a') : (highContrast ? '#222222' : '#ef5350')
+        color: isUp ? (highContrast ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (highContrast ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
       };
     });
     initVolumeSeriesRef.current.setData(newData);
@@ -331,7 +331,7 @@ export function useChartLifecycle({
           return {
             time, 
             value: volume, 
-            color: isUp ? (highContrast ? '#999999' : '#26a69a') : (highContrast ? '#222222' : '#ef5350')
+            color: isUp ? (highContrast ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (highContrast ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
           };
         }));
         console.log(`[DEBUG-BLANK] ✅ Volume series setData succeeded`);
@@ -578,8 +578,8 @@ export function useChartLifecycle({
               time: bucketTime as any,
               value: lastCandle.volume,
               color: lastCandle.close >= lastCandle.open 
-                ? (highContrastRef.current ? '#999999' : '#26a69a') 
-                : (highContrastRef.current ? '#222222' : '#ef5350'),
+                ? (highContrastRef.current ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') 
+                : (highContrastRef.current ? 'rgba(0, 0, 0, 0.5)' : '#ef5350'),
             });
           } else {
             // New candle bucket
@@ -605,7 +605,7 @@ export function useChartLifecycle({
             initVolumeSeriesRef.current.update({
               time: bucketTime as any,
               value: 0,
-              color: highContrastRef.current ? '#999999' : '#26a69a',
+              color: highContrastRef.current ? 'rgba(0, 0, 0, 0.15)' : '#26a69a',
             });
           }
         } catch (err) {
