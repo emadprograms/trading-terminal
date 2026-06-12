@@ -11,6 +11,7 @@ import type {
     Coordinate
 } from 'lightweight-charts';
 import type { OrderDirection } from '../types/trade';
+import { usePriceStore } from '../store/usePriceStore';
 
 export interface ChartMarker {
     id: string;
@@ -220,7 +221,17 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                 return [];
             }
             return this._items.map(item => {
-                const y = item.price ? this._series!.priceToCoordinate(item.price) : null;
+                let price = item.price;
+                if ((!price || price === 0) && item.label === 'MARKET') {
+                    const currentPrices = usePriceStore.getState().prices[item.epic];
+                    if (currentPrices) {
+                        // For a BUY market order, you buy at the ASK price.
+                        // For a SELL market order, you sell at the BID price.
+                        price = item.direction === 'BUY' ? currentPrices.ask : currentPrices.bid;
+                    }
+                }
+
+                const y = price ? this._series!.priceToCoordinate(price) : null;
                 const parentY = item.parentPrice ? this._series!.priceToCoordinate(item.parentPrice) : null;
                 
                 const ref = this._badgeRefs.get(item.id);

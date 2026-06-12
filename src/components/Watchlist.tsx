@@ -1,21 +1,69 @@
-import React, { useState } from 'react';
-import { Plus, X, Activity } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, X, Activity, Search, Loader2 } from 'lucide-react';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { usePriceStore } from '../store/usePriceStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { useDebounce } from '../hooks/useDebounce';
+import { marketApi } from '../api/market';
+import { MarketSearchResult } from '../types';
 
 export const Watchlist: React.FC = () => {
   const [newSymbol, setNewSymbol] = useState('');
+  const [searchResults, setSearchResults] = useState<MarketSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  
+  const debouncedSearchTerm = useDebounce(newSymbol, 1000);
   const { symbols, addSymbol, removeSymbol } = useWatchlistStore();
   const prices = usePriceStore((state) => state.prices);
   const { selectedId, setTicker } = useWorkspaceStore();
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (debouncedSearchTerm.trim().length === 0) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const search = async () => {
+      setIsSearching(true);
+      try {
+        const results = await marketApi.searchMarkets(debouncedSearchTerm);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Search failed:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    search();
+  }, [debouncedSearchTerm]);
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (newSymbol.trim()) {
-      addSymbol(newSymbol);
+      addSymbol(newSymbol.toUpperCase());
       setNewSymbol('');
+      setShowResults(false);
     }
+  };
+
+  const handleAddSearchResult = (epic: string) => {
+    addSymbol(epic);
+    setNewSymbol('');
+    setShowResults(false);
   };
 
   const handleSelect = (symbol: string) => {
@@ -26,24 +74,33 @@ export const Watchlist: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)' }}>
+      <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', position: 'relative' }} ref={searchContainerRef}>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: '8px' }}>
-          <input
-            type="text"
-            placeholder="Add symbol..."
-            value={newSymbol}
-            onChange={(e) => setNewSymbol(e.target.value)}
-            style={{
-              flex: 1,
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)',
-              padding: '6px 10px',
-              borderRadius: '4px',
-              fontSize: '13px',
-              textTransform: 'uppercase'
-            }}
-          />
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              placeholder="Search markets..."
+              value={newSymbol}
+              onChange={(e) => {
+                setNewSymbol(e.target.value);
+                setShowResults(true);
+              }}
+              onFocus={() => setShowResults(true)}
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '6px 10px 6px 28px',
+                borderRadius: '4px',
+                fontSize: '13px',
+              }}
+            />
+            {isSearching && (
+              <Loader2 className="spinner" size={14} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', animation: 'spin 1s linear infinite' }} />
+            )}
+          </div>
           <button 
             type="submit"
             className="btn-primary"
@@ -53,6 +110,52 @@ export const Watchlist: React.FC = () => {
             <Plus size={16} />
           </button>
         </form>
+
+        {showResults && (newSymbol.trim().length > 0) && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: '16px',
+            right: '16px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '4px',
+            marginTop: '4px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            zIndex: 100,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          }}>
+            {isSearching && searchResults.length === 0 ? (
+              <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>Searching...</div>
+            ) : searchResults.length === 0 ? (
+              <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>No results found</div>
+            ) : (
+              searchResults.map(result => (
+                <div 
+                  key={result.epic}
+                  onClick={() => handleAddSearchResult(result.epic)}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>{result.instrumentName}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    {result.epic} <span style={{ opacity: 0.5 }}>• {result.instrumentType}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {symbols.length >= 40 && (
           <div style={{ fontSize: '10px', color: 'var(--accent-red)', marginTop: '4px' }}>
             Maximum 40 symbols reached.

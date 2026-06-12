@@ -1,5 +1,5 @@
 import { api } from './client';
-import { Timeframe, CapitalCandle } from '../types';
+import { Timeframe, CapitalCandle, MarketSearchResult } from '../types';
 import { mapTimeframeToResolution } from '../lib/api-utils';
 
 export interface FetchOptions {
@@ -69,5 +69,40 @@ export const marketApi = {
     }
 
     return data as CapitalCandle[];
+  },
+
+  /**
+   * Searches for markets by name or epic
+   * 
+   * @param searchTerm - The text to search for (e.g. "gas")
+   * @returns Array of matching markets
+   */
+  async searchMarkets(searchTerm: string): Promise<MarketSearchResult[]> {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return [];
+    }
+    
+    const query = new URLSearchParams();
+    query.append('searchTerm', searchTerm.trim());
+
+    const response = await api.get('markets', {
+      searchParams: query,
+      throwHttpErrors: false,
+    });
+
+    const responseData = await response.json() as any;
+
+    if (!response.ok) {
+      console.error(`[MarketAPI] Search Error: ${JSON.stringify(responseData)}`);
+      return [];
+    }
+
+    const data = responseData.markets;
+
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data as MarketSearchResult[];
   },
 };

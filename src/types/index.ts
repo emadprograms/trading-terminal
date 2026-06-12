@@ -39,6 +39,13 @@ export interface CapitalTick {
 /** Capital.com API resolutions */
 export type MarketResolution = 'MINUTE' | 'MINUTE_5' | 'MINUTE_15' | 'MINUTE_30' | 'HOUR' | 'DAY';
 
+/** Capital.com Market Search Result */
+export interface MarketSearchResult {
+  epic: string;
+  instrumentName: string;
+  instrumentType: string;
+}
+
 /** Resampled OHLCV bar (same shape, but time may be bucketed) */
 export type ChartBar = RawBar;
 
