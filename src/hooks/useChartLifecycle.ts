@@ -158,7 +158,7 @@ export function useChartLifecycle({
     if (highContrast) {
         initChartRef.current.applyOptions({
             layout: { background: { color: '#cccccc' }, textColor: '#000000' },
-            grid: { vertLines: { color: 'rgba(0, 0, 0, 0.12)' }, horzLines: { color: 'rgba(0, 0, 0, 0.12)' } },
+            grid: { vertLines: { color: 'rgba(0, 0, 0, 0.06)' }, horzLines: { color: 'rgba(0, 0, 0, 0.06)' } },
             timeScale: { borderColor: '#a3a3a3' }
         });
         initChartRef.current.priceScale('right').applyOptions({
