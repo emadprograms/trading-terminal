@@ -407,34 +407,36 @@ export function useChartLifecycle({
       const { bid, ask } = priceData;
       
       // Update Bid Line
+      const bidColor = highContrastRef.current ? '#999999' : '#ef5350';
       if (bid) {
         if (!bidLineRef.current) {
           bidLineRef.current = initPriceSeriesRef.current.createPriceLine({
             price: bid,
-            color: '#ef5350', // Red for bid (sell price)
+            color: bidColor, // Light gray for HC bid, Red for default
             lineWidth: 1,
             lineStyle: 2,
             axisLabelVisible: true,
             title: 'BID',
           });
         } else {
-          bidLineRef.current.applyOptions({ price: bid });
+          bidLineRef.current.applyOptions({ price: bid, color: bidColor });
         }
       }
 
       // Update Ask Line
+      const askColor = highContrastRef.current ? '#555555' : '#26a69a';
       if (ask) {
         if (!askLineRef.current) {
           askLineRef.current = initPriceSeriesRef.current.createPriceLine({
             price: ask,
-            color: '#26a69a', // Teal for ask (buy price)
+            color: askColor, // Dark grey for HC ask, Teal for default
             lineWidth: 1,
             lineStyle: 2,
             axisLabelVisible: true,
             title: 'ASK',
           });
         } else {
-          askLineRef.current.applyOptions({ price: ask });
+          askLineRef.current.applyOptions({ price: ask, color: askColor });
         }
       }
     });
