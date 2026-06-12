@@ -39,7 +39,7 @@ export function ChartCanvas({
         <div style={{ 
           position: 'absolute', 
           inset: 0, 
-          backgroundColor: highContrast ? '#e0e3eb' : 'var(--bg-dark)', 
+          backgroundColor: highContrast ? '#cccccc' : 'var(--bg-dark)', 
           zIndex: 10,
           pointerEvents: 'none' 
         }} />

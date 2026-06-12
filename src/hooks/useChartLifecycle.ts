@@ -157,7 +157,7 @@ export function useChartLifecycle({
 
     if (highContrast) {
         initChartRef.current.applyOptions({
-            layout: { background: { color: '#e0e3eb' }, textColor: '#000000' },
+            layout: { background: { color: '#cccccc' }, textColor: '#000000' },
             grid: { vertLines: { color: '#d1d5db' }, horzLines: { color: '#d1d5db' } },
             timeScale: { borderColor: '#b0b8c4' }
         });
@@ -169,6 +169,8 @@ export function useChartLifecycle({
             downColor: '#000000',
             borderVisible: true,
             borderColor: '#000000',
+            borderUpColor: '#000000',
+            borderDownColor: '#000000',
             wickUpColor: '#000000',
             wickDownColor: '#000000',
         });
@@ -186,11 +188,29 @@ export function useChartLifecycle({
             downColor: '#ef5350',
             borderVisible: false,
             borderColor: 'transparent',
+            borderUpColor: 'transparent',
+            borderDownColor: 'transparent',
             wickUpColor: '#26a69a',
             wickDownColor: '#ef5350',
         });
     }
   }, [highContrast, initChartRef.current, initPriceSeriesRef.current, initVolumeSeriesRef.current]);
+
+  // 3c. Update volume series colors when highContrast changes
+  useEffect(() => {
+    if (!initVolumeSeriesRef.current) return;
+    const currentData = initVolumeSeriesRef.current.data();
+    if (!currentData || currentData.length === 0) return;
+    
+    const newData = currentData.map((item: any) => {
+      let isUp = item.color === '#26a69a' || item.color === '#999999';
+      return {
+        ...item,
+        color: isUp ? (highContrast ? '#999999' : '#26a69a') : (highContrast ? '#222222' : '#ef5350')
+      };
+    });
+    initVolumeSeriesRef.current.setData(newData);
+  }, [highContrast, initVolumeSeriesRef.current]);
 
   const lastDataCountRef = useRef(0);
   const bidLineRef = useRef<IPriceLine | null>(null);
@@ -306,9 +326,14 @@ export function useChartLifecycle({
       }
       
       try {
-        initVolumeSeriesRef.current.setData(formatted.map(({ time, volume, open, close }) => ({
-          time, value: volume, color: close >= open ? '#26a69a' : '#ef5350'
-        })));
+        initVolumeSeriesRef.current.setData(formatted.map(({ time, volume, open, close }) => {
+          const isUp = close >= open;
+          return {
+            time, 
+            value: volume, 
+            color: isUp ? (highContrast ? '#999999' : '#26a69a') : (highContrast ? '#222222' : '#ef5350')
+          };
+        }));
         console.log(`[DEBUG-BLANK] ✅ Volume series setData succeeded`);
       } catch (err) {
         console.error(`[DEBUG-BLANK] ❌ Volume series setData FAILED:`, err);
@@ -475,9 +500,15 @@ export function useChartLifecycle({
 
   // 7. Live Tick Updates from WebSocket
   const isHydratedRef = useRef(false);
+  const highContrastRef = useRef(highContrast);
+  
   useEffect(() => {
     isHydratedRef.current = isHydrated;
   }, [isHydrated]);
+
+  useEffect(() => {
+    highContrastRef.current = highContrast;
+  }, [highContrast]);
 
   useEffect(() => {
     console.log(`[DEBUG-BLANK] 🎯 Effect 7 (Live Ticks) MOUNTING. ticker=${ticker}, tf=${timeframe}, isHydrated=${isHydrated}, price=${!!initPriceSeriesRef.current}, vol=${!!initVolumeSeriesRef.current}`);
@@ -544,7 +575,9 @@ export function useChartLifecycle({
             initVolumeSeriesRef.current.update({
               time: bucketTime as any,
               value: lastCandle.volume,
-              color: lastCandle.close >= lastCandle.open ? '#26a69a' : '#ef5350',
+              color: lastCandle.close >= lastCandle.open 
+                ? (highContrastRef.current ? '#999999' : '#26a69a') 
+                : (highContrastRef.current ? '#222222' : '#ef5350'),
             });
           } else {
             // New candle bucket
@@ -570,7 +603,7 @@ export function useChartLifecycle({
             initVolumeSeriesRef.current.update({
               time: bucketTime as any,
               value: 0,
-              color: '#26a69a',
+              color: highContrastRef.current ? '#999999' : '#26a69a',
             });
           }
         } catch (err) {
