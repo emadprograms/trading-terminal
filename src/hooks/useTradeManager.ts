@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { useTradeStore } from '../store/useTradeStore';
 import { usePriceStore } from '../store/usePriceStore';
-import type { ISeriesApi } from 'lightweight-charts';
+import type { ISeriesApi, SeriesMarker, Time } from 'lightweight-charts';
 import type { ChartBar } from '../types';
 import type { TradePlugin, ChartMarker } from '../lib/TradePlugin';
 
@@ -9,6 +9,7 @@ interface UseTradeManagerParams {
   ticker: string;
   chartData: ChartBar[];
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
+  chartRef: React.MutableRefObject<any>; // IChartApi
   priceSeriesRef: React.MutableRefObject<ISeriesApi<'Candlestick'> | null>;
   tradePluginRef: React.MutableRefObject<TradePlugin | null>;
   pluginVersion: number;
@@ -18,6 +19,7 @@ export function useTradeManager({
   ticker,
   chartData,
   chartContainerRef,
+  chartRef,
   priceSeriesRef,
   tradePluginRef,
   pluginVersion,
@@ -34,6 +36,12 @@ export function useTradeManager({
   const tickerOrders = useMemo(() => 
     Object.values(pendingOrders).filter(o => o.epic === ticker && o.status === 'PENDING'),
     [pendingOrders, ticker]
+  );
+
+  const executions = useTradeStore((state) => state.executions);
+  const tickerExecutions = useMemo(() => 
+    executions.filter(e => e.epic === ticker),
+    [executions, ticker]
   );
 
   const [dragPreview, setDragPreview] = React.useState<{ id: string, price: number } | null>(null);
@@ -142,6 +150,81 @@ export function useTradeManager({
       tradePluginRef.current.setItems(markers);
     }
   }, [markers, tradePluginRef, pluginVersion]);
+
+  // Render native execution markers
+  useEffect(() => {
+    if (!priceSeriesRef.current || chartData.length === 0) return;
+
+    const nativeMarkers: SeriesMarker<Time>[] = [];
+    tickerExecutions.forEach(e => {
+       // Find the closest bar timestamp <= execution timestamp
+       let matchBar = chartData[0];
+       for (const bar of chartData) {
+         if (new Date(bar.time + 'Z').getTime() <= e.timestamp) {
+           matchBar = bar;
+         } else {
+           break;
+         }
+       }
+       
+       nativeMarkers.push({
+         time: Math.floor(new Date(matchBar.time + 'Z').getTime() / 1000) as Time,
+         position: e.direction === 'BUY' ? 'belowBar' : 'aboveBar',
+         color: e.direction === 'BUY' ? '#2962ff' : '#f23645',
+         shape: e.direction === 'BUY' ? 'arrowUp' : 'arrowDown',
+         id: e.id,
+         text: ''
+       });
+    });
+
+    nativeMarkers.sort((a, b) => (a.time as number) - (b.time as number));
+    
+    try {
+      priceSeriesRef.current.setMarkers(nativeMarkers);
+    } catch (err) {
+      console.warn('[TradeManager] Failed to set markers:', err);
+    }
+
+    // Subscribe to crosshair move to detect hover over executions
+    if (chartRef.current && tradePluginRef.current) {
+      const handleCrosshairMove = (param: any) => {
+        if (!param.time || !param.point || !priceSeriesRef.current || !tradePluginRef.current) {
+          tradePluginRef.current?.setHoveredExecutions([]);
+          return;
+        }
+
+        const exactTime = param.time as number;
+        // Find executions that match this exact candle
+        const hovered = nativeMarkers.filter(m => m.time === exactTime);
+        if (hovered.length > 0) {
+          // Pass the physical coordinates to TradePlugin
+          const executionsToRender = hovered.map(hMarker => {
+            const execData = tickerExecutions.find(e => e.id === hMarker.id);
+            if (!execData) return null;
+            const y = priceSeriesRef.current!.priceToCoordinate(execData.price);
+            if (y === null) return null;
+            return {
+              x: param.point.x,
+              y,
+              direction: execData.direction,
+              action: execData.action
+            };
+          }).filter(Boolean) as any[];
+          
+          tradePluginRef.current.setHoveredExecutions(executionsToRender);
+        } else {
+          tradePluginRef.current.setHoveredExecutions([]);
+        }
+      };
+      
+      chartRef.current.subscribeCrosshairMove(handleCrosshairMove);
+      return () => {
+        try {
+          chartRef.current?.unsubscribeCrosshairMove(handleCrosshairMove);
+        } catch(e) {}
+      };
+    }
+  }, [tickerExecutions, chartData, priceSeriesRef, chartRef, tradePluginRef]);
 
   // Register badge refs
   const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {

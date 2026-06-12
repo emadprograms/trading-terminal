@@ -11,8 +11,10 @@ interface TradeState {
   watchdogTimers: Record<string, any>;
   isExecuting: boolean;
   closingDealIds: Set<string>;
+  executions: Execution[];
   
   // Actions
+  addExecution: (execution: Execution) => void;
   addPendingOrder: (dealReference: string, order: Order) => void;
   updateOrderStatus: (dealReference: string, status: OrderStatus, details?: Partial<Order>) => void;
   handleConfirmation: (payload: TradeConfirmation) => void;
@@ -47,6 +49,13 @@ export const useTradeStore = create<TradeState>()(
       watchdogTimers: {},
       isExecuting: false,
       closingDealIds: new Set<string>(),
+      executions: [],
+
+      addExecution: (execution) => {
+        set((state) => ({
+          executions: [...state.executions, execution]
+        }));
+      },
 
       placeOrder: async (params) => {
         set({ isExecuting: true });
@@ -141,6 +150,27 @@ export const useTradeStore = create<TradeState>()(
 
         try {
           await tradeApi.flattenPosition(dealId, position);
+          
+          // Get current price for exit marker
+          const priceStore = (await import('./usePriceStore')).usePriceStore;
+          const currentPriceObj = priceStore.getState().prices[position!.epic];
+          const exitPrice = currentPriceObj 
+              ? (position!.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+              : position!.currentPrice || position!.entryPrice;
+
+          if (exitPrice) {
+            get().addExecution({
+              id: `${dealId}_EXIT_${Date.now()}`,
+              dealId: dealId,
+              epic: position!.epic,
+              size: position!.size,
+              price: exitPrice,
+              direction: position!.direction === 'BUY' ? 'SELL' : 'BUY',
+              timestamp: Date.now(),
+              action: 'EXIT'
+            });
+          }
+
           // If successful, immediately remove it locally.
           set((state) => {
              const newSet = new Set(state.closingDealIds);
@@ -193,6 +223,26 @@ export const useTradeStore = create<TradeState>()(
 
             try {
               await tradeApi.flattenPosition(pos.dealId, pos);
+
+              const priceStore = (await import('./usePriceStore')).usePriceStore;
+              const currentPriceObj = priceStore.getState().prices[pos.epic];
+              const exitPrice = currentPriceObj 
+                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                  : pos.currentPrice || pos.entryPrice;
+
+              if (exitPrice) {
+                get().addExecution({
+                  id: `${pos.dealId}_EXIT_${Date.now()}`,
+                  dealId: pos.dealId,
+                  epic: pos.epic,
+                  size: pos.size,
+                  price: exitPrice,
+                  direction: pos.direction === 'BUY' ? 'SELL' : 'BUY',
+                  timestamp: Date.now(),
+                  action: 'EXIT'
+                });
+              }
+
               set((state) => {
                 const newSet = new Set(state.closingDealIds);
                 newSet.delete(pos.dealId);
@@ -644,15 +694,22 @@ export const useTradeStore = create<TradeState>()(
         });
       },
 
-      addPosition: (position) => 
-        set((state) => {
-          if (state.positions.find(p => p.dealId === position.dealId)) {
-            return state;
-          }
-          return {
-            positions: [...state.positions, position],
-          };
-        }),
+      addPosition: (position) => {
+        set((state) => ({
+          positions: [...state.positions.filter((p) => p.dealId !== position.dealId), position],
+        }));
+        
+        get().addExecution({
+          id: `${position.dealId}_ENTRY_${Date.now()}`,
+          dealId: position.dealId,
+          epic: position.epic,
+          size: position.size,
+          price: position.entryPrice,
+          direction: position.direction,
+          timestamp: position.timestamp || Date.now(),
+          action: 'ENTRY'
+        });
+      },
 
       removePosition: (dealId) => 
         set((state) => ({
@@ -666,7 +723,10 @@ export const useTradeStore = create<TradeState>()(
     {
       name: 'trade-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ pendingOrders: state.pendingOrders }),
+      partialize: (state) => ({ 
+        pendingOrders: state.pendingOrders,
+        executions: state.executions
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           Object.keys(state.pendingOrders).forEach(dealReference => {

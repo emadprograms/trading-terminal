@@ -38,11 +38,18 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
     _items: TradeRenderItem[];
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
     _hoveredId: string | null;
+    _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[];
 
-    constructor(items: TradeRenderItem[], badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>, hoveredId: string | null) {
+    constructor(
+        items: TradeRenderItem[], 
+        badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>, 
+        hoveredId: string | null,
+        hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[] = []
+    ) {
         this._items = items;
         this._badgeRefs = badgeRefs;
         this._hoveredId = hoveredId;
+        this._hoveredExecutions = hoveredExecutions;
     }
 
     draw(target: { useMediaCoordinateSpace: (callback: (scope: any) => void) => void }) {
@@ -126,6 +133,28 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     }
                 });
 
+                // Draw Hovered Execution Arrows
+                this._hoveredExecutions.forEach(exec => {
+                    const arrowLen = 14;
+                    const halfH = 5;
+                    const { x, y, direction } = exec;
+                    
+                    ctx.save();
+                    ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
+                    ctx.beginPath();
+                    // Draw sideways arrow pointing RIGHT at (x, y)
+                    ctx.moveTo(x - arrowLen, y - halfH);
+                    ctx.lineTo(x - 4, y - halfH);
+                    ctx.lineTo(x - 4, y - halfH - 3);
+                    ctx.lineTo(x, y); // arrow tip pointing to the exact price on the candle
+                    ctx.lineTo(x - 4, y + halfH + 3);
+                    ctx.lineTo(x - 4, y + halfH);
+                    ctx.lineTo(x - arrowLen, y + halfH);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                });
+
                 ctx.setLineDash([]);
                 ctx.restore();
             });
@@ -149,7 +178,7 @@ class TradePaneView implements ISeriesPrimitivePaneView {
     renderer(): ISeriesPrimitivePaneRenderer {
         try {
             const items = this._plugin._getViewData();
-            return new TradeRenderer(items, this._plugin._badgeRefs, this._plugin._hoveredId);
+            return new TradeRenderer(items, this._plugin._badgeRefs, this._plugin._hoveredId, this._plugin._hoveredExecutions);
         } catch(e) {
             console.error('TradePaneView renderer error:', e);
             return new TradeRenderer([], new Map(), null);
@@ -165,6 +194,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
     _items: ChartMarker[];
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
     _hoveredId: string | null;
+    _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[] = [];
 
     constructor() {
         this._chart = null;
@@ -188,6 +218,11 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
             this._hoveredId = id;
             this._requestUpdate();
         }
+    }
+
+    setHoveredExecutions(executions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[]) {
+        this._hoveredExecutions = executions;
+        this._requestUpdate();
     }
 
     registerBadgeRef(id: string, ref: React.RefObject<HTMLDivElement | null>) {

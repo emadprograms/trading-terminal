@@ -64,3 +64,18 @@ export interface TradeConfirmation {
   timestamp: number;
   reason?: string;
 }
+
+/**
+ * Represents a historical execution (entry or exit of a position).
+ * Used for drawing execution markers on the chart.
+ */
+export interface Execution {
+  id: string; // unique identifier (e.g., dealId + timestamp)
+  dealId: string;
+  epic: string;
+  size: number;
+  price: number;
+  direction: OrderDirection; // BUY or SELL
+  timestamp: number;
+  action: 'ENTRY' | 'EXIT';
+}

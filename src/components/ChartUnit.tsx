@@ -121,6 +121,7 @@ export default function ChartUnit({
     ticker: data.ticker,
     chartData: data.chartData, 
     chartContainerRef, 
+    chartRef,
     priceSeriesRef, 
     tradePluginRef: chart.tradePluginRef,
     pluginVersion: chart.pluginVersion
