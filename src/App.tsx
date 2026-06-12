@@ -29,6 +29,16 @@ export default function App() {
     handleFileUpload 
   } = useDatabase();
 
+  const globalHighContrast = useWorkspaceStore((state) => state.globalHighContrast);
+
+  useEffect(() => {
+    if (globalHighContrast) {
+      document.body.classList.add('theme-hc');
+    } else {
+      document.body.classList.remove('theme-hc');
+    }
+  }, [globalHighContrast]);
+
   const {
     selectedDate,
     setSelectedDate,
