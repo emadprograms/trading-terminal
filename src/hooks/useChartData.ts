@@ -3,6 +3,7 @@ import type { IChartApi, ISeriesApi, LogicalRange, CandlestickData } from 'light
 import type { ChartBar, GroupColor, RawBar, Timeframe, HistoryPrependState } from '../types';
 import { fetchMarketData, fetchHistoricalChunk } from '../lib/db';
 import { resampleData } from '../lib/resampling';
+import { getTzForTicker } from '../lib/timezones';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { wsManager } from '../lib/ws-manager';
@@ -72,6 +73,7 @@ export function useChartData({
 
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const earliestLoadedDateRef = useRef<string | null>(null);
+  const hasReachedHistoryEndRef = useRef<boolean>(false);
   const pendingHistoryPrependRef = useRef<HistoryPrependState | null>(null);
 
   const dataTimeframeRef = useRef(timeframe);
@@ -96,6 +98,16 @@ export function useChartData({
   useEffect(() => {
     if (onTimeframeChange) onTimeframeChange(id, timeframe);
   }, [timeframe, id, onTimeframeChange]);
+
+  // Force re-render when syncCoordinator finishes background fetching
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!ticker) return;
+    const unsubscribe = syncCoordinator.subscribe(ticker, timeframe, () => {
+      setTick(t => t + 1);
+    });
+    return () => unsubscribe();
+  }, [ticker, timeframe]);
 
   // Initial data fetch + Sync
   useEffect(() => {
@@ -139,6 +151,7 @@ export function useChartData({
       console.log(`[useChartData] Synced ${data?.length || 0} bars for ${ticker}`);
       if (data && data.length > 0) {
         earliestLoadedDateRef.current = data[0].time;
+        hasReachedHistoryEndRef.current = false;
       }
       dataTimeframeRef.current = timeframe;
       dataTickerRef.current = ticker;
@@ -162,7 +175,7 @@ export function useChartData({
     const onVisibleLogicalRangeChanged = async (newLogicalRange: LogicalRange | null) => {
       if (!newLogicalRange) return;
       
-      if (newLogicalRange.from < 100 && !isLoadingHistory && earliestLoadedDateRef.current) {
+      if (newLogicalRange.from < 100 && !isLoadingHistory && earliestLoadedDateRef.current && !hasReachedHistoryEndRef.current) {
         setIsLoadingHistory(true);
         try {
           const oldLogicalRange = timeScale.getVisibleLogicalRange();
@@ -171,6 +184,11 @@ export function useChartData({
           const chunk = await fetchHistoricalChunk(ticker, earliestLoadedDateRef.current, 1000, timeframe);
           
           if (chunk && chunk.length > 0) {
+            if (chunk[0].time === earliestLoadedDateRef.current) {
+               // No older data available
+               hasReachedHistoryEndRef.current = true;
+               return;
+            }
             earliestLoadedDateRef.current = chunk[0].time;
             
             let newData = [...chunk, ...localMasterData];
@@ -210,9 +228,27 @@ export function useChartData({
   const chartData = useMemo(() => {
     if (!localMasterData || localMasterData.length === 0) return [];
     if (timeframe !== dataTimeframeRef.current) return [];
-    if (ticker !== dataTickerRef.current) return [];
-    
-    let filtered = (showEth && timeframe !== '1D') ? localMasterData : localMasterData.filter(d => d.session === 'RTH');
+    let localMasterDataState = [...localMasterData];
+
+    if (timeframe === '1D' && !showEth && getTzForTicker(ticker) !== 'UTC') {
+      const intraday = syncCoordinator.getCache(ticker, '30min');
+      if (intraday && intraday.length > 0) {
+        const rthIntraday = intraday.filter(b => b.session === 'RTH');
+        const accurateRecentDaily = resampleData(rthIntraday, '1D');
+        if (accurateRecentDaily.length > 0) {
+          const oldestAccurateTime = accurateRecentDaily[0].time;
+          localMasterDataState = [
+            ...localMasterDataState.filter(b => b.time < oldestAccurateTime),
+            ...accurateRecentDaily
+          ];
+        }
+      }
+    }
+
+    let filtered = localMasterDataState;
+    if (!showEth && timeframe !== '1D') {
+      filtered = localMasterDataState.filter(d => d.session === 'RTH');
+    }
     
     // Legacy replay filtering disabled for Live Terminal
     /*

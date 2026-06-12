@@ -1,4 +1,5 @@
 import { wsManager } from './ws-manager';
+import { getTzForTicker } from './timezones';
 import { fetchMarketData, fetchHistoricalChunk } from './db';
 import { usePriceStore } from '../store/usePriceStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
@@ -7,6 +8,7 @@ import type { RawBar, Timeframe } from '../types';
 export class SyncCoordinator {
   private static instance: SyncCoordinator;
   private cache: Map<string, RawBar[]> = new Map();
+  private listeners: Map<string, Set<() => void>> = new Map();
 
   private constructor() {}
 
@@ -15,6 +17,18 @@ export class SyncCoordinator {
       SyncCoordinator.instance = new SyncCoordinator();
     }
     return SyncCoordinator.instance;
+  }
+
+  public subscribe(ticker: string, timeframe: Timeframe, cb: () => void) {
+    const key = this.getCacheKey(ticker, timeframe);
+    if (!this.listeners.has(key)) this.listeners.set(key, new Set());
+    this.listeners.get(key)!.add(cb);
+    return () => this.listeners.get(key)?.delete(cb);
+  }
+
+  public notifyListeners(ticker: string, timeframe: Timeframe) {
+    const key = this.getCacheKey(ticker, timeframe);
+    this.listeners.get(key)?.forEach(cb => cb());
   }
 
   public getCacheKey(ticker: string, timeframe: Timeframe): string {
@@ -151,6 +165,15 @@ export class SyncCoordinator {
           return [];
         }
         this.cache.set(cacheKey, history);
+
+        if (timeframe === '1D' && getTzForTicker(ticker) !== 'UTC') {
+          const intraKey = this.getCacheKey(ticker, '30min');
+          if (!this.cache.has(intraKey)) {
+            const intra = await this.fetchWithRetry(ticker, toIso, 1000, '30min');
+            this.cache.set(intraKey, intra);
+          }
+        }
+        
         if (onCacheHit) onCacheHit(history);
       }
 
