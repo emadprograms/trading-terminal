@@ -162,17 +162,17 @@ export const Watchlist: React.FC = () => {
           <div style={{
             position: 'absolute',
             top: '100%',
-            left: '16px',
-            right: '16px',
-            background: 'rgba(28, 30, 35, 0.98)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            left: '4px',
+            right: '4px',
+            background: 'rgba(10, 10, 12, 0.85)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '6px',
             marginTop: '8px',
             maxHeight: '300px',
             overflowY: 'auto',
             zIndex: 100,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.02)',
           }}>
             {isSearching && searchResults.length === 0 ? (
               <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>Searching...</div>
