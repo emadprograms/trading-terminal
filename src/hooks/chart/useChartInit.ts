@@ -91,7 +91,7 @@ export function useChartInit({
     chart.priceScale('right').applyOptions({
       scaleMargins: {
         top: 0.1,
-        bottom: 0.25,
+        bottom: 0.15,
       },
     });
 
@@ -111,7 +111,7 @@ export function useChartInit({
     
     volumeSeries.priceScale().applyOptions({
       scaleMargins: {
-        top: 0.8,
+        top: 0.85,
         bottom: 0,
       },
     });
