@@ -105,17 +105,15 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
                         ctx.beginPath();
                         if (direction === 'BUY') {
-                            // Up Arrow Chevron BELOW the candle low
-                            ctx.moveTo(x, yPos + 8);      // Top tip (closest to price)
-                            ctx.lineTo(x + 5, yPos + 20); // Bottom right
-                            ctx.lineTo(x, yPos + 16);     // Middle cutout
-                            ctx.lineTo(x - 5, yPos + 20); // Bottom left
+                            // Up Triangle BELOW the candle low
+                            ctx.moveTo(x, yPos + 6);      // Top tip
+                            ctx.lineTo(x + 4, yPos + 14); // Bottom right
+                            ctx.lineTo(x - 4, yPos + 14); // Bottom left
                         } else {
-                            // Down Arrow Chevron ABOVE the candle high
-                            ctx.moveTo(x, yPos - 8);      // Bottom tip (closest to price)
-                            ctx.lineTo(x + 5, yPos - 20); // Top right
-                            ctx.lineTo(x, yPos - 16);     // Middle cutout
-                            ctx.lineTo(x - 5, yPos - 20); // Top left
+                            // Down Triangle ABOVE the candle high
+                            ctx.moveTo(x, yPos - 6);      // Bottom tip
+                            ctx.lineTo(x + 4, yPos - 14); // Top right
+                            ctx.lineTo(x - 4, yPos - 14); // Top left
                         }
                         ctx.closePath();
                         ctx.fill();
@@ -177,10 +175,9 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     ctx.save();
                     ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
                     ctx.beginPath();
-                    // Sleek sideways modern pointer
+                    // Sleek sideways modern pointer (solid triangle)
                     ctx.moveTo(x, y); // Pointer tip exactly at the price on the candle
                     ctx.lineTo(x - arrowLen, y - halfH);
-                    ctx.lineTo(x - arrowLen + 3, y); // Cutout
                     ctx.lineTo(x - arrowLen, y + halfH);
                     ctx.closePath();
                     ctx.fill();
