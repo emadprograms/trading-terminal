@@ -69,6 +69,7 @@ export function useKeyboardShortcuts({
       const DOUBLE_PRESS_DELAY = 400;
 
       if (isCtrlKeyOnly) {
+        e.preventDefault();
         const now = Date.now();
         if (now - lastCtrlPressRef.current < DOUBLE_PRESS_DELAY) {
           useTradeStore.getState().flattenSymbol(currentTickerRef.current);
@@ -80,6 +81,7 @@ export function useKeyboardShortcuts({
       }
 
       if (isAltKeyOnly) {
+        e.preventDefault();
         const now = Date.now();
         if (now - lastAltPressRef.current < DOUBLE_PRESS_DELAY) {
           useTradeStore.getState().flattenHalfSymbol(currentTickerRef.current);
@@ -213,8 +215,8 @@ export function useKeyboardShortcuts({
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [chartContainerRef, drawType, onUpdateDrawings, setShowEth, updateKeyboardAction, isSelected, onNavigateWatchlist]);
 
   return {
