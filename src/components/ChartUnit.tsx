@@ -42,6 +42,7 @@ export default function ChartUnit({
   const isSelected = selectedId === id.toString();
 
   const [showVP, setShowVP] = React.useState(false);
+  const [highContrast, setHighContrast] = React.useState(false);
 
   // 1. Data management
   const data = useChartData({ 
@@ -84,6 +85,7 @@ export default function ChartUnit({
     timeframe: data.timeframe,
     showEth: data.showEth,
     showVP,
+    highContrast,
     chartData: data.chartData,
     localMasterData: data.localMasterData,
     isReplayMode,
@@ -148,6 +150,8 @@ export default function ChartUnit({
         setShowEth={data.setShowEth}
         showVP={showVP}
         setShowVP={setShowVP}
+        highContrast={highContrast}
+        setHighContrast={setHighContrast}
         isDrawingMode={keyboard.isDrawingMode}
         setIsDrawingMode={keyboard.setIsDrawingMode}
         drawType={keyboard.drawType}
@@ -194,6 +198,7 @@ export default function ChartUnit({
             }
           }}
           isHydrated={chart.isHydrated}
+          highContrast={highContrast}
         />
 
         

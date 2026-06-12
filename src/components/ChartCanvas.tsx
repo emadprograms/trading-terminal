@@ -15,6 +15,7 @@ interface ChartCanvasProps {
   onDropMarker?: (id: string) => void;
   onHoverMarker?: (id: string | null) => void;
   isHydrated: boolean;
+  highContrast?: boolean;
 }
 
 export function ChartCanvas({
@@ -28,7 +29,8 @@ export function ChartCanvas({
   onDragMarker,
   onDropMarker,
   onHoverMarker,
-  isHydrated
+  isHydrated,
+  highContrast = false
 }: ChartCanvasProps) {
   return (
     <div ref={chartContainerRef} style={{ flex: 1, position: 'relative', minHeight: 0, minWidth: 0, overflow: 'hidden', cursor: isDrawingMode ? 'crosshair' : 'default' }}>
@@ -37,7 +39,7 @@ export function ChartCanvas({
         <div style={{ 
           position: 'absolute', 
           inset: 0, 
-          backgroundColor: 'var(--bg-dark)', 
+          backgroundColor: highContrast ? '#e0e3eb' : 'var(--bg-dark)', 
           zIndex: 10,
           pointerEvents: 'none' 
         }} />

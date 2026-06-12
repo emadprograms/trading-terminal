@@ -38,6 +38,7 @@ interface UseChartLifecycleParams {
   timeframe: Timeframe;
   showEth: boolean;
   showVP: boolean;
+  highContrast: boolean;
   chartData: ChartBar[];
   localMasterData: RawBar[];
   isReplayMode: boolean;
@@ -62,6 +63,7 @@ export function useChartLifecycle({
   timeframe,
   showEth,
   showVP,
+  highContrast,
   chartData,
   localMasterData,
   isReplayMode,
@@ -149,6 +151,46 @@ export function useChartLifecycle({
     chartRef.current = initChartRef.current;
     priceSeriesRef.current = initPriceSeriesRef.current;
   }, [initChartRef.current, initPriceSeriesRef.current, chartRef, priceSeriesRef]);
+
+  useEffect(() => {
+    if (!initChartRef.current || !initPriceSeriesRef.current || !initVolumeSeriesRef.current) return;
+
+    if (highContrast) {
+        initChartRef.current.applyOptions({
+            layout: { background: { color: '#e0e3eb' }, textColor: '#000000' },
+            grid: { vertLines: { color: '#d1d5db' }, horzLines: { color: '#d1d5db' } },
+            timeScale: { borderColor: '#b0b8c4' }
+        });
+        initChartRef.current.priceScale('right').applyOptions({
+            borderColor: '#b0b8c4'
+        });
+        initPriceSeriesRef.current.applyOptions({
+            upColor: '#ffffff',
+            downColor: '#000000',
+            borderVisible: true,
+            borderColor: '#000000',
+            wickUpColor: '#000000',
+            wickDownColor: '#000000',
+        });
+    } else {
+        initChartRef.current.applyOptions({
+            layout: { background: { color: 'transparent' }, textColor: '#94a3b8' },
+            grid: { vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, horzLines: { color: 'rgba(255, 255, 255, 0.05)' } },
+            timeScale: { borderColor: 'rgba(255, 255, 255, 0.1)' }
+        });
+        initChartRef.current.priceScale('right').applyOptions({
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+        });
+        initPriceSeriesRef.current.applyOptions({
+            upColor: '#26a69a',
+            downColor: '#ef5350',
+            borderVisible: false,
+            borderColor: 'transparent',
+            wickUpColor: '#26a69a',
+            wickDownColor: '#ef5350',
+        });
+    }
+  }, [highContrast, initChartRef.current, initPriceSeriesRef.current, initVolumeSeriesRef.current]);
 
   const lastDataCountRef = useRef(0);
   const bidLineRef = useRef<IPriceLine | null>(null);
