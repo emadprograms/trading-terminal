@@ -117,7 +117,7 @@ body {
 }
 
 .terminal-header {
-  height: 48px;
+  height: 36px;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-color);
