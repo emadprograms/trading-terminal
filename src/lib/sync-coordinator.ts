@@ -35,6 +35,10 @@ export class SyncCoordinator {
     return `${ticker}_${timeframe}`;
   }
 
+  public getCache(ticker: string, timeframe: Timeframe): RawBar[] | undefined {
+    return this.cache.get(this.getCacheKey(ticker, timeframe));
+  }
+
   private prefetchQueue: { ticker: string; tf: Timeframe }[] = [];
   private isPrefetching = false;
   private pendingFetches: Map<string, Promise<RawBar[]>> = new Map();
