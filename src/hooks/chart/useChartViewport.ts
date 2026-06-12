@@ -20,13 +20,15 @@ export function useChartViewport({
 
   const scrollToRealTime = useCallback(() => {
     if (chartRef.current) {
-      chartRef.current.timeScale().scrollToPosition(0, false);
+      const ts = chartRef.current.timeScale();
+      ts.scrollToPosition(ts.options().rightOffset || 15, false);
     }
   }, [chartRef]);
 
   const resetView = useCallback(() => {
     if (chartRef.current) {
-      chartRef.current.timeScale().scrollToPosition(0, false);
+      const ts = chartRef.current.timeScale();
+      ts.scrollToPosition(ts.options().rightOffset || 15, false);
       chartRef.current.priceScale('right').applyOptions({ autoScale: true });
     }
   }, [chartRef]);
@@ -88,7 +90,7 @@ export function useChartViewport({
         }
         pendingHistoryPrependRef.current = null;
     } else {
-        ts.scrollToPosition(0, false);
+        ts.scrollToPosition(ts.options().rightOffset || 15, false);
     }
 
     lastDataCountRef.current = chartData.length;
