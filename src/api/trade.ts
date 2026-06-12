@@ -18,38 +18,43 @@ export interface LimitOrderParams extends MarketOrderParams {
   type: 'LIMIT' | 'STOP';
 }
 
-/**
- * Helper to extract a useful error message from an API error response.
- */
-async function extractApiError(error: any): Promise<string> {
-  const status = error.response?.status;
-  
-  if (error.response) {
-    let textBody = '';
-    try {
-      // Clone the response so we don't hit "body stream already read" errors
-      textBody = await error.response.clone().text();
-    } catch (e) {
-      console.error('[TradeAPI] Failed to read error response text:', e);
+async function fetchTradeApi(method: 'get'|'post'|'put'|'delete', path: string, jsonParams?: any): Promise<any> {
+  let response;
+  try {
+    const options: any = { throwHttpErrors: false };
+    if (jsonParams !== undefined && method !== 'get') {
+      options.json = jsonParams;
     }
-    
-    console.error(`[TradeAPI] HTTP ${status || '?'} response body:`, textBody || '(empty)');
-    
-    if (textBody) {
-      let parsed = null;
-      try { parsed = JSON.parse(textBody); } catch (e) {}
-      if (parsed) {
-        const code = parsed.errorCode || parsed.code || '';
-        const msg = parsed.developerMessage || parsed.message || parsed.reason || parsed.error || '';
-        if (code || msg) {
-          return `${code} ${msg}`.trim();
-        }
-      }
-      return textBody.substring(0, 200);
-    }
+    response = await api[method](path, options);
+  } catch (error: any) {
+    // Network errors or blocked requests
+    throw new Error(sanitizeErrorMessage(error));
   }
   
-  return sanitizeErrorMessage(error);
+  const textBody = await response.text();
+  let data: any = null;
+  if (textBody) {
+    try { data = JSON.parse(textBody); } catch(e) {}
+  }
+  
+  if (!response.ok) {
+    let msg = '';
+    if (data) {
+      const code = data.errorCode || data.code || '';
+      const desc = data.developerMessage || data.message || data.reason || data.error || '';
+      if (code || desc) {
+        // Only add the colon if we have both, otherwise just use the one we have
+        msg = (code && desc) ? `${code}: ${desc}` : `${code}${desc}`;
+      }
+    }
+    if (!msg) {
+      msg = textBody ? textBody.substring(0, 200) : `HTTP ${response.status}`;
+    }
+    console.error(`[TradeAPI] ${method.toUpperCase()} ${path} FAILED:`, msg);
+    throw new Error(msg);
+  }
+  
+  return data || {};
 }
 
 export const tradeApi = {
@@ -59,18 +64,12 @@ export const tradeApi = {
    */
   async placeMarketOrder(params: MarketOrderParams): Promise<string> {
     console.log('[TradeAPI] placeMarketOrder:', JSON.stringify(params));
-    try {
-      const response: any = await api.post('order/v1/positions', { json: params }).json();
-      if (!response.dealReference) {
-        throw new Error('API response missing dealReference');
-      }
-      console.log('[TradeAPI] placeMarketOrder success:', response.dealReference);
-      return response.dealReference;
-    } catch (error: any) {
-      const msg = await extractApiError(error);
-      console.error('[TradeAPI] placeMarketOrder FAILED:', msg);
-      throw new Error(`Trade API Error: ${msg}`);
+    const data = await fetchTradeApi('post', 'order/v1/positions', params);
+    if (!data.dealReference) {
+      throw new Error('API response missing dealReference');
     }
+    console.log('[TradeAPI] placeMarketOrder success:', data.dealReference);
+    return data.dealReference;
   },
 
   /**
@@ -79,18 +78,12 @@ export const tradeApi = {
    */
   async placeLimitOrder(params: LimitOrderParams): Promise<string> {
     console.log('[TradeAPI] placeLimitOrder:', JSON.stringify(params));
-    try {
-      const response: any = await api.post('order/v1/workingorders', { json: params }).json();
-      if (!response.dealReference) {
-        throw new Error('API response missing dealReference');
-      }
-      console.log('[TradeAPI] placeLimitOrder success:', response.dealReference);
-      return response.dealReference;
-    } catch (error: any) {
-      const msg = await extractApiError(error);
-      console.error('[TradeAPI] placeLimitOrder FAILED:', msg);
-      throw new Error(`Trade API Error: ${msg}`);
+    const data = await fetchTradeApi('post', 'order/v1/workingorders', params);
+    if (!data.dealReference) {
+      throw new Error('API response missing dealReference');
     }
+    console.log('[TradeAPI] placeLimitOrder success:', data.dealReference);
+    return data.dealReference;
   },
 
   /**
@@ -98,11 +91,7 @@ export const tradeApi = {
    * GET /api/v1/confirms/{dealReference}
    */
   async getConfirmation(dealReference: string): Promise<any> {
-    try {
-      return await api.get(`order/v1/confirms/${dealReference}`).json();
-    } catch (error: any) {
-      throw new Error(`Trade API Error: ${sanitizeErrorMessage(error)}`);
-    }
+    return await fetchTradeApi('get', `order/v1/confirms/${dealReference}`);
   },
 
   /**
@@ -116,39 +105,25 @@ export const tradeApi = {
     
     // Try the proper DELETE endpoint first
     try {
-      const response = await api.delete(`order/v1/positions/${dealId}`);
-      let data: any = {};
-      const text = await response.text();
-      if (text) {
-        try { data = JSON.parse(text); } catch (e) {}
-      }
+      const data = await fetchTradeApi('delete', `order/v1/positions/${dealId}`);
       console.log('[TradeAPI] closePosition DELETE success:', data);
       return { dealReference: data.dealReference || dealId, usedFallback: false };
     } catch (deleteError: any) {
-      const deleteStatus = deleteError.response?.status;
-      console.warn(`[TradeAPI] closePosition DELETE failed (HTTP ${deleteStatus}), trying counter-order fallback...`);
+      console.warn(`[TradeAPI] closePosition DELETE failed, trying counter-order fallback...`);
       
       // Fallback: place an opposite market order to net the position
       if (!position) {
         throw new Error('Position details required to close via counter-order fallback.');
       }
       
-      try {
-        const oppositeDirection = position.direction === 'BUY' ? 'SELL' : 'BUY';
-        const response: any = await api.post('order/v1/positions', { 
-          json: {
-            epic: position.epic,
-            size: position.size,
-            direction: oppositeDirection
-          } 
-        }).json();
-        console.log('[TradeAPI] closePosition counter-order success:', response.dealReference);
-        return { dealReference: response.dealReference, usedFallback: true };
-      } catch (fallbackError: any) {
-        const msg = await extractApiError(fallbackError);
-        console.error('[TradeAPI] closePosition both methods FAILED:', msg);
-        throw new Error(`Failed to close position: ${msg}`);
-      }
+      const oppositeDirection = position.direction === 'BUY' ? 'SELL' : 'BUY';
+      const data = await fetchTradeApi('post', 'order/v1/positions', { 
+        epic: position.epic,
+        size: position.size,
+        direction: oppositeDirection
+      });
+      console.log('[TradeAPI] closePosition counter-order success:', data.dealReference);
+      return { dealReference: data.dealReference, usedFallback: true };
     }
   },
 
@@ -165,20 +140,9 @@ export const tradeApi = {
    */
   async cancelWorkingOrder(id: string): Promise<string> {
     console.log(`[TradeAPI] cancelWorkingOrder DELETE order/v1/workingorders/${id}`);
-    try {
-      const response = await api.delete(`order/v1/workingorders/${id}`);
-      let data: any = {};
-      const text = await response.text();
-      if (text) {
-        try { data = JSON.parse(text); } catch (e) {}
-      }
-      console.log('[TradeAPI] cancelWorkingOrder success:', data);
-      return data.dealReference || id;
-    } catch (error: any) {
-      const msg = await extractApiError(error);
-      console.error('[TradeAPI] cancelWorkingOrder FAILED:', msg);
-      throw new Error(`Cancel order failed: ${msg}`);
-    }
+    const data = await fetchTradeApi('delete', `order/v1/workingorders/${id}`);
+    console.log('[TradeAPI] cancelWorkingOrder success:', data);
+    return data.dealReference || id;
   },
 
   /**
@@ -190,20 +154,9 @@ export const tradeApi = {
    */
   async updatePosition(dealId: string, params: { stopLevel?: number | null, profitLevel?: number | null }): Promise<string> {
     console.log(`[TradeAPI] updatePosition PUT order/v1/positions/${dealId}`, JSON.stringify(params));
-    try {
-      const response = await api.put(`order/v1/positions/${dealId}`, { json: params });
-      let data: any = {};
-      const text = await response.text();
-      if (text) {
-        try { data = JSON.parse(text); } catch (e) {}
-      }
-      console.log('[TradeAPI] updatePosition success:', data);
-      return data.dealReference || dealId;
-    } catch (error: any) {
-      const msg = await extractApiError(error);
-      console.error('[TradeAPI] updatePosition FAILED:', msg);
-      throw new Error(`Update position failed: ${msg}`);
-    }
+    const data = await fetchTradeApi('put', `order/v1/positions/${dealId}`, params);
+    console.log('[TradeAPI] updatePosition success:', data);
+    return data.dealReference || dealId;
   },
 
   /**
@@ -212,8 +165,8 @@ export const tradeApi = {
    */
   async fetchPositions(): Promise<any[]> {
     try {
-      const response: any = await api.get(`order/v1/positions?_t=${Date.now()}`).json();
-      return response.positions || [];
+      const data = await fetchTradeApi('get', `order/v1/positions?_t=${Date.now()}`);
+      return data.positions || [];
     } catch (error: any) {
       console.error('[TradeAPI] Failed to fetch positions:', error);
       return [];
@@ -226,8 +179,8 @@ export const tradeApi = {
    */
   async fetchWorkingOrders(): Promise<any[]> {
     try {
-      const response: any = await api.get(`order/v1/workingorders?_t=${Date.now()}`).json();
-      return response.workingOrders || [];
+      const data = await fetchTradeApi('get', `order/v1/workingorders?_t=${Date.now()}`);
+      return data.workingOrders || [];
     } catch (error: any) {
       console.error('[TradeAPI] Failed to fetch working orders:', error);
       return [];
