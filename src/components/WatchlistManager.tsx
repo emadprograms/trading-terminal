@@ -49,7 +49,5 @@ export function WatchlistManager() {
     }
   }, [isAuthenticated, symbols, timeframesMap]);
 
-  }, [isAuthenticated, symbols, timeframesMap]);
-
   return null;
 }
