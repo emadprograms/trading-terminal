@@ -3,6 +3,7 @@ import { Maximize2, Minimize2, Search, ChevronDown, Clock, Minus, Square, Trash2
 import { BORDER_COLORS, DrawType, GroupColor, Timeframe } from '../types';
 import { usePriceStore } from '../store/usePriceStore';
 import { useTradeStore } from '../store/useTradeStore';
+import { useWatchlistStore } from '../store/useWatchlistStore';
 
 interface ChartHeaderProps {
   ticker: string;
@@ -40,6 +41,7 @@ export function ChartHeader({
   const [tickerSearch, setTickerSearch] = useState('');
   const price = usePriceStore((state) => state.prices[ticker]);
   const positions = useTradeStore((state) => state.positions);
+  const watchlistSymbols = useWatchlistStore((state) => state.symbols);
 
   const tickerPositions = positions.filter(p => p.epic === ticker);
   const unrealizedPnL = React.useMemo(() => {
@@ -70,7 +72,7 @@ export function ChartHeader({
     return () => window.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const filteredTickers = tickers.filter(t => t.toLowerCase().includes(tickerSearch.toLowerCase()));
+  const filteredTickers = watchlistSymbols.filter(t => t.toLowerCase().includes(tickerSearch.toLowerCase()));
 
   const GROUP_RGB: Record<Exclude<GroupColor, 'none'>, string> = {
     red: '239, 83, 80',
