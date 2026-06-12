@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { usePriceStore } from '../store/usePriceStore';
 import { useTradeStore } from '../store/useTradeStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 import { OrderType } from '../types/trade';
 
 interface TradeControlsProps {
@@ -9,11 +10,18 @@ interface TradeControlsProps {
 }
 
 export function TradeControls({ ticker }: TradeControlsProps) {
-  const [tradeSize, setTradeSize] = useState(1);
+  const settings = useSettingsStore(state => state.orderSettings[ticker]);
+  const tradeSize = settings?.tradeSize ?? 1;
+  const stopDistance = settings?.stopDistance ?? 0;
+  const guaranteedStop = settings?.guaranteedStop ?? false;
+  const updateSettings = useSettingsStore(state => state.updateOrderSettings);
+
+  const setTradeSize = (val: number) => updateSettings(ticker, { tradeSize: val });
+  const setStopDistance = (val: number) => updateSettings(ticker, { stopDistance: val });
+  const setGuaranteedStop = (val: boolean) => updateSettings(ticker, { guaranteedStop: val });
+
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [level, setLevel] = useState<number>(0);
-  const [stopDistance, setStopDistance] = useState<number>(1);
-  const [guaranteedStop, setGuaranteedStop] = useState(false);
 
   const priceData = usePriceStore((state) => state.prices[ticker]);
   const placeOrder = useTradeStore((state) => state.placeOrder);

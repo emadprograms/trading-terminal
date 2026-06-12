@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { DrawType, KeyboardAction, RayDrawing, RectDrawing, RectPoint } from '../types';
+import { useTradeStore } from '../store/useTradeStore';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { usePriceStore } from '../store/usePriceStore';
+import { toast } from 'sonner';
 
 interface UseKeyboardShortcutsParams {
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -24,6 +28,9 @@ export function useKeyboardShortcuts({
   const [ghostPoint, setGhostPoint] = useState<RectPoint | null>(null);
   const [keyboardAction, setKeyboardAction] = useState<KeyboardAction>({ active: false, type: null, value: '' });
 
+  const lastCtrlPressRef = useRef<number>(0);
+  const lastAltPressRef = useRef<number>(0);
+
   const keyboardInputRef = useRef<HTMLInputElement>(null);
   const keyboardActionRef = useRef(keyboardAction);
 
@@ -46,14 +53,96 @@ export function useKeyboardShortcuts({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target && ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'TEXTAREA')) return;
+      const isInput = e.target && ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'TEXTAREA');
+      const isDigit1Or2 = e.code === 'Digit1' || e.code === 'Digit2' || e.key === '1' || e.key === '2';
+      const isTradeShortcut = (e.ctrlKey || e.altKey) && isDigit1Or2 && !e.shiftKey;
+
+      if (isInput && !isTradeShortcut) return;
 
       const container = chartContainerRef.current;
       if (!container) return;
       const isHovered = container.matches(':hover') || container.contains(document.activeElement);
-      if (!isHovered && !isSelected && !keyboardActionRef.current.active) return;
+      if (!isHovered && !isSelected && !keyboardActionRef.current.active && !isTradeShortcut) return;
+
+      const isAltKeyOnly = e.key === 'Alt';
+      const isCtrlKeyOnly = e.key === 'Control';
+      const DOUBLE_PRESS_DELAY = 400;
+
+      if (isCtrlKeyOnly) {
+        const now = Date.now();
+        if (now - lastCtrlPressRef.current < DOUBLE_PRESS_DELAY) {
+          useTradeStore.getState().flattenSymbol(currentTickerRef.current);
+          lastCtrlPressRef.current = 0;
+        } else {
+          lastCtrlPressRef.current = now;
+        }
+        return;
+      }
+
+      if (isAltKeyOnly) {
+        const now = Date.now();
+        if (now - lastAltPressRef.current < DOUBLE_PRESS_DELAY) {
+          useTradeStore.getState().flattenHalfSymbol(currentTickerRef.current);
+          lastAltPressRef.current = 0;
+        } else {
+          lastAltPressRef.current = now;
+        }
+        return;
+      }
 
       if (e.altKey || e.ctrlKey) {
+        const isKey1 = e.code === 'Digit1' || e.key === '1';
+        const isKey2 = e.code === 'Digit2' || e.key === '2';
+
+        if ((isKey1 || isKey2) && !e.shiftKey) {
+          e.preventDefault();
+          const ticker = currentTickerRef.current;
+          const settings = useSettingsStore.getState().getOrderSettings(ticker);
+          const size = isKey1 ? settings.tradeSize : settings.tradeSize / 2;
+          
+          if (size <= 0) {
+            toast.error('Invalid trade size');
+            return;
+          }
+
+          const priceData = usePriceStore.getState().prices[ticker];
+          
+          if (e.ctrlKey) {
+            const promise = useTradeStore.getState().placeOrder({
+              epic: ticker,
+              size,
+              direction: 'BUY',
+              type: 'MARKET',
+              stopDistance: settings.stopDistance || undefined,
+              guaranteedStop: settings.guaranteedStop,
+              bid: priceData?.bid,
+              ofr: priceData?.ask || priceData?.ofr
+            });
+            toast.promise(promise, {
+              loading: `Placing BUY ${size}...`,
+              success: 'Order Submitted',
+              error: (err) => err.message || 'Placement Failed'
+            });
+          } else if (e.altKey) {
+            const promise = useTradeStore.getState().placeOrder({
+              epic: ticker,
+              size,
+              direction: 'SELL',
+              type: 'MARKET',
+              stopDistance: settings.stopDistance || undefined,
+              guaranteedStop: settings.guaranteedStop,
+              bid: priceData?.bid,
+              ofr: priceData?.ask || priceData?.ofr
+            });
+            toast.promise(promise, {
+              loading: `Placing SELL ${size}...`,
+              success: 'Order Submitted',
+              error: (err) => err.message || 'Placement Failed'
+            });
+          }
+          return;
+        }
+
         const keyLower = e.key.toLowerCase();
         const isKeyJ = e.code === 'KeyJ' || e.keyCode === 74 || keyLower === 'j' || keyLower === '∆';
         const isKeyE = e.code === 'KeyE' || e.keyCode === 69 || keyLower === 'e' || keyLower === '´';
