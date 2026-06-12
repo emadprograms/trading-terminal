@@ -98,6 +98,8 @@ export function useKeyboardShortcuts({
 
         if ((isKey1 || isKey2) && !e.shiftKey) {
           e.preventDefault();
+          toast.info(`Shortcut block reached: ${e.ctrlKey ? 'Ctrl' : 'Alt'} + ${isKey1 ? '1' : '2'}`);
+          
           const ticker = currentTickerRef.current;
           const settings = useSettingsStore.getState().getOrderSettings(ticker);
           const size = isKey1 ? settings.tradeSize : settings.tradeSize / 2;
