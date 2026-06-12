@@ -45,17 +45,20 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
     _hoveredId: string | null;
     _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[];
+    _chart: IChartApi | null;
 
     constructor(
         items: TradeRenderItem[], 
         badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>, 
         hoveredId: string | null,
-        hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[] = []
+        hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[] = [],
+        chart: IChartApi | null = null
     ) {
         this._items = items;
         this._badgeRefs = badgeRefs;
         this._hoveredId = hoveredId;
         this._hoveredExecutions = hoveredExecutions;
+        this._chart = chart;
     }
 
     draw(target: { useMediaCoordinateSpace: (callback: (scope: any) => void) => void }) {
@@ -103,13 +106,15 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
                         
                         let scale = 1;
-                        const logicalRange = this._chart!.timeScale().getVisibleLogicalRange();
-                        if (logicalRange) {
-                            const width = this._chart!.timeScale().width();
-                            const barsVisible = logicalRange.to - logicalRange.from;
-                            const barSpacing = width / barsVisible;
-                            if (barSpacing < 8) {
-                                scale = Math.max(0.3, barSpacing / 8);
+                        if (this._chart) {
+                            const logicalRange = this._chart.timeScale().getVisibleLogicalRange();
+                            if (logicalRange) {
+                                const width = this._chart.timeScale().width();
+                                const barsVisible = logicalRange.to - logicalRange.from;
+                                const barSpacing = width / barsVisible;
+                                if (barSpacing < 8) {
+                                    scale = Math.max(0.3, barSpacing / 8);
+                                }
                             }
                         }
                         
@@ -237,10 +242,16 @@ class TradePaneView implements ISeriesPrimitivePaneView {
     renderer(): ISeriesPrimitivePaneRenderer {
         try {
             const items = this._plugin._getViewData();
-            return new TradeRenderer(items, this._plugin._badgeRefs, this._plugin._hoveredId, this._plugin._hoveredExecutions);
+            return new TradeRenderer(
+                items, 
+                this._plugin._badgeRefs, 
+                this._plugin._hoveredId, 
+                this._plugin._hoveredExecutions,
+                this._plugin._chart
+            );
         } catch(e) {
             console.error('TradePaneView renderer error:', e);
-            return new TradeRenderer([], new Map(), null);
+            return new TradeRenderer([], new Map(), null, [], null);
         }
     }
 }
