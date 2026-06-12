@@ -212,7 +212,7 @@ export function useChartData({
     if (timeframe !== dataTimeframeRef.current) return [];
     if (ticker !== dataTickerRef.current) return [];
     
-    let filtered = (showEth && timeframe !== '1D') ? localMasterData : localMasterData.filter(d => d.session === 'REG');
+    let filtered = (showEth && timeframe !== '1D') ? localMasterData : localMasterData.filter(d => d.session === 'RTH');
     
     // Legacy replay filtering disabled for Live Terminal
     /*

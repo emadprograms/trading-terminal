@@ -1,10 +1,12 @@
 import { CapitalCandle, RawBar } from '../types';
 
+import { getSessionType } from './timezones';
+
 /**
  * Transforms Capital.com API candles into the internal RawBar format.
  * Defaults to using 'bid' prices for chart rendering.
  */
-export function transformCapitalCandleToRawBar(candle: CapitalCandle, useAsk = false): RawBar {
+export function transformCapitalCandleToRawBar(candle: CapitalCandle, ticker: string, useAsk = false): RawBar {
   const priceKey = useAsk ? 'ask' : 'bid';
   
   // Convert ISO 8601 snapshotTime (e.g., "2024-01-15T14:30:00Z") 
@@ -28,12 +30,12 @@ export function transformCapitalCandleToRawBar(candle: CapitalCandle, useAsk = f
     low: getPrice(candle.lowPrice, priceKey),
     close: getPrice(candle.closePrice, priceKey),
     volume: candle.lastTradedVolume ?? 0, // Fallback to 0 if not provided
-    session: 'REG',
+    session: getSessionType(date.getTime() / 1000, ticker),
   };
 }
 
-export function transformCapitalCandles(candles: CapitalCandle[], useAsk = false): RawBar[] {
-  const transformed = candles.map(c => transformCapitalCandleToRawBar(c, useAsk));
+export function transformCapitalCandles(candles: CapitalCandle[], ticker: string, useAsk = false): RawBar[] {
+  const transformed = candles.map(c => transformCapitalCandleToRawBar(c, ticker, useAsk));
   
   // Sort in ascending order by time string (which is lexicographically sortable)
   transformed.sort((a, b) => a.time.localeCompare(b.time));

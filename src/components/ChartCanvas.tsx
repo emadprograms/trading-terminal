@@ -55,7 +55,7 @@ export function ChartCanvas({
         </button>
       )}
 
-      {markers.map((marker) => (
+      {markers.filter(m => m.type !== 'EXECUTION').map((marker) => (
         <BadgeWrapper 
           key={marker.id} 
           marker={marker} 

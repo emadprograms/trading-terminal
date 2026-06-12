@@ -16,7 +16,7 @@ export interface RawBar {
   low: number;
   close: number;
   volume: number;
-  session: 'REG' | 'PRE' | 'POST' | string;
+  session: 'RTH' | 'PRE' | 'POST' | string;
 }
 
 /** Capital.com API Candle response shape */

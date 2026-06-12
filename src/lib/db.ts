@@ -1,6 +1,8 @@
 import type { RawBar, Timeframe } from "../types";
 import { marketApi } from "../api/market";
 import { transformCapitalCandles } from "./data-adapter";
+import { getTzForTicker } from "./timezones";
+import { resampleData } from "./resampling";
 
 type WorkerRequest = 
   | { type: 'INIT_DB'; id: string }
@@ -90,8 +92,28 @@ export const db = new DatabaseWorkerProxy();
 
 export const fetchMarketData = async (ticker: string, dateIso: string, maxCandles = 1000, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
   try {
+    if (timeframe === '1D' && getTzForTicker(ticker) !== 'UTC') {
+      const [dailyCandlesResp, intradayCandlesResp] = await Promise.all([
+        marketApi.fetchCandles(ticker, '1D', { to: dateIso, max: maxCandles }).catch(() => []),
+        marketApi.fetchCandles(ticker, '30min', { to: dateIso, max: 1000 }).catch(() => [])
+      ]);
+
+      const dailyBars = transformCapitalCandles(dailyCandlesResp, ticker);
+      const intradayBars = transformCapitalCandles(intradayCandlesResp, ticker);
+
+      const rthIntraday = intradayBars.filter(b => b.session === 'RTH');
+      const accurateRecentDaily = resampleData(rthIntraday, '1D');
+
+      if (accurateRecentDaily.length === 0) return dailyBars;
+
+      const oldestAccurateTime = accurateRecentDaily[0].time;
+      const historicalDaily = dailyBars.filter(b => b.time < oldestAccurateTime);
+
+      return [...historicalDaily, ...accurateRecentDaily];
+    }
+
     const candles = await marketApi.fetchCandles(ticker, timeframe, { to: dateIso, max: maxCandles });
-    return transformCapitalCandles(candles);
+    return transformCapitalCandles(candles, ticker);
   } catch (error) {
     console.error(`[fetchMarketData] Error fetching data for ${ticker}:`, error);
     return [];
@@ -101,7 +123,7 @@ export const fetchMarketData = async (ticker: string, dateIso: string, maxCandle
 export const fetchHistoricalChunk = async (ticker: string, endTimestamp: string, maxCandles = 1000, timeframe: Timeframe = '1D'): Promise<RawBar[]> => {
   try {
     const candles = await marketApi.fetchCandles(ticker, timeframe, { to: endTimestamp, max: maxCandles });
-    return transformCapitalCandles(candles);
+    return transformCapitalCandles(candles, ticker);
   } catch (error) {
     console.error(`[fetchHistoricalChunk] Error fetching chunk for ${ticker}:`, error);
     return [];

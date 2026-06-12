@@ -25,6 +25,8 @@ export interface ChartMarker {
     parentPrice?: number;
     hasSL?: boolean;
     hasTP?: boolean;
+    candleLow?: number;
+    candleHigh?: number;
 }
 
 interface TradeRenderItem {
@@ -35,6 +37,7 @@ interface TradeRenderItem {
     isDashed?: boolean;
     parentY?: Coordinate | null;
     x?: Coordinate | null; // For EXECUTION
+    arrowY?: Coordinate | null; // For EXECUTION
 }
 
 class TradeRenderer implements ISeriesPrimitivePaneRenderer {
@@ -96,22 +99,23 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     if (item.type === 'EXECUTION' && item.x !== undefined && item.x !== null) {
                         // Draw sleek modern chevron arrow for executions
                         ctx.save();
-                        const { x, y, direction } = item;
+                        const { x, direction } = item;
+                        const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
                         
                         ctx.fillStyle = direction === 'BUY' ? '#2962ff' : '#f23645';
                         ctx.beginPath();
                         if (direction === 'BUY') {
-                            // Up Arrow Chevron
-                            ctx.moveTo(x, y + 5);      // Top tip (closest to price)
-                            ctx.lineTo(x + 5, y + 17); // Bottom right
-                            ctx.lineTo(x, y + 13);     // Middle cutout
-                            ctx.lineTo(x - 5, y + 17); // Bottom left
+                            // Up Arrow Chevron BELOW the candle low
+                            ctx.moveTo(x, yPos + 8);      // Top tip (closest to price)
+                            ctx.lineTo(x + 5, yPos + 20); // Bottom right
+                            ctx.lineTo(x, yPos + 16);     // Middle cutout
+                            ctx.lineTo(x - 5, yPos + 20); // Bottom left
                         } else {
-                            // Down Arrow Chevron
-                            ctx.moveTo(x, y - 5);      // Bottom tip (closest to price)
-                            ctx.lineTo(x + 5, y - 17); // Top right
-                            ctx.lineTo(x, y - 13);     // Middle cutout
-                            ctx.lineTo(x - 5, y - 17); // Top left
+                            // Down Arrow Chevron ABOVE the candle high
+                            ctx.moveTo(x, yPos - 8);      // Bottom tip (closest to price)
+                            ctx.lineTo(x + 5, yPos - 20); // Top right
+                            ctx.lineTo(x, yPos - 16);     // Middle cutout
+                            ctx.lineTo(x - 5, yPos - 20); // Top left
                         }
                         ctx.closePath();
                         ctx.fill();
@@ -294,6 +298,15 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                     parentY = this._series!.priceToCoordinate(item.parentPrice);
                 }
                 
+                let arrowY = y;
+                if (item.type === 'EXECUTION') {
+                    if (item.direction === 'BUY' && item.candleLow !== undefined) {
+                        arrowY = this._series!.priceToCoordinate(item.candleLow);
+                    } else if (item.direction === 'SELL' && item.candleHigh !== undefined) {
+                        arrowY = this._series!.priceToCoordinate(item.candleHigh);
+                    }
+                }
+                
                 const ref = this._badgeRefs.get(item.id);
                 if (ref && ref.current) {
                     if (y === null) {
@@ -311,7 +324,8 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                     type: item.type,
                     isDashed: item.isDashed,
                     parentY: parentY as Coordinate | null,
-                    x: x as Coordinate | null
+                    x: x as Coordinate | null,
+                    arrowY: arrowY as Coordinate | null
                 };
             }).filter(item => item.y !== null);
         } catch(e) {

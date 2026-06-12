@@ -125,6 +125,8 @@ export function useTradeManager({
          id: e.id,
          epic: e.epic,
          price: e.price,
+         candleLow: matchBar ? matchBar.low : undefined,
+         candleHigh: matchBar ? matchBar.high : undefined,
          direction: e.direction,
          size: e.size,
          type: 'EXECUTION',
