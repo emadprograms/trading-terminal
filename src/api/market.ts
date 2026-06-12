@@ -85,7 +85,7 @@ export const marketApi = {
     const query = new URLSearchParams();
     query.append('searchTerm', searchTerm.trim());
 
-    const response = await api.get('markets', {
+    const response = await api.get('market/v1/markets', {
       searchParams: query,
       throwHttpErrors: false,
     });
