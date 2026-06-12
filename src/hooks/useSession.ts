@@ -21,7 +21,7 @@ export function useSession(tickers: string[]) {
       console.log('[StabilityTrace] Initializing WebSocket connection and syncing positions...');
       wsManager.connect();
       useTradeStore.getState().syncPositions();
-      useTradeStore.getState().syncExecutions();
+      useTradeStore.getState().syncExecutions(7);
     }
     return () => {
       wsManager.disconnect();

@@ -35,7 +35,7 @@ interface TradeState {
   updatePositionTakeProfit: (dealId: string, profitLevel: number) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
-  syncExecutions: () => Promise<void>;
+  syncExecutions: (days?: number) => Promise<void>;
 }
 
 const BUFFER_TTL = 30000; // 30 seconds
@@ -634,10 +634,30 @@ export const useTradeStore = create<TradeState>()(
         }
       },
 
-      syncExecutions: async () => {
+      syncExecutions: async (days = 1) => {
         try {
-          const rawActivities = await tradeApi.fetchActivityHistory(86400);
-          const mapped: Execution[] = rawActivities
+          const allActivities: any[] = [];
+          const now = new Date();
+
+          for (let i = 0; i < days; i++) {
+            const to = new Date(now.getTime() - i * 24 * 3600000);
+            const from = new Date(now.getTime() - (i + 1) * 24 * 3600000);
+
+            // Format to YYYY-MM-DDTHH:MM:SS
+            const toStr = to.toISOString().split('.')[0];
+            const fromStr = from.toISOString().split('.')[0];
+
+            // Fetch detailed activity range
+            const rawDateActivities = await tradeApi.fetchActivityHistoryRange(fromStr, toStr);
+            allActivities.push(...rawDateActivities);
+
+            if (days > 1 && i < days - 1) {
+              // Throttle to respect rate limits
+              await new Promise(resolve => setTimeout(resolve, 150));
+            }
+          }
+
+          const mapped: Execution[] = allActivities
             .filter(a => a.type === 'POSITION' && a.status === 'ACCEPTED' && a.details)
             .map(a => {
               const d = a.details;

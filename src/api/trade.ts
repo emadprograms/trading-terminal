@@ -200,4 +200,18 @@ export const tradeApi = {
       return [];
     }
   },
+
+  /**
+   * Fetch detailed activity history for a specific date range.
+   * GET /api/v1/history/activity
+   */
+  async fetchActivityHistoryRange(from: string, to: string): Promise<any[]> {
+    try {
+      const data = await fetchTradeApi('get', `order/v1/history/activity?detailed=true&from=${from}&to=${to}&_t=${Date.now()}`);
+      return data.activities || [];
+    } catch (error: any) {
+      console.error('[TradeAPI] Failed to fetch activity history range:', error);
+      return [];
+    }
+  },
 };
