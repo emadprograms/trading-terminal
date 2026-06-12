@@ -27,12 +27,15 @@ interface TradeState {
 
   placeOrder: (params: (MarketOrderParams | LimitOrderParams) & { bid?: number, ofr?: number, level?: number }) => Promise<string>;
   flattenPosition: (dealId: string) => Promise<void>;
+  flattenSymbol: (epic: string) => Promise<void>;
+  flattenHalfSymbol: (epic: string) => Promise<void>;
   flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
   updatePositionStopLoss: (dealId: string, stopLevel: number) => Promise<void>;
   updatePositionTakeProfit: (dealId: string, profitLevel: number) => Promise<void>;
   cancelAllWorkingOrders: () => Promise<void>;
   syncPositions: () => Promise<void>;
+  syncExecutions: () => Promise<void>;
 }
 
 const BUFFER_TTL = 30000; // 30 seconds
@@ -208,6 +211,114 @@ export const useTradeStore = create<TradeState>()(
           } else {
               toast.error(`Failed to close: ${error.message || 'Unknown error'}`);
           }
+        }
+      },
+
+      flattenSymbol: async (epic) => {
+        const { positions } = get();
+        const symbolPositions = positions.filter(p => p.epic === epic);
+        if (symbolPositions.length === 0) return;
+
+        set({ isExecuting: true });
+        try {
+          for (const pos of symbolPositions) {
+            set((state) => {
+              const newSet = new Set(state.closingDealIds);
+              newSet.add(pos.dealId);
+              return { closingDealIds: newSet };
+            });
+
+            try {
+              await tradeApi.flattenPosition(pos.dealId, pos);
+
+              const priceStore = (await import('./usePriceStore')).usePriceStore;
+              const currentPriceObj = priceStore.getState().prices[pos.epic];
+              const exitPrice = currentPriceObj 
+                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                  : pos.currentPrice || pos.entryPrice;
+
+              if (exitPrice) {
+                const execExists = get().executions.some(e => e.dealId === pos.dealId && e.action === 'EXIT');
+                if (!execExists) {
+                  get().addExecution({
+                    id: `${pos.dealId}_EXIT_${Date.now()}`,
+                    dealId: pos.dealId,
+                    epic: pos.epic,
+                    size: pos.size,
+                    price: exitPrice,
+                    direction: pos.direction === 'BUY' ? 'SELL' : 'BUY',
+                    timestamp: Date.now(),
+                    action: 'EXIT'
+                  });
+                }
+              }
+
+              set((state) => {
+                const newSet = new Set(state.closingDealIds);
+                newSet.delete(pos.dealId);
+                return { 
+                    positions: state.positions.filter(p => p.dealId !== pos.dealId),
+                    closingDealIds: newSet 
+                };
+              });
+            } catch (error: any) {
+              console.error(`Failed to close position ${pos.dealId}:`, error);
+              set((state) => {
+                const newSet = new Set(state.closingDealIds);
+                newSet.delete(pos.dealId);
+                
+                if (error.message && (error.message.includes('404') || error.message.toLowerCase().includes('not found'))) {
+                     return { 
+                         positions: state.positions.filter(p => p.dealId !== pos.dealId),
+                         closingDealIds: newSet 
+                     };
+                }
+                
+                return { closingDealIds: newSet };
+              });
+            }
+            
+            // Throttle
+            await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
+          }
+        } finally {
+          set({ isExecuting: false });
+        }
+      },
+
+      flattenHalfSymbol: async (epic) => {
+        const { positions } = get();
+        const symbolPositions = positions.filter(p => p.epic === epic);
+        if (symbolPositions.length === 0) return;
+
+        set({ isExecuting: true });
+        try {
+          for (const pos of symbolPositions) {
+            const halfSize = pos.size / 2;
+            if (halfSize <= 0) continue; // Safety check
+
+            try {
+               const priceStore = (await import('./usePriceStore')).usePriceStore;
+               const currentPriceObj = priceStore.getState().prices[pos.epic];
+               
+               await get().placeOrder({
+                 epic: pos.epic,
+                 size: halfSize,
+                 direction: pos.direction === 'BUY' ? 'SELL' : 'BUY',
+                 type: 'MARKET',
+                 bid: currentPriceObj?.bid,
+                 ofr: currentPriceObj?.ask || currentPriceObj?.ofr
+               });
+            } catch (error: any) {
+              console.error(`Failed to halve position ${pos.dealId}:`, error);
+              toast.error(`Failed to halve position: ${error.message || 'Unknown error'}`);
+            }
+            
+            // Throttle
+            await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
+          }
+        } finally {
+          set({ isExecuting: false });
         }
       },
 
@@ -525,27 +636,35 @@ export const useTradeStore = create<TradeState>()(
 
       syncExecutions: async () => {
         try {
-          const rawTransactions = await tradeApi.fetchTransactionHistory();
-          const mappedExecutions: Execution[] = rawTransactions.map(t => {
-            const rawDate = t.dateUTC || t.date;
-            const timestamp = rawDate ? new Date(rawDate).getTime() : Date.now();
-            return {
-              id: t.id || String(t.reference || '') || `${t.epic || t.instrument || ''}_${timestamp}`,
-              dealId: String(t.reference || t.dealId || ''),
-              epic: t.epic || t.instrument || '',
-              size: Math.abs(t.size || t.amount || 0),
-              price: t.price || t.level || 0,
-              direction: t.direction || (t.amount > 0 ? 'BUY' : 'SELL'),
-              timestamp,
-              action: t.reference ? 'EXIT' : 'ENTRY'
-            };
-          });
+          const rawActivities = await tradeApi.fetchActivityHistory(86400);
+          const mapped: Execution[] = rawActivities
+            .filter(a => a.type === 'POSITION' && a.status === 'ACCEPTED' && a.details)
+            .map(a => {
+              const d = a.details;
+              const rawDate = a.dateUTC || a.date;
+              const timestamp = rawDate ? new Date(rawDate).getTime() : Date.now();
+              return {
+                id: `${a.dealId}_${d.direction}_${timestamp}`,
+                dealId: a.dealId,
+                epic: a.epic || '',
+                size: Math.abs(d.size || 0),
+                price: d.level || d.openPrice || 0,
+                direction: d.direction,
+                timestamp,
+                action: d.openPrice ? 'EXIT' : 'ENTRY'
+              };
+            });
 
-          set({ executions: mappedExecutions });
+          set(state => {
+            const currentExecMap = new Map(state.executions.map(e => [e.id, e]));
+            mapped.forEach(e => currentExecMap.set(e.id, e));
+            return { executions: Array.from(currentExecMap.values()) };
+          });
         } catch (error) {
           console.error('[TradeStore] Failed to sync executions:', error);
         }
       },
+
 
       addPendingOrder: (dealReference, order) => {
         set((state) => {
