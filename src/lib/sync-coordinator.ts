@@ -24,6 +24,7 @@ export class SyncCoordinator {
   private constructor() {}
 
   public static getInstance(): SyncCoordinator {
+    if (!SyncCoordinator.instance) {
       SyncCoordinator.instance = new SyncCoordinator();
     }
     return SyncCoordinator.instance;

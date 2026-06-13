@@ -205,7 +205,7 @@ describe('order handler (direct-to-Capital.com)', () => {
   });
 
   it('should forward DELETE request for closing positions', async () => {
-    const orderHandler = (await import('./order')).default;
+    const orderHandler = (await import('../../api/order')).default;
     
     (request as any).mockResolvedValue({
       statusCode: 200,

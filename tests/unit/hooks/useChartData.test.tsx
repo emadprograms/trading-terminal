@@ -1,16 +1,16 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useChartData } from '../../src/hooks/useChartData';
-import { syncCoordinator } from '../../src/lib/sync-coordinator';
-import { fetchHistoricalChunk } from '../../src/lib/db';
-import { useWorkspaceStore } from '../../src/store/useWorkspaceStore';
-import { wsManager } from '../../src/lib/ws-manager';
+import { useChartData } from '../../../src/hooks/useChartData';
+import { syncCoordinator } from '../../../src/lib/sync-coordinator';
+import { fetchHistoricalChunk } from '../../../src/lib/db';
+import { useWorkspaceStore } from '../../../src/store/useWorkspaceStore';
+import { wsManager } from '../../../src/lib/ws-manager';
 
-vi.mock('../../src/lib/sync-coordinator');
-vi.mock('../../src/lib/db');
-vi.mock('../../src/lib/ws-manager');
-vi.mock('../../src/store/useWorkspaceStore', async () => {
-  const actual = await vi.importActual('../../src/store/useWorkspaceStore');
+vi.mock('../../../src/lib/sync-coordinator');
+vi.mock('../../../src/lib/db');
+vi.mock('../../../src/lib/ws-manager');
+vi.mock('../../../src/store/useWorkspaceStore', async () => {
+  const actual = await vi.importActual('../../../src/store/useWorkspaceStore');
   return {
     ...actual,
     useWorkspaceStore: vi.fn((selector) => {
