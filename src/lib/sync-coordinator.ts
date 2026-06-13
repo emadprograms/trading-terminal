@@ -203,7 +203,7 @@ export class SyncCoordinator {
 
       if (firstWsTimeMs - lastRestTimeMs > thresholdMs) {
         const gapMins = Math.round((firstWsTimeMs - lastRestTimeMs) / 60000);
-        console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. Fetching bridge...`);
+        console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. (firstWs: ${new Date(firstWsTimeMs).toISOString()}, lastRest: ${new Date(lastRestTimeMs).toISOString()}) Fetching bridge...`);
         
         if (abortSignal) {
           await new Promise(r => setTimeout(r, 150));
@@ -222,6 +222,7 @@ export class SyncCoordinator {
             // Merge and deduplicate
             const merged = [...history, ...bridgeData];
             const seen = new Set<string>();
+            const originalHistoryLength = history.length;
             history = [];
             
             merged.sort((a, b) => a.time.localeCompare(b.time));
@@ -235,7 +236,7 @@ export class SyncCoordinator {
             // Update cache with bridged data
             this.cache.set(cacheKey, history);
             
-            console.log(`[SyncCoordinator] Bridge complete for ${ticker}. Added ${bridgeData.length} bars.`);
+            console.log(`[SyncCoordinator] Bridge complete for ${ticker}. historyLen=${originalHistoryLength}, bridgeLen=${bridgeData.length}, mergedLen=${merged.length}, deduplicatedLen=${history.length}`);
           }
         }
       }
