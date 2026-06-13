@@ -17,9 +17,9 @@ created: 2026-06-13
 
 | Property | Value |
 |----------|-------|
-| Tool | none |
+| Tool | Vanilla/Custom CSS |
 | Preset | not applicable |
-| Component library | none |
+| Component library | Vanilla CSS (no Tailwind/shadcn) |
 | Icon library | lucide-react |
 | Font | 'Inter', 'JetBrains Mono' |
 
