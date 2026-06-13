@@ -18,12 +18,14 @@ describe('tradeApi', () => {
     const mockResponse = { dealReference: 'DR12345' };
     (api.post as any).mockImplementation(() => ({
       json: () => Promise.resolve(mockResponse),
+      text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      ok: true,
     }));
 
     const params = { epic: 'AAPL', size: 1, direction: 'BUY' };
-    const result = await tradeApi.placeMarketOrder(params);
+    const result = await tradeApi.placeMarketOrder(params as any);
 
-    expect(api.post).toHaveBeenCalledWith('order/v1/positions', { json: params });
+    expect(api.post).toHaveBeenCalledWith('order/v1/positions', expect.objectContaining({ json: params }));
     expect(result).toBe('DR12345');
   });
 
@@ -31,12 +33,14 @@ describe('tradeApi', () => {
     const mockResponse = { dealReference: 'DR67890' };
     (api.post as any).mockImplementation(() => ({
       json: () => Promise.resolve(mockResponse),
+      text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      ok: true,
     }));
 
     const params = { epic: 'AAPL', size: 1, direction: 'BUY', level: 150.0 };
-    const result = await tradeApi.placeLimitOrder(params);
+    const result = await tradeApi.placeLimitOrder(params as any);
 
-    expect(api.post).toHaveBeenCalledWith('order/v1/workingorders', { json: params });
+    expect(api.post).toHaveBeenCalledWith('order/v1/workingorders', expect.objectContaining({ json: params }));
     expect(result).toBe('DR67890');
   });
 
@@ -44,25 +48,29 @@ describe('tradeApi', () => {
     const mockResponse = { status: 'ACCEPTED', dealId: 'D123' };
     (api.get as any).mockImplementation(() => ({
       json: () => Promise.resolve(mockResponse),
+      text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      ok: true,
     }));
 
     const dealReference = 'DR12345';
     const result = await tradeApi.getConfirmation(dealReference);
 
-    expect(api.get).toHaveBeenCalledWith(`order/v1/confirms/${dealReference}`);
+    expect(api.get).toHaveBeenCalledWith(`order/v1/confirms/${dealReference}`, expect.objectContaining({ throwHttpErrors: false }));
     expect(result).toEqual(mockResponse);
   });
 
   it('should throw human-readable error on 400/401 responses', async () => {
     (api.post as any).mockImplementation(() => {
-      throw {
-        response: {
-          status: 400,
-          body: { message: 'Invalid parameters' },
-        },
-      };
+      return Promise.resolve({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(JSON.stringify({ 
+          errorCode: 'PROXY_VALIDATION_ERROR', 
+          developerMessage: 'Invalid parameters' 
+        }))
+      });
     });
 
-    await expect(tradeApi.placeMarketOrder({})).rejects.toThrow('Trade API Error: Invalid parameters');
+    await expect(tradeApi.placeMarketOrder({ epic: 'AAPL', size: 1, direction: 'BUY' } as any)).rejects.toThrow('Proxy Validation Error: Invalid parameters');
   });
 });
