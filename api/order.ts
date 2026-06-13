@@ -77,14 +77,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           }
         } catch (err: any) {
           console.error('[StabilityTrace] Validation error:', err);
-          if (err instanceof z.ZodError) {
+          if (err instanceof z.ZodError || err.name === 'ZodError') {
             if (!res.headersSent) {
               res.statusCode = 400;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
+              const errMsg = err.errors ? err.errors.map((e: any) => e.message).join(', ') : err.message;
               res.end(JSON.stringify({
                 errorCode: 'PROXY_VALIDATION_ERROR',
-                developerMessage: err.errors.map(e => e.message).join(', ')
+                developerMessage: errMsg
               }));
             }
             return;
