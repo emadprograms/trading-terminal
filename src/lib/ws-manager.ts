@@ -12,6 +12,11 @@ class WebSocketManager {
   private maxReconnectDelay = 30000;
   private baseReconnectDelay = 1000;
 
+  private pendingSubscribes: Set<string> = new Set();
+  private subscribeTimeout: number | null = null;
+  private pendingUnsubscribes: Set<string> = new Set();
+  private unsubscribeTimeout: number | null = null;
+
   private constructor() {}
 
   public static getInstance(): WebSocketManager {
@@ -138,15 +143,26 @@ class WebSocketManager {
 
   private _sendSubscribe(epic: string) {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      const { cst, securityToken } = this.getTokens();
-      if (!cst || !securityToken) return;
-      this.send({
-        destination: 'marketData.subscribe',
-        correlationId: crypto.randomUUID(),
-        cst,
-        securityToken,
-        payload: { epics: [epic] }
-      });
+      this.pendingSubscribes.add(epic);
+      if (this.subscribeTimeout === null) {
+        this.subscribeTimeout = window.setTimeout(() => {
+          const epics = Array.from(this.pendingSubscribes);
+          this.pendingSubscribes.clear();
+          this.subscribeTimeout = null;
+          
+          const { cst, securityToken } = this.getTokens();
+          if (!cst || !securityToken) return;
+          
+          console.log(`[WSManager] Batch subscribing to: ${epics.join(', ')}`);
+          this.send({
+            destination: 'marketData.subscribe',
+            correlationId: crypto.randomUUID(),
+            cst,
+            securityToken,
+            payload: { epics }
+          });
+        }, 50);
+      }
     }
   }
 
@@ -168,15 +184,26 @@ class WebSocketManager {
     if (count <= 1) {
       this.activeEpics.delete(epic);
       if (this.socket?.readyState === WebSocket.OPEN) {
-        const { cst, securityToken } = this.getTokens();
-        if (!cst || !securityToken) return;
-        this.send({
-          destination: 'marketData.unsubscribe',
-          correlationId: crypto.randomUUID(),
-          cst,
-          securityToken,
-          payload: { epics: [epic] }
-        });
+        this.pendingUnsubscribes.add(epic);
+        if (this.unsubscribeTimeout === null) {
+          this.unsubscribeTimeout = window.setTimeout(() => {
+            const epics = Array.from(this.pendingUnsubscribes);
+            this.pendingUnsubscribes.clear();
+            this.unsubscribeTimeout = null;
+            
+            const { cst, securityToken } = this.getTokens();
+            if (!cst || !securityToken) return;
+            
+            console.log(`[WSManager] Batch unsubscribing from: ${epics.join(', ')}`);
+            this.send({
+              destination: 'marketData.unsubscribe',
+              correlationId: crypto.randomUUID(),
+              cst,
+              securityToken,
+              payload: { epics }
+            });
+          }, 50);
+        }
       }
     } else {
       this.activeEpics.set(epic, count - 1);
