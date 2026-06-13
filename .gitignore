@@ -35,6 +35,7 @@ scratch.py
 vscode_cli.tar.gz
 code
 .antigravitycli/70dabff0-8fd2-45d0-9629-dab343630c8b.json
+.vscode/
 
 # GSD Agent settings
 .agent/
