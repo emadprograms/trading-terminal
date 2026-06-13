@@ -23,7 +23,7 @@ export function ChartCanvas({
   isDrawingMode,
   isViewModified,
   resetView,
-  markers,
+  markers = [],
   onRegisterBadge,
   onCloseTrade,
   onDragMarker,
