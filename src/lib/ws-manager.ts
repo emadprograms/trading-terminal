@@ -90,6 +90,7 @@ class WebSocketManager {
 
     this.socket.onopen = () => {
       console.log('[WSManager] Connection established');
+      useSessionStore.getState().setIsWsConnected(true);
       
       if (this.reconnectAttempts > 0) {
         this.onReconnectListeners.forEach(cb => {
@@ -128,6 +129,7 @@ class WebSocketManager {
 
     this.socket.onclose = (event) => {
       console.log(`[WSManager] Connection closed. Code: ${event.code}`);
+      useSessionStore.getState().setIsWsConnected(false);
       if (!this.isExplicitlyDisconnected) {
         this.onDisconnectListeners.forEach(cb => {
           try {
