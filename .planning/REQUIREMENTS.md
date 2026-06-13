@@ -24,4 +24,9 @@
 - Premium Aesthetic Polish (deferred to prioritize core functional correctness and accurate data stitching)
 
 ## Traceability
-<!-- Filled by roadmap -->
+- **PROXY-01**: Phase 1
+- **PROXY-02**: Phase 1
+- **PROXY-03**: Phase 1
+- **TEST-01**: Phase 2
+- **TEST-02**: Phase 2
+- **UI-01**: Phase 3
