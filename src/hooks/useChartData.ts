@@ -57,6 +57,7 @@ export function useChartData({
 
   const [localMasterData, setLocalMasterData] = useState<RawBar[]>([]);
   const [timeframe, setTimeframeLocal] = useState<Timeframe>(initialTf || '1H');
+  const [stitchingError, setStitchingError] = useState<{ description: string; reason: string } | null>(null);
 
   const setTimeframe = (tf: Timeframe) => {
     setTimeframeLocal(tf);
@@ -126,36 +127,47 @@ export function useChartData({
       
       const targetCandles = 1000;
       
-      const data = await syncCoordinator.syncTicker(
-        ticker, 
-        timeframe, 
-        selectedDate, 
-        targetCandles,
-        (cachedData) => {
-          if (cancelled) return;
-          console.log(`[useChartData] Instant cache hit for ${ticker}`);
-          if (cachedData && cachedData.length > 0) {
-            earliestLoadedDateRef.current = cachedData[0].time;
-          }
-          dataTimeframeRef.current = timeframe;
-          dataTickerRef.current = ticker;
-          setLocalMasterData(cachedData as RawBar[]);
-          setIsLoadingHistory(false);
-        },
-        abortController.signal
-      );
-      
-      if (cancelled) return;
-      
-      console.log(`[useChartData] Synced ${data?.length || 0} bars for ${ticker}`);
-      if (data && data.length > 0) {
-        earliestLoadedDateRef.current = data[0].time;
-        hasReachedHistoryEndRef.current = false;
+      try {
+        const data = await syncCoordinator.syncTicker(
+          ticker, 
+          timeframe, 
+          selectedDate, 
+          targetCandles,
+          (cachedData) => {
+            if (cancelled) return;
+            console.log(`[useChartData] Instant cache hit for ${ticker}`);
+            if (cachedData && cachedData.length > 0) {
+              earliestLoadedDateRef.current = cachedData[0].time;
+            }
+            dataTimeframeRef.current = timeframe;
+            dataTickerRef.current = ticker;
+            setLocalMasterData(cachedData as RawBar[]);
+            setIsLoadingHistory(false);
+          },
+          abortController.signal
+        );
+        
+        if (cancelled) return;
+        
+        console.log(`[useChartData] Synced ${data?.length || 0} bars for ${ticker}`);
+        if (data && data.length > 0) {
+          earliestLoadedDateRef.current = data[0].time;
+          hasReachedHistoryEndRef.current = false;
+        }
+        dataTimeframeRef.current = timeframe;
+        dataTickerRef.current = ticker;
+        setLocalMasterData(data as RawBar[]);
+        setStitchingError(null);
+      } catch (err: any) {
+        if (cancelled) return;
+        if (err.name === 'DataStitchingError') {
+          setStitchingError({ description: err.description, reason: err.reason });
+        } else {
+          console.error(`[useChartData] Sync failed for ${ticker}:`, err);
+        }
+      } finally {
+        setIsLoadingHistory(false);
       }
-      dataTimeframeRef.current = timeframe;
-      dataTickerRef.current = ticker;
-      setLocalMasterData(data as RawBar[]);
-      setIsLoadingHistory(false);
     }
     load();
     return () => { 
@@ -175,21 +187,32 @@ export function useChartData({
       setIsLoadingHistory(true);
       const targetCandles = 1000;
       
-      const data = await syncCoordinator.syncTicker(
-        ticker,
-        timeframe,
-        selectedDate,
-        targetCandles
-      );
-      
-      if (cancelled) return;
-      
-      console.log(`[useChartData] Sync triggered by ${reason} completed. Received ${data?.length || 0} bars.`);
-      if (data && data.length > 0) {
-        earliestLoadedDateRef.current = data[0].time;
-        setLocalMasterData(data as RawBar[]);
+      try {
+        const data = await syncCoordinator.syncTicker(
+          ticker,
+          timeframe,
+          selectedDate,
+          targetCandles
+        );
+        
+        if (cancelled) return;
+        
+        console.log(`[useChartData] Sync triggered by ${reason} completed. Received ${data?.length || 0} bars.`);
+        if (data && data.length > 0) {
+          earliestLoadedDateRef.current = data[0].time;
+          setLocalMasterData(data as RawBar[]);
+        }
+        setStitchingError(null);
+      } catch (err: any) {
+        if (cancelled) return;
+        if (err.name === 'DataStitchingError') {
+          setStitchingError({ description: err.description, reason: err.reason });
+        } else {
+          console.error(`[useChartData] Sync failed for ${ticker}:`, err);
+        }
+      } finally {
+        setIsLoadingHistory(false);
       }
-      setIsLoadingHistory(false);
     };
 
     const handleSyncOnActivity = () => {
@@ -327,5 +350,6 @@ export function useChartData({
     boundaryTime,
     isLoadingHistory,
     pendingHistoryPrependRef,
+    stitchingError,
   };
 }

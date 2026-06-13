@@ -5,6 +5,17 @@ import { usePriceStore } from '../store/usePriceStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import type { RawBar, Timeframe } from '../types';
 
+export class DataStitchingError extends Error {
+  description: string;
+  reason: string;
+  constructor(description: string, reason: string) {
+    super(`Data Stitching Error: ${description} - ${reason}`);
+    this.name = 'DataStitchingError';
+    this.description = description;
+    this.reason = reason;
+  }
+}
+
 export class SyncCoordinator {
   private static instance: SyncCoordinator;
   private cache: Map<string, RawBar[]> = new Map();
@@ -13,7 +24,6 @@ export class SyncCoordinator {
   private constructor() {}
 
   public static getInstance(): SyncCoordinator {
-    if (!SyncCoordinator.instance) {
       SyncCoordinator.instance = new SyncCoordinator();
     }
     return SyncCoordinator.instance;
@@ -164,7 +174,7 @@ export class SyncCoordinator {
 
         if (!history || history.length === 0) {
           wsManager.setBuffering(ticker, false);
-          return [];
+          throw new DataStitchingError("API Failure", "Failed to retrieve historical data or unpredictable response");
         }
         this.cache.set(cacheKey, history);
 
@@ -201,42 +211,13 @@ export class SyncCoordinator {
 
       if (firstWsTimeMs - lastRestTimeMs > thresholdMs) {
         const gapMins = Math.round((firstWsTimeMs - lastRestTimeMs) / 60000);
-        console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. (firstWs: ${new Date(firstWsTimeMs).toISOString()}, lastRest: ${new Date(lastRestTimeMs).toISOString()}) Fetching bridge...`);
+        console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. (firstWs: ${new Date(firstWsTimeMs).toISOString()}, lastRest: ${new Date(lastRestTimeMs).toISOString()})`);
         
-        if (abortSignal) {
-          await new Promise(r => setTimeout(r, 150));
-          if (abortSignal.aborted) {
-            console.log(`[SyncCoordinator] Bridge fetch aborted for ${ticker} due to rapid switching`);
-            // We return just the history since the request was aborted
-            // The buffer will still be replayed below
-          }
-        }
-
-        if (!abortSignal || !abortSignal.aborted) {
-          const bridgeTo = new Date(firstWsTimeMs).toISOString();
-          const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
-          
-          if (bridgeData && bridgeData.length > 0) {
-            // Merge and deduplicate
-            const merged = [...history, ...bridgeData];
-            const seen = new Set<string>();
-            const originalHistoryLength = history.length;
-            history = [];
-            
-            merged.sort((a, b) => a.time.localeCompare(b.time));
-            for (const bar of merged) {
-              if (!seen.has(bar.time)) {
-                seen.add(bar.time);
-                history.push(bar);
-              }
-            }
-            
-            // Update cache with bridged data
-            this.cache.set(cacheKey, history);
-            
-            console.log(`[SyncCoordinator] Bridge complete for ${ticker}. historyLen=${originalHistoryLength}, bridgeLen=${bridgeData.length}, mergedLen=${merged.length}, deduplicatedLen=${history.length}`);
-          }
-        }
+        wsManager.setBuffering(ticker, false);
+        throw new DataStitchingError(
+          "Timestamp continuity broken", 
+          `Gap of ${gapMins} minutes between REST history and WebSocket ticks exceeds acceptable threshold`
+        );
       }
 
       // 5b. Bridge Gap Detection for Companion 30min data (for 1D ETH toggling)

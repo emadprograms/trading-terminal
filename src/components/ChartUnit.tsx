@@ -13,6 +13,7 @@ import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { parseInput } from '../lib/parsing';
 import { useTradeStore } from '../store/useTradeStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
+import { StitchingErrorBanner } from './StitchingErrorBanner';
 
 export default function ChartUnit({ 
   id, 
@@ -176,6 +177,8 @@ export default function ChartUnit({
         onToggleMaximize={onToggleMaximize}
       />
       
+      <StitchingErrorBanner error={data.stitchingError} />
+
       <div 
         className="chart-panes" 
         style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
