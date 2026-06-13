@@ -38,3 +38,6 @@ code
 
 # GSD Agent settings
 .agent/
+
+# Scratch files
+scratch/
