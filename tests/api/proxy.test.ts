@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { request } from 'undici';
-import sessionHandler from './session';
+import sessionHandler from '../../api/session';
 import { Readable, PassThrough } from 'stream';
 
 vi.mock('undici', async (importOriginal) => {
@@ -168,7 +168,7 @@ describe('order handler (direct-to-Capital.com)', () => {
   });
 
   it('should forward PUT request body for position updates', async () => {
-    const orderHandler = (await import('./order')).default;
+    const orderHandler = (await import('../../api/order')).default;
     const testBody = JSON.stringify({ stopLevel: 100.5 });
     
     (request as any).mockResolvedValue({
@@ -244,7 +244,7 @@ describe('market handler (direct-to-Capital.com)', () => {
   });
 
   it('should forward authentication tokens to Capital.com', async () => {
-    const marketHandler = (await import('./market')).default;
+    const marketHandler = (await import('../../api/market')).default;
     
     (request as any).mockResolvedValue({
       statusCode: 200,
