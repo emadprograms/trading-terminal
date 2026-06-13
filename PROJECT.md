@@ -9,12 +9,15 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 - **Robust Local State:** High-performance, play-by-play market data caching using a Web Worker-based SQLite (sql.js) database to prevent main thread blocking.
 - **Premium Aesthetics:** A sleek, modern, and highly polished user interface with fluid micro-animations and exact interaction states.
 
-## Current Milestone: Hardening & Polishing
-The core functionality is built. This milestone focuses on taking the app from "working" to "production-grade robust and beautiful."
-1. **Backend Audit & Hardening:** Review the Vercel Serverless proxy (`api/`) for fragility, security vulnerabilities, and stability issues.
-2. **Critical Path Testing:** Implement integration and automated tests focusing heavily on order placement, data fetching, and state integrity.
-3. **UI Bug Fixes:** Resolve specific broken interactions, notably the entry price indicator on chart hover (the triangle should display a clean arrow without dashes pointing to the price).
-4. **General Aesthetic Polish:** Review and refine the overall UI/UX, ensuring smooth hover states, modern typography, and a polished dark-mode aesthetic.
+## Current Milestone: v1.0 Hardening & Polishing
+
+**Goal:** Take the app from "working" to production-grade robust and beautiful by fixing UI bugs, adding robust E2E tests, and thoroughly testing the backend proxy.
+
+**Target features:**
+- UI Polishing & Bug Fixes (e.g., fix entry price indicator dash to arrow)
+- General Aesthetic Polish for a premium, state-of-the-art dark mode UI
+- Robust End-to-End Testing (Playwright) focusing on order placement, data fetching, and state integrity
+- Backend Proxy Hardening & Testing (Vercel Serverless Functions in `api/`) to ensure complete reliability
 
 ## Future Milestones
 - Advanced Order Types & Strategies
@@ -30,3 +33,20 @@ The core functionality is built. This milestone focuses on taking the app from "
 
 ## User Profiles
 - **High-Frequency/Day Trader:** Requires absolute minimum latency. Will notice a few milliseconds of lag in order execution or chart rendering. Values reliability, clear visual cues for entry/exit, and a non-distracting UI.
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
