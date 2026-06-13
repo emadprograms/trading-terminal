@@ -1,101 +1,109 @@
 # Codebase Structure
 
-**Analysis Date:** 2025-06-03
+**Analysis Date:** 2026-06-13
 
 ## Directory Layout
 
 ```
-src/
-├── components/       # UI components (ChartUnit, Workspace, Playback, etc.)
-├── hooks/            # Business logic and orchestration
-│   └── chart/        # Chart-specific lifecycle and viewport hooks
-├── lib/              # Pure logic, utilities, and API clients
-│   └── workers/      # Web Workers for heavy data processing
-├── store/            # Global state management (Zustand)
-└── types/            # TypeScript interfaces and type definitions
+[project-root]/
+├── .agent/             # GSD workflows, agent settings, and local skills
+├── public/             # Static public assets (including sql-wasm.wasm)
+├── server/             # Hono node server proxy and proxy tests
+├── src/                # Frontend application source
+│   ├── api/            # ky-client and broker endpoint implementations
+│   ├── components/     # React presentation components
+│   ├── hooks/          # React hooks for lifecycle, chart, and state management
+│   ├── lib/            # Chart canvas plugins, WASM DB adapters, Web Workers
+│   ├── store/          # Zustand global state stores
+│   └── types/          # Shared TypeScript domain interfaces
+├── tests/              # Multi-level test suites (unit, integration, regression)
+├── package.json        # NPM package configuration and script registry
+└── vite.config.ts      # Vite bundler options
 ```
 
 ## Directory Purposes
 
-**components/:**
-- Purpose: View layer of the application.
-- Contains: React components focused on rendering and user interaction.
-- Key files: `ChartUnit.tsx`, `ChartWorkspace.tsx`, `App.tsx`.
+**server/**
+- Purpose: Broker API proxy server to bypass CORS restriction policies.
+- Contains: `index.ts` (Hono proxy app), `proxy.test.ts`.
+- Key files: `server/index.ts` - routes calls and injects default secrets.
 
-**hooks/:**
-- Purpose: Orchestration layer that connects UI to data.
-- Contains: Custom hooks for session management, database interaction, and chart lifecycles.
-- Key files: `useChartLifecycle.ts`, `useChartData.ts`, `useWorkspace.ts`.
+**src/components/**
+- Purpose: UI components modularized by concern.
+- Contains: `ChartCanvas.tsx`, `TradeControls.tsx`, `Watchlist.tsx`, etc.
+- Key files:
+  - `ChartCanvas.tsx` - Lightweight Charts viewport initialization.
+  - `TradeControls.tsx` - Rewind playback control interface.
 
-**hooks/chart/:**
-- Purpose: Specialized hooks for the `lightweight-charts` integration.
-- Contains: Logic for initialization, plugins, drawings, and viewport synchronization.
-- Key files: `useChartInit.ts`, `useChartPlugins.ts`, `useChartViewport.ts`.
+**src/hooks/**
+- Purpose: Application hooks layer separating rendering from side effects.
+- Contains: `useChartLifecycle.ts`, `useChartData.ts`, `useTradeManager.ts`, etc.
+- Key files: `src/hooks/useChartLifecycle.ts` - mounts/unmounts charts.
 
-**lib/:**
-- Purpose: Shared logic and infrastructure that is independent of React.
-- Contains: Database access logic, resampling algorithms, timezone helpers, and chart plugins.
-- Key files: `db.ts`, `resampling.ts`, `timezones.ts`.
+**src/lib/**
+- Purpose: Analytical plugins, DB adapters, and worker orchestration.
+- Contains: `TradePlugin.ts`, `db.ts`, `sync-coordinator.ts`, `workers/`.
+- Key files:
+  - `src/lib/db.ts` - Communication proxy to sqlite-wasm worker.
+  - `src/lib/workers/db.worker.ts` - Dedicated sqlite WASM thread.
+  - `src/lib/TradePlugin.ts` - Custom canvas renderer for order levels.
 
-**store/:**
-- Purpose: Global application state.
-- Contains: Zustand stores for persistence and cross-component communication.
-- Key files: `useWorkspaceStore.ts`, `usePlaybackStore.ts`.
+**src/store/**
+- Purpose: React State management stores.
+- Contains: `useTradeStore.ts`, `usePlaybackStore.ts`, `useWorkspaceStore.ts`, etc.
+- Key files: `src/store/useTradeStore.ts` - CFD account, margins, and orders state.
 
-**types/:**
-- Purpose: Type safety across the application.
-- Contains: Shared TypeScript definitions for market data, drawings, and app state.
-- Key files: `index.ts`.
+**tests/**
+- Purpose: Testing organization.
+- Contains: `unit/`, `integration/`, `performance/`, `regression/`, `setup.ts`.
 
 ## Key File Locations
 
 **Entry Points:**
-- `src/main.tsx`: React root mounting.
-- `src/App.tsx`: Main application orchestrator.
+- `server/index.ts` - Backend Hono entry.
+- `src/main.tsx` - Frontend React entry.
 
 **Configuration:**
-- `tsconfig.json`: TypeScript configuration.
-- `vite.config.ts`: Build and dev server configuration.
-
-**Core Logic:**
-- `src/lib/db.ts`: Market data retrieval.
-- `src/lib/resampling.ts`: Timeframe conversion logic.
-- `src/hooks/useChartLifecycle.ts`: Chart rendering engine.
-
-**Testing:**
-- `tests/`: Contains unit, integration, and performance tests.
+- `package.json` - Dependency declarations.
+- `vite.config.ts` - Frontend asset loader configuration.
+- `vitest.config.ts` - Testing configuration.
+- `.env.local` - Environment secrets.
 
 ## Naming Conventions
 
 **Files:**
-- Components: PascalCase (e.g., `ChartUnit.tsx`).
-- Hooks: camelCase with `use` prefix (e.g., `useChartData.ts`).
-- Utilities: camelCase (e.g., `resampling.ts`).
+- `PascalCase.tsx` - React components (`ChartCanvas.tsx`, `AccountHeader.tsx`).
+- `camelCase.ts` - Utility hooks and functions (`useChartData.ts`, `data-adapter.ts`).
+- `*.test.ts` / `*.test.tsx` - Unit tests placed next to their implementation files or inside `tests/`.
 
 **Directories:**
-- Plural descriptive names (e.g., `components`, `hooks`, `store`).
+- `camelCase` / lowercase directories for features and groupings (`store/`, `hooks/`, `components/`).
 
 ## Where to Add New Code
 
-**New Feature:**
-- UI: Add components to `src/components/`.
-- Logic: Create a new hook in `src/hooks/`.
-- Data: Update `src/lib/db.ts` or add a new utility in `src/lib/`.
+**New UI Component:**
+- Implementation: `src/components/[Component].tsx`
+- Types if component-specific: Inside same file, otherwise `src/types/index.ts`
+- Tests: `src/components/[Component].test.tsx` (next to file) or in `tests/`.
 
-**New Component/Module:**
-- Implementation: `src/components/`.
-- Logic separation: Move complex state/lifecycle logic into a custom hook in `src/hooks/`.
+**New Chart Plugin / Analytical Overlay:**
+- Implementation: `src/lib/[PluginName]Plugin.ts`
+- Registry hook update: `src/hooks/chart/useChartPlugins.ts`
 
-**Utilities:**
-- Shared helpers: `src/lib/`.
+**New API Endpoint Bindings:**
+- Implementation: `src/api/[domain].ts`
+- Client usage: Import `client` from `src/api/client.ts`
+
+**New Playback/Analytical State:**
+- Store implementation: `src/store/use[State]Store.ts`
 
 ## Special Directories
 
-**lib/workers/:**
-- Purpose: Offloads heavy database queries and data processing to a separate thread to maintain 60fps UI.
-- Generated: No.
-- Committed: Yes.
+**public/**
+- Purpose: Stores assets served directly.
+- Key files: `public/sql-wasm.wasm` - Copied on postinstall from `sql.js` to run client database engine.
 
 ---
 
-*Structure analysis: 2025-06-03*
+*Structure analysis: 2026-06-13*
+*Update when directory structure changes*

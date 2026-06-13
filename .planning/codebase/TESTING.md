@@ -1,142 +1,95 @@
 # Testing Patterns
 
-**Analysis Date:** 2025-06-03
+**Analysis Date:** 2026-06-13
 
 ## Test Framework
 
 **Runner:**
-- Vitest 4.1.7
-- Config: `vitest.config.ts`
+- Vitest 4.1.7 (frontend unit, component, integration tests, and proxy API tests).
+- Playwright 1.60.0 (end-to-end regression tests).
 
 **Assertion Library:**
-- Vitest (built-in)
-- `@testing-library/jest-dom` for DOM assertions.
+- Vitest built-in `expect` library with Jest-DOM Matchers (`@testing-library/jest-dom`).
+- Matchers: standard matcher API (e.g. `toBe`, `toEqual`, `toThrow`, `toHaveBeenCalled`, `toBeInTheDocument`).
 
 **Run Commands:**
 ```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode
+npm run test                          # Run Vitest test suite once
+npm run test:watch                    # Run Vitest in watch mode
+npx playwright test                   # Run Playwright end-to-end regression suite
 ```
 
 ## Test File Organization
 
 **Location:**
-- Separate `tests/` directory at root.
-
-**Naming:**
-- `.test.ts` or `.test.tsx` (e.g., `tests/unit/useWorkspaceStore.test.ts`).
-- `.stress.test.ts` for stress tests (e.g., `tests/unit/resampling.stress.test.ts`).
-- `.perf.test.ts` or `.perf.test.tsx` for performance tests (e.g., `tests/performance/render.perf.test.tsx`).
-- `.spec.ts` is excluded in `vitest.config.ts` but present in some regression tests (e.g., `tests/regression/sync/propagation.spec.ts`).
+- Unit/component test files are collocated next to their source files (e.g. `src/components/TradeLog.test.tsx` next to `TradeLog.tsx`).
+- General/regression test suites are organized under the `tests/` directory:
+  - `tests/unit/` - Unit tests for core scripts.
+  - `tests/integration/` - Integration suites.
+  - `tests/regression/` - Playwright E2E regression tests (`*.spec.ts`).
+  - `tests/performance/` - Resource check test runs.
+  - `tests/setup.ts` - Vitest global setup config.
 
 **Structure:**
 ```
 tests/
-├── helpers/          # Simulation utilities (e.g., `chart-simulation.ts`)
-├── hooks/            # Hook-specific tests (e.g., `useTradeManager.test.ts`)
-├── integration/      # Cross-component logic (e.g., `lifecycle.test.ts`)
-├── performance/      # Rendering and cache perf (e.g., `render.perf.test.tsx`)
-├── regression/       # Bug-fix verification (e.g., `sync/grouping.test.ts`)
-└── unit/            # Pure logic and store tests (e.g., `resampling.test.ts`)
+├── setup.ts               # Global mocks & MSW server setup
+├── unit/                  # Isolated logic tests
+├── integration/           # Multi-module tests
+├── regression/            # Playwright spec files
+└── verify-msw.test.ts     # Connectivity sanity verification tests
 ```
 
 ## Test Structure
 
 **Suite Organization:**
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useWorkspaceStore } from '../../src/store/useWorkspaceStore';
+import { describe, it, expect, vi } from 'vitest';
 
-describe('useWorkspaceStore', () => {
-  beforeEach(() => {
-    // Reset store state
-    useWorkspaceStore.setState({ ... });
-  });
-
-  it('should set and get the selectedId', () => {
-    useWorkspaceStore.getState().setSelectedId('chart-1');
-    expect(useWorkspaceStore.getState().selectedId).toBe('chart-1');
+describe('ComponentName', () => {
+  it('should render element successfully', () => {
+    // arrange & act
+    // assert
+    expect(element).toBeInTheDocument();
   });
 });
 ```
 
 **Patterns:**
-- **Setup pattern:** Use of `beforeEach` to reset global states (like Zustand stores).
-- **Teardown pattern:** Standard Vitest lifecycle hooks.
-- **Assertion pattern:** `expect().toBe()`, `expect().toBeGreaterThan()`.
+- `beforeAll` & `afterAll` used to configure server mock lifecycles.
+- `beforeEach` used for cleaning up localStorage and state stores.
+- Mocking of browser DOM APIs (like `ResizeObserver`, `matchMedia`, `CanvasRenderingContext2D`) is configured globally in `tests/setup.ts`.
 
 ## Mocking
 
-**Framework:** Vitest `vi`
+**Framework:**
+- Vitest built-in mocking utilities (`vi`).
+- **MSW (Mock Service Worker)** node server setup to intercept broker requests.
 
-**Patterns:**
+**Broker API Interception (MSW):**
+MSW handlers are configured in `tests/setup.ts` to stub session auth and accounts:
 ```typescript
-vi.mock('lightweight-charts', () => ({
-  createChart: vi.fn(() => ({
-    // ... mock implementation
-  })),
-}));
+import { setupServer } from 'msw/node'
+import { http, HttpResponse } from 'msw'
+
+export const handlers = [
+  http.post('*/session', () => {
+    return new HttpResponse(JSON.stringify({ accountType: 'CFD' }), {
+      status: 200,
+      headers: { CST: 'mock-cst-token' }
+    });
+  })
+];
+
+export const server = setupServer(...handlers);
 ```
-
-**What to Mock:**
-- Heavy third-party libraries (`lightweight-charts`).
-- Browser APIs not available in JSDOM (e.g., `ResizeObserver`, `matchMedia` in `tests/setup.ts`).
-- DOM elements for performance testing.
-
-**What NOT to Mock:**
-- Pure business logic and utility functions.
-- Store state transitions.
-
-## Fixtures and Factories
-
-**Test Data:**
-- Use of helper functions for simulation (e.g., `tests/helpers/chart-simulation.ts`).
-- Dynamic generation of chart data in performance tests.
-
-**Location:**
-- `tests/helpers/`
 
 ## Coverage
 
-**Requirements:** Not explicitly enforced in config.
-
-**View Coverage:**
-- Not configured in `package.json` scripts.
-
-## Test Types
-
-**Unit Tests:**
-- Scope: Pure functions, Zustand stores, and individual hooks.
-- Approach: State-based assertions.
-
-**Integration Tests:**
-- Scope: Interaction between hooks and components.
-- Approach: Using `@testing-library/react` to render and interact with components.
-
-**Performance Tests:**
-- Scope: Re-render counts, cache hits, and rendering lag.
-- Approach: Tracking render cycles via refs or window variables (e.g., `tests/performance/render.perf.test.tsx`).
-
-**Stress Tests:**
-- Scope: High-volume data processing.
-- Approach: Large data sets in `.stress.test.ts` files.
-
-**Regression Tests:**
-- Scope: Specific bug reproductions.
-- Approach: Dedicated `tests/regression/` directory to prevent future regressions.
-
-## Common Patterns
-
-**Async Testing:**
-```typescript
-await act(async () => {
-    await new Promise(r => setTimeout(r, 0));
-});
-```
-
-**Error Testing:**
-- Use of `ErrorBoundary` and checking for crash recovery.
+- Coverage configuration target is not strictly enforced in config.json.
+- Run via standard Vitest coverage providers when configured.
 
 ---
 
-*Testing analysis: 2025-06-03*
+*Testing analysis: 2026-06-13*
+*Update when test patterns change*

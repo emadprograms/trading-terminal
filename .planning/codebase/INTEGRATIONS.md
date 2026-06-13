@@ -1,76 +1,61 @@
 # External Integrations
 
-**Analysis Date:** 2025-05-14
+**Analysis Date:** 2026-06-13
 
 ## APIs & External Services
 
-**Market Data:**
-- Polygon.io - Used for historical 1-minute OHLCV data.
-  - SDK/Client: `polygon-api-client` (used in `backend/historical_archiver/main.py`)
-  - Auth: API keys managed via Infisical.
-
-**Secrets Management:**
-- Infisical - Centralized secret management for API keys and database credentials.
-  - SDK/Client: `infisicalsdk` (used in `backend/historical_archiver/infisical_client.py`)
+**Trading/Market Data API:**
+- **Capital.com API** - Primary broker API for session creation, real-time prices, charts data, and order execution.
+  - SDK/Client: REST API and WebSocket integration handled via custom client (`src/api/client.ts`, `src/lib/ws-manager.ts`).
+  - Auth: API key injected via `X-CAP-API-KEY` header, user login via session creation returning `CST` and `X-SECURITY-TOKEN` headers.
+  - Endpoints:
+    - `/api/v1/session` - Create trading session.
+    - `/api/v1/prices` - Fetch market candles/data.
+    - `/api/v1/accounts` - Retrieve account balances.
+    - `/api/v1/positions` - Create, view, and close positions.
+  - Rate Limits: Enforced by Capital.com API endpoints.
 
 ## Data Storage
 
 **Databases:**
-- Turso (LibSQL) - Primary backend database for historical market data.
-  - Connection: Managed via `libsql-client` in Python and `libsql` in `backend/app_db_sync/sync.py`.
-  - Client: `TursoWriter` implementation in `backend/historical_archiver/turso_writer.py`.
-
-**Client-Side Storage:**
-- SQLite (WASM) - Used for high-performance client-side querying of market data.
-  - Client: `sql.js` (initialized in `src/lib/db.ts`).
-  - WASM File: `public/sql-wasm.wasm`.
-
-**File Storage:**
-- Local filesystem only (for temporary data archival scripts).
-
-**Caching:**
-- Not detected.
+- **sql.js (SQLite WebAssembly)** - Local client-side database used to query and run play-by-play playback data.
+  - Connection: Web Worker proxy model (`src/lib/db.ts` communicating with `src/lib/workers/db.worker.ts`).
+  - Storage: Persisted locally in browser via **Origin Private File System (OPFS)**.
+  - Key File: `market_data.db` stored under OPFS directory root.
+  - Migrations: Database schemas loaded inline or dynamically when database file is imported.
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- Custom/Not implemented - The app focuses on market data visualization and playback.
-
-## Monitoring & Observability
-
-**Error Tracking:**
-- Not detected.
-
-**Logs:**
-- Console logging (Frontend) and Standard output (Backend scripts).
+- **Capital.com Session Management** - Direct login using username (`CAPITAL_USER`) and password (`CAPITAL_PASSWORD`).
+  - Token storage: CST & X-SECURITY-TOKEN stored in Zustand store (`src/store/useSessionStore.ts`) and forwarded as headers in downstream requests.
+  - Session lifecycle: Handled in `src/hooks/useSession.ts`.
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Vercel - Frontend deployment.
+- **Vercel** - Frontend hosting and routing config (`vercel.json`) to serve built assets and api routes.
+- **Node.js Serve** - Development proxy server (`server/index.ts`) running Hono on port 3000 to bypass CORS restrictions.
 
 **CI Pipeline:**
-- GitHub Actions (indicated by `.github/workflows/` files).
+- **GitHub Actions** - Workflows configured for automatic build, lint, and test execution.
 
 ## Environment Configuration
 
-**Required env vars:**
-- Polygon API Keys (multiple keys used for parallel archival).
-- Turso Database URL and Token.
-- Infisical Token/Client ID for secret retrieval.
+**Development:**
+- Required Env Vars:
+  - `ENV` - Configures Environment ('DEMO' or 'LIVE').
+  - `PORT` - Port of the Hono proxy server (default: 3000).
+  - `CAPITAL_USER` - Smart fallback credentials if frontend doesn't send username.
+  - `CAPITAL_PASSWORD` - Smart fallback credentials if frontend doesn't send password.
+  - `CAPITAL_API_KEY_DEMO` / `CAPITAL_API_KEY_LIVE` - API keys matching the chosen mode.
+- Secrets Location: `.env.local` (gitignored).
 
-**Secrets location:**
-- Infisical (production/staging).
-- `.env` files (local development).
-
-## Webhooks & Callbacks
-
-**Incoming:**
-- None.
-
-**Outgoing:**
-- None.
+**Production:**
+- Secrets Management: Vercel environment variables or container variables.
+- Mode Restrictions: LIVE mode can be explicitly disabled globally (`process.env.ENV === 'DEMO'` blocks LIVE target routing).
 
 ---
 
-*Integration audit: 2025-05-14*
+*Integration audit: 2026-06-13*
+*Update when adding/removing external services*

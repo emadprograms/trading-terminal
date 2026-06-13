@@ -1,129 +1,95 @@
 # Architecture
 
-## System Overview
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                        UI Layer                             │
-│    `src/App.tsx`  `src/components/ChartWorkspace.tsx`        │
-└────────┬──────────────────────┬──────────────────────┬───────┘
-         │                      │                      │
-         ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Orchestration Layer                      │
-│  `src/hooks/useWorkspace.ts` `src/hooks/useSession.ts`       │
-│  `src/hooks/useChartLifecycle.ts`                           │
-└────────┬──────────────────────┬──────────────────────┬───────┘
-         │                      │                      │
-         ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Data & Logic Layer                      │
-│  `src/hooks/useChartData.ts` `src/lib/ws-manager.ts`         │
-│  `src/api/market.ts` `src/lib/data-adapter.ts`              │
-└────────┬──────────────────────┬──────────────────────┬───────┘
-         │                      │                      │
-         ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   State & Storage Layer                     │
-│  `src/store/useWorkspaceStore.ts` `src/store/usePriceStore.ts`
-│  `src/store/useSessionStore.ts`                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Component Responsibilities
-
-| Component | Responsibility | File |
-|-----------|----------------|------|
-| `App` | Main entry point, session orchestration, and top-level layout | `src/App.tsx` |
-| `ChartWorkspace` | Manages the grid layout of charts and resizing logic | `src/components/ChartWorkspace.tsx` |
-| `ChartUnit` | Encapsulates a single chart instance, its data, and lifecycle | `src/components/ChartUnit.tsx` |
-| `ChartCanvas` | Lightweight-charts rendering surface | `src/components/ChartCanvas.tsx` |
-| `ChartHeader` | Chart-specific controls (ticker, timeframe, drawings) and Live Price display | `src/components/ChartHeader.tsx` |
-| `AccountHeader` | Global account metrics (Equity, Margin, PnL) | `src/components/AccountHeader.tsx` |
-| `Sidebar` | Layout selection and session configuration | `src/components/Sidebar.tsx` |
+**Analysis Date:** 2026-06-13
 
 ## Pattern Overview
 
-**Overall:** Live-Market Terminal with Hooks-based Orchestration and Real-time WebSocket updates.
+**Overall:** Client-Server Single Page Application (SPA) with local SQLite database play-by-play playback capabilities and an external broker proxy server.
 
 **Key Characteristics:**
-- **Centralized State:** Uses Zustand stores for global workspace, live pricing, and session tokens.
-- **Decoupled Logic:** Market API interaction, WebSocket management, and data transformation are isolated in `src/api/` and `src/lib/`.
-- **Lifecyle Management:** `useChartLifecycle` manages the interaction between React state and the imperative `lightweight-charts` API.
-- **REST + WS Sync:** Historical data is fetched via REST on mount; real-time updates are pushed via WebSocket to a global price store.
+- **Local WASM SQLite Storage:** Heavy local analytical capabilities powered by SQLite WASM (`sql.js`) inside a Web Worker.
+- **State-Driven Rendering:** Centralized state management using Zustand stores coordinating playback, trade log, and layout states.
+- **Proxy Middleware:** Hono Node.js server bypassing CORS restriction policies and injecting fallback API credentials.
+- **Plugin-Based Charting:** Drawing, trading, and indicator visual overlay layers implemented via custom lightweight-charts canvas plugins.
 
 ## Layers
 
-**UI Layer:**
-- Purpose: Render the visual interface and handle user input.
-- Location: `src/components/`
-- Contains: React components.
-- Depends on: Orchestration Layer (hooks).
+**Presentation Layer (UI):**
+- Purpose: Render dashboard layout, charts canvas, watchlists, trade control panels, and transaction logs.
+- Location: `src/components/*.tsx` (e.g. `src/components/ChartCanvas.tsx`, `src/components/TradeControls.tsx`).
+- Depends on: Hooks layer, Zustand stores, Types.
 
-**Orchestration Layer:**
-- Purpose: Bridge the gap between UI and data, managing state transitions and side effects.
-- Location: `src/hooks/`
-- Contains: Custom React hooks.
-- Depends on: Data Layer and State Layer.
+**State Management Layer (Zustand):**
+- Purpose: Centralize app states (current playback tick, active orders, account state, and active watchlist).
+- Location: `src/store/*.ts` (e.g. `src/store/useTradeStore.ts`, `src/store/usePlaybackStore.ts`).
+- Depends on: API and Lib layers.
 
-**Data & Logic Layer:**
-- Purpose: Handle API communication, WebSocket lifecycle, and data normalization.
-- Location: `src/api/` and `src/lib/`
-- Contains: `marketApi`, `wsManager`, and `data-adapter`.
-- Depends on: Ky (HTTP) and Native WebSockets.
+**React Hooks Layer:**
+- Purpose: Bridge UI components to stores, lifecycle orchestration, and keyboard shortcut listeners.
+- Location: `src/hooks/*.ts` and `src/hooks/chart/*.ts` (e.g. `src/hooks/useChartLifecycle.ts`, `src/hooks/useTradeManager.ts`).
+- Depends on: Store layer, API client, Lib wrappers.
 
-**State & Storage Layer:**
-- Purpose: Maintain global application state, price feeds, and authentication tokens.
-- Location: `src/store/`
-- Contains: Zustand stores (`useSessionStore`, `usePriceStore`, `useWorkspaceStore`).
-- Depends on: Browser LocalStorage.
+**API Client Layer:**
+- Purpose: Manage authentication headers and transport-layer fetch actions.
+- Location: `src/api/*.ts` (e.g. `src/api/client.ts`, `src/api/trade.ts`).
+- Depends on: Network/Proxy targets.
+
+**Services & Workers Layer:**
+- Purpose: Heavy lifting (SQLite queries, synchronization logic, and WebSocket communication).
+- Location: `src/lib/*.ts` and `src/lib/workers/*.ts` (e.g. `src/lib/db.ts`, `src/lib/workers/db.worker.ts`).
+
+**Backend Proxy Layer:**
+- Purpose: Handle CORS policies, exposed authentication headers (`CST`, `X-SECURITY-TOKEN`), and fallback routing target redirection.
+- Location: `server/index.ts`.
 
 ## Data Flow
 
-### Primary Request Path (Chart Loading)
+**Interactive Market Rewind Playback:**
+1. User clicks the "Play" button in `src/components/TradeControls.tsx`.
+2. Component triggers action in `src/store/usePlaybackStore.ts`.
+3. Playback timer starts ticking; each interval fetches raw candles/bars from the local WASM SQLite database using the Worker proxy `src/lib/db.ts` or coordinates syncing via `src/lib/sync-coordinator.ts`.
+4. Zustand store updates the current candle state (`usePriceStore.ts`, `usePlaybackStore.ts`).
+5. `src/components/ChartCanvas.tsx` listens to store updates and renders the new candle using lightweight-charts.
+6. The `TradePlugin.ts` overlay redraws active mock/live order markers at correct coordinates.
 
-1. `ChartUnit` mounts and invokes `useChartData` (`src/hooks/useChartData.ts`).
-2. `useChartData` fetches historical bars from `marketApi.fetchCandles` via `src/lib/db.ts` (proxied to REST API).
-3. Data is transformed into the internal `RawBar` format via `src/lib/data-adapter.ts`.
-4. `useChartLifecycle` receives the processed `chartData` and updates the chart series.
-
-### Real-time Update Flow
-
-1. `wsManager` receives a price update for a subscribed epic.
-2. `wsManager` calls `usePriceStore.getState().updatePrice()`.
-3. `ChartHeader` (and other components) observing the price store re-render to show the live Bid/Ask.
-4. (Optional) Latest candle on the chart is updated with the new price tick.
+**Session Authentication Flow:**
+1. App mounts; `src/hooks/useSession.ts` attempts automatic session recovery or login.
+2. Request is dispatched to the Hono proxy `/session` path (`server/index.ts`).
+3. Proxy validates credentials, injecting env variables if credentials are missing, and fetches session from Capital.com API.
+4. Upstream session response headers (`CST` and `X-SECURITY-TOKEN`) are intercepted by proxy, exposed to CORS, and sent back.
+5. Frontend stores tokens in `src/store/useSessionStore.ts` for all downstream requests.
 
 ## Key Abstractions
 
-**Market API:**
-- Purpose: Centralized gateway for all REST communication with Capital.com.
-- Location: `src/api/market.ts`
+**Database Worker Proxy (`DatabaseWorkerProxy`):**
+- Purpose: Expose clean async API for the main thread to fetch SQLite ticks/tickers while keeping database WASM CPU overhead isolated to a Web Worker.
+- Location: `src/lib/db.ts` (Main Thread) and `src/lib/workers/db.worker.ts` (Worker Thread).
 
-**WebSocket Manager:**
-- Purpose: Singleton managing the lifecycle, authentication, and subscription of market data streams.
-- Location: `src/lib/ws-manager.ts`
+**Chart Plugins (`BoundaryLinePlugin`, `TradePlugin`, etc.):**
+- Purpose: Extend baseline Lightweight Charts functionality with custom canvas layers for horizontal rays, rectangles, volume profiles, and trade levels.
+- Location: `src/lib/*.ts` (e.g. `src/lib/TradePlugin.ts`).
 
-**Data Adapter:**
-- Purpose: Normalizes external API shapes (Capital.com) into the terminal's internal formats (`RawBar`, `FormattedBar`).
-- Location: `src/lib/data-adapter.ts`
+**Sync Coordinator (`SyncCoordinator`):**
+- Purpose: Handle sync queues for fetching and storing chunked tick historical charts smoothly.
+- Location: `src/lib/sync-coordinator.ts`.
 
 ## Entry Points
 
-**App Component:**
-- Location: `src/App.tsx`
-- Triggers: Page load / Authentication.
-- Responsibilities: Session handshake, global layout, and high-level routing (Splash -> SessionConfig -> Workspace).
+**Frontend Web App:**
+- Location: `src/main.tsx` bootstrapping `src/App.tsx`.
+- Invocation: Browsers opening the app.
 
-## Architectural Constraints
-
-- **Ephemeral Proxy:** The terminal depends on a healthy Proxy URL provided by the GHA Tunnel to bypass CORS and handle auth headers.
-- **WebSocket Throttling:** Subscriptions are managed per epic to avoid overloading the socket connection.
+**Backend Server/Proxy:**
+- Location: `server/index.ts`.
+- Invocation: Running `npm run start:proxy` (loads Hono backend server proxy).
 
 ## Error Handling
 
-**Strategy:** Boundary-based isolation and Stability Traces.
+**Strategy:** Global ErrorBoundary component wraps the dashboard workspace to prevent full app crashes. API errors are wrapped in client catch blocks and surfaced to UI using the `sonner` toast notifications API.
+- Custom middleware error tracking logs errors with prefix `[StabilityTrace]`.
+- Network request failure triggers retry loops in utility scripts (e.g. `fetchHistoricalChunk` fallback logic).
 
-**Patterns:**
-- `ErrorBoundary` around each `ChartUnit`.
-- `[StabilityTrace]` logs for critical auth and connection events.
+---
+
+*Architecture analysis: 2026-06-13*
+*Update when major patterns change*
