@@ -1,28 +1,28 @@
 ---
 phase: 01-backend-proxy-hardening-syncing
-verified: 2026-06-13T17:15:32Z
+verified: 2026-06-13T17:36:00Z
 status: human_needed
-score: 8/8 must-haves verified
+score: 6/6 must-haves verified
 overrides_applied: 0
 re_verification:
   previous_status: human_needed
-  previous_score: 6/6
+  previous_score: 8/8
   gaps_closed:
-    - "Ungraceful network drops (e.g., ethernet cable removal) fail to trigger WebSocket onclose and toast notifications"
+    - "Toast notifications have been removed in favor of a persistent 'Online/Disconnected' connection state indicator in the AccountHeader (Plan 04)."
   gaps_remaining: []
   regressions: []
 human_verification:
   - test: "Simulate an ungraceful network failure (e.g., turning on offline mode in dev tools or pulling ethernet cable) during chart streaming."
-    expected: "A toast notification should appear immediately stating 'Retrying chart data fetch...'. Once the network is restored, a 'Chart data fetch succeeded' toast should appear."
-    why_human: "Requires simulating ungraceful network drops to verify browser event listeners correctly trigger UI toast notifications."
+    expected: "The 'ONLINE' button in the top left header should immediately change to 'DISCONNECTED'. Once the network is restored, it should change back to 'ONLINE'."
+    why_human: "Requires simulating ungraceful network drops to verify browser event listeners correctly trigger UI state changes."
 ---
 
 # Phase 1: Backend Proxy Hardening & Syncing Verification Report
 
 **Phase Goal:** Establish a robust, resilient backend proxy foundation to handle order execution and synchronization reliably.
-**Verified:** 2026-06-13T17:15:32Z
+**Verified:** 2026-06-13T17:36:00Z
 **Status:** human_needed
-**Re-verification:** Yes — after gap closure
+**Re-verification:** Yes — after gap closure (Plan 04)
 
 ## Goal Achievement
 
@@ -30,32 +30,30 @@ human_verification:
 
 | #   | Truth   | Status     | Evidence       |
 | --- | ------- | ---------- | -------------- |
-| 1   | Malformed orders are blocked at the proxy level and return 400 | ✓ VERIFIED | `api/order.ts` validates payloads using `zod` schemas (`marketOrderSchema`, `limitOrderSchema`, `updatePositionSchema`) and returns `400 PROXY_VALIDATION_ERROR`. Confirmed by passing tests in `api/order.test.ts`. |
+| 1   | Malformed orders are blocked at the proxy level and return 400 | ✓ VERIFIED | `api/order.ts` validates payloads using `zod` schemas and returns `400 PROXY_VALIDATION_ERROR`. Confirmed by passing tests in `api/order.test.ts`. |
 | 2   | Order execution never automatically retries upon failure | ✓ VERIFIED | `src/services/client.ts` initializes the `ky` client with `retry: 0`, preventing automatic mutation retries. |
-| 3   | User sees clear toast notifications if chart data fetches retry or succeed after a retry | ✓ VERIFIED | `src/lib/sync-coordinator.ts` implements up to 3 retries in `fetchWithRetry` and uses `toast.error` and `toast.success` to notify the user. |
-| 4   | User sees precise error messages indicating whether validation failed at the proxy or was rejected by Capital.com | ✓ VERIFIED | `src/services/trade.ts` extracts `errorCode` and correctly formats messages with either `Proxy Validation Error: ` or `Capital.com Rejection: `. |
-| 5   | User sees 'Retrying chart data fetch...' toast when WebSocket connection drops | ✓ VERIFIED | `src/lib/sync-coordinator.ts` registers an `onDisconnect` listener on `wsManager` that triggers the toast. Tested in `ws-manager.test.ts`. |
-| 6   | User sees 'Chart data fetch succeeded' toast when WebSocket connection recovers | ✓ VERIFIED | `src/lib/sync-coordinator.ts` registers an `onReconnect` listener on `wsManager` that triggers the success toast. Tested in `ws-manager.test.ts`. |
-| 7   | When the live streaming chart is active, turning off network access immediately forces the socket reconnect flow and triggers an error toast. | ✓ VERIFIED | `src/lib/ws-manager.ts` adds a `window.addEventListener('offline', ...)` listener that calls `socket.close()`, which natively cascades to `onclose`, triggering `onDisconnect` listeners (the error toast). |
-| 8   | Restoring network access immediately forces socket connection and triggers a success toast. | ✓ VERIFIED | `src/lib/ws-manager.ts` adds a `window.addEventListener('online', ...)` listener that clears the reconnect timeout, forcefully sets `reconnectAttempts` to at least `1`, and calls `connect()`, which guarantees `onReconnectListeners` (success toast) are fired upon `onopen`. |
+| 3   | User sees precise error messages indicating whether validation failed at the proxy or was rejected by Capital.com | ✓ VERIFIED | `src/services/trade.ts` extracts `errorCode` and correctly formats messages with either `Proxy Validation Error: ` or `Capital.com Rejection: `. |
+| 4   | Instead of toasts, network disconnection and reconnection update the existing 'Online' button in the top left header | ✓ VERIFIED | `src/lib/sync-coordinator.ts` toasts removed; `src/lib/ws-manager.ts` updates `isWsConnected` in `useSessionStore`; `src/components/AccountHeader.tsx` renders connection status based on this state. |
+| 5   | When the live streaming chart is active, turning off network access immediately forces the socket reconnect flow and updates the 'Online' button | ✓ VERIFIED | `src/lib/ws-manager.ts` adds a `window.addEventListener('offline', ...)` listener that calls `socket.close()`, which updates store connection state to false. |
+| 6   | Restoring network access immediately forces socket connection and updates the 'Online' button | ✓ VERIFIED | `src/lib/ws-manager.ts` adds a `window.addEventListener('online', ...)` listener that reconnects and updates store connection state to true. |
 
-**Score:** 8/8 truths verified
+**Score:** 6/6 truths verified
 
 ### Required Artifacts
 
 | Artifact | Expected    | Status | Details |
 | -------- | ----------- | ------ | ------- |
 | `api/order.ts` | Zod schemas and validation logic | ✓ VERIFIED | File exists, uses zod, and implements validation for order proxying. |
-| `package.json` | zod dependency | ✓ VERIFIED | `zod` is installed in `package.json` (`^4.4.3`). |
-| `src/lib/ws-manager.ts` | WebSocket connection state management and offline/online listeners | ✓ VERIFIED | File exists, exports `wsManager` with `onDisconnect`, `onReconnect`, and proper network browser event listeners. |
-| `src/lib/sync-coordinator.ts` | UI toast notifications triggered by WebSocket state changes | ✓ VERIFIED | File exists, registers callbacks for toast notifications. |
+| `src/lib/ws-manager.ts` | WebSocket connection state management and offline/online listeners | ✓ VERIFIED | Updates store connection state on `onopen` and `onclose`. |
+| `src/components/AccountHeader.tsx` | UI indicator reflecting WebSocket connection state | ✓ VERIFIED | File uses `isWsConnected` from the session store. |
+| `src/store/useSessionStore.ts` | State for WebSocket connection | ✓ VERIFIED | Exposes `isWsConnected` and `setIsWsConnected`. |
 
 ### Key Link Verification
 
 | From | To  | Via | Status | Details |
 | ---- | --- | --- | ------ | ------- |
-| `src/services/trade.ts` | UI | Throws formatted error message | ✓ WIRED | Correctly throws errors prefixed with `Proxy Validation Error:` based on JSON error response from `api/order.ts`. |
-| `src/lib/sync-coordinator.ts` | `src/lib/ws-manager.ts` | `onDisconnect` / `onReconnect` | ✓ WIRED | Callbacks are successfully wired and trigger `toast.error` and `toast.success`. |
+| `src/lib/ws-manager.ts` | `src/store/useSessionStore.ts` | `setIsWsConnected` | ✓ WIRED | `wsManager` calls `useSessionStore.getState().setIsWsConnected(true/false)`. |
+| `src/components/AccountHeader.tsx` | `src/store/useSessionStore.ts` | `isWsConnected` | ✓ WIRED | Consumes `isWsConnected` and renders 'ONLINE' or 'DISCONNECTED'. |
 | `window` events | `wsManager` socket state | `offline` and `online` event listeners | ✓ WIRED | Successfully added listeners to the `window` to intercept ungraceful network drops and restore connection. |
 
 ### Data-Flow Trace (Level 4)
@@ -87,21 +85,21 @@ human_verification:
 | File | Line | Pattern | Severity | Impact |
 | ---- | ---- | ------- | -------- | ------ |
 | `src/lib/ws-manager.ts` | - | - | - | None found |
-| `src/lib/sync-coordinator.ts` | - | - | - | None found |
+| `src/components/AccountHeader.tsx` | - | - | - | None found |
 
 ### Human Verification Required
 
-### 1. Ungraceful Drop Toast Notification
+### 1. Ungraceful Drop UI Update
 
 **Test:** Simulate an ungraceful network failure (e.g., turning on offline mode in dev tools or pulling ethernet cable) during chart streaming.
-**Expected:** A toast notification should appear immediately stating 'Retrying chart data fetch...'. Once the network is restored, a 'Chart data fetch succeeded' toast should appear.
-**Why human:** Requires simulating ungraceful network drops to verify browser event listeners correctly trigger UI toast notifications.
+**Expected:** The 'ONLINE' button in the top left header should immediately change to 'DISCONNECTED'. Once the network is restored, it should change back to 'ONLINE'.
+**Why human:** Requires simulating ungraceful network drops to verify browser event listeners correctly trigger UI state changes.
 
 ### Gaps Summary
 
-No programmatic gaps found. The backend proxy has been hardened with Zod validation, precise retries are configured, and the ungraceful network drop gap closed by adding browser `offline` and `online` event listeners to forcefully reconnect the WebSocket. UI-related behavior (toast displays upon ungraceful drop) has been flagged for human verification to ensure the fix passes UAT.
+No programmatic gaps found. The backend proxy has been hardened, precise retries configured, and the intrusive toast notifications have been successfully replaced by a persistent 'Online'/'Disconnected' status indicator in the `AccountHeader` component (Plan 04). The ungraceful network drop recovery logic remains intact. UI-related behavior (status indicator update upon ungraceful drop) has been flagged for human verification to ensure the fix passes UAT.
 
 ---
 
-_Verified: 2026-06-13T17:15:32Z_
+_Verified: 2026-06-13T17:36:00Z_
 _Verifier: the agent (gsd-verifier)_
