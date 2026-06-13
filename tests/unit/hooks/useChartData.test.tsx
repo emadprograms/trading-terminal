@@ -14,7 +14,12 @@ vi.mock('../../../src/lib/sync-coordinator', () => ({
   }
 }));
 vi.mock('../../../src/lib/db');
-vi.mock('../../../src/lib/ws-manager');
+vi.mock('../../../src/lib/ws-manager', () => ({
+  wsManager: {
+    unsubscribe: vi.fn(),
+    onConnect: vi.fn(() => vi.fn())
+  }
+}));
 vi.mock('../../../src/store/useWorkspaceStore', async () => {
   const actual = await vi.importActual('../../../src/store/useWorkspaceStore');
   return {
@@ -76,7 +81,9 @@ describe('useChartData', () => {
       'AAPL', 
       '1H', 
       '2024-01-01', 
-      1000
+      1000,
+      expect.any(Function),
+      expect.any(AbortSignal)
     );
     expect(result.current.localMasterData).toHaveLength(1);
   });
