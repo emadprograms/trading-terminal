@@ -1,5 +1,0 @@
-polygon-api-client
-infisicalsdk
-libsql-client
-python-dotenv
-pytz
