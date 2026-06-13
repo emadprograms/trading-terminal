@@ -11,10 +11,12 @@ interface SessionState {
   environment: 'DEMO' | 'LIVE'
   selectedAccountId: string | null
   isAuthenticated: boolean
+  isWsConnected: boolean
   setTokens: (cst: string, securityToken: string) => void
   clearTokens: () => void
   setEnvironment: (env: 'DEMO' | 'LIVE') => void
   setSelectedAccountId: (id: string | null) => void
+  setIsWsConnected: (status: boolean) => void
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -23,6 +25,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   environment: 'DEMO',
   selectedAccountId: null,
   isAuthenticated: false,
+  isWsConnected: false,
 
   setTokens: (cst, securityToken) => 
     set({ 
@@ -42,4 +45,6 @@ export const useSessionStore = create<SessionState>((set) => ({
   setEnvironment: (environment) => set({ environment, selectedAccountId: null }),
 
   setSelectedAccountId: (selectedAccountId) => set({ selectedAccountId }),
+  
+  setIsWsConnected: (status) => set({ isWsConnected: status }),
 }))
