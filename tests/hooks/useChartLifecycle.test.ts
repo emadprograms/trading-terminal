@@ -7,7 +7,7 @@ import { mockChart } from '../helpers/chart-simulation';
 vi.mock('../../src/hooks/chart/useChartInit', () => ({
   useChartInit: vi.fn(() => ({
     chartRef: { current: mockChart },
-    priceSeriesRef: { current: { setData: vi.fn(), applyOptions: vi.fn(), attachPrimitive: vi.fn() } },
+    priceSeriesRef: { current: { setData: vi.fn(), applyOptions: vi.fn(), attachPrimitive: vi.fn(), createPriceLine: vi.fn(), removePriceLine: vi.fn() } },
     volumeSeriesRef: { current: { setData: vi.fn(), applyOptions: vi.fn(), attachPrimitive: vi.fn(), priceScale: () => ({ applyOptions: vi.fn() }) } },
     lastBarSpacingRef: { current: null },
   })),
