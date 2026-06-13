@@ -155,25 +155,27 @@ export const useTradeStore = create<TradeState>()(
           await tradeApi.flattenPosition(dealId, position);
           
           // Get current price for exit marker
-          const priceStore = (await import('./usePriceStore')).usePriceStore;
-          const currentPriceObj = priceStore.getState().prices[position!.epic];
-          const exitPrice = currentPriceObj 
-              ? (position!.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
-              : position!.currentPrice || position!.entryPrice;
+          if (position) {
+            const priceStore = (await import('./usePriceStore')).usePriceStore;
+            const currentPriceObj = priceStore.getState().prices[position.epic];
+            const exitPrice = currentPriceObj 
+                ? (position.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                : position.currentPrice || position.entryPrice;
 
-          if (exitPrice) {
-            const execExists = get().executions.some(e => e.dealId === dealId && e.action === 'EXIT');
-            if (!execExists) {
-              get().addExecution({
-                id: `${dealId}_EXIT_${Date.now()}`,
-                dealId: dealId,
-                epic: position!.epic,
-                size: position!.size,
-                price: exitPrice,
-                direction: position!.direction === 'BUY' ? 'SELL' : 'BUY',
-                timestamp: Date.now(),
-                action: 'EXIT'
-              });
+            if (exitPrice) {
+              const execExists = get().executions.some(e => e.dealId === dealId && e.action === 'EXIT');
+              if (!execExists) {
+                get().addExecution({
+                  id: `${dealId}_EXIT_${Date.now()}`,
+                  dealId: dealId,
+                  epic: position.epic,
+                  size: position.size,
+                  price: exitPrice,
+                  direction: position.direction === 'BUY' ? 'SELL' : 'BUY',
+                  timestamp: Date.now(),
+                  action: 'EXIT'
+                });
+              }
             }
           }
 

@@ -8,8 +8,10 @@ const DEFAULT_PREFIX = '/api'
  * Secrets (X-CAP-API-KEY) are injected server-side by the proxy.
  * The client only sends session tokens (CST, X-SECURITY-TOKEN) and environment selection.
  */
+const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+
 export const api = ky.create({
-  prefix: DEFAULT_PREFIX,
+  prefix: isTestEnv ? 'http://localhost/api' : DEFAULT_PREFIX,
   retry: 0,
   hooks: {
     beforeRequest: [

@@ -36,7 +36,7 @@ describe('useTradeStore - Logic Hardening', () => {
 
     // 3. Check first call
     await vi.waitFor(() => {
-        expect(tradeApi.flattenPosition).toHaveBeenCalledWith('d1');
+        expect(tradeApi.flattenPosition).toHaveBeenCalledWith('d1', expect.anything());
     });
     
     // 4. Fast-forward 100ms
@@ -44,7 +44,7 @@ describe('useTradeStore - Logic Hardening', () => {
     
     // 5. Check second call
     await vi.waitFor(() => {
-        expect(tradeApi.flattenPosition).toHaveBeenCalledWith('d2');
+        expect(tradeApi.flattenPosition).toHaveBeenCalledWith('d2', expect.anything());
     });
 
     // 6. Fast-forward again for the last throttle

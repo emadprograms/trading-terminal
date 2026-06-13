@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getSessionType } from '../../src/lib/SessionShading';
+import { getSessionType } from '../../src/lib/timezones';
 
 describe('SessionShading Performance', () => {
   it('should process 10,000 timestamps in under 50ms', () => {
@@ -7,7 +7,7 @@ describe('SessionShading Performance', () => {
     
     const start = performance.now();
     for (const ts of timestamps) {
-      getSessionType(ts);
+      getSessionType(ts, 'AAPL');
     }
     const end = performance.now();
     const duration = end - start;

@@ -59,7 +59,7 @@ export function useChartInit({
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
         const ts = chart.timeScale();
-        lastBarSpacingRef.current = ts.options().barSpacing;
+        lastBarSpacingRef.current = typeof ts.options === 'function' ? ts.options().barSpacing : null;
 
         const logicalRange = ts.getVisibleLogicalRange();
         if (logicalRange && priceSeriesRef.current) {
@@ -67,7 +67,8 @@ export function useChartInit({
             if (bars.length > 0) {
                 const lastBarIndex = bars.length - 1;
                 const newAtEnd = logicalRange.to >= lastBarIndex - 0.5;
-                const autoScale = chart.priceScale('right').options().autoScale;
+                const scale = chart.priceScale('right');
+                const autoScale = typeof scale.options === 'function' ? scale.options().autoScale : true;
                 onViewStateChange(newAtEnd, autoScale !== false);
             }
         }
@@ -83,7 +84,8 @@ export function useChartInit({
             const lastBarIndex = bars.length - 1;
             isAtEnd = logicalRange.to >= lastBarIndex - 0.5;
         }
-        const autoScale = chart.priceScale('right').options().autoScale;
+        const scale = chart.priceScale('right');
+        const autoScale = typeof scale.options === 'function' ? scale.options().autoScale : true;
         onViewStateChange(isAtEnd, autoScale !== false);
     }, 250);
 

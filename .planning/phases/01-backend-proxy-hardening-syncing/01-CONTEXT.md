@@ -19,7 +19,7 @@ Establish a robust, resilient backend proxy foundation to handle order execution
 - **D-05:** For Vercel proxy side failures (e.g., Zod validation errors), clearly inform the user that it failed on the proxy side.
 
 ### Rate Limiting / Retry Strategy
-- **D-06:** For chart prices and market data: implement automatic retries (e.g., up to 3 attempts), notifying the user of the failure and informing them when it succeeds.
+- **D-06:** For chart prices and market data: implement automatic retries (e.g., up to 3 attempts). Instead of toasts, display network status via the existing 'Online' button in AccountHeader.
 - **D-07:** For order placement: NEVER automatically retry. Fail immediately back to the client, providing the exact error so the user can manually decide their next action (since price may have moved).
 
 ### the agent's Discretion

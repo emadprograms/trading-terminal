@@ -86,7 +86,7 @@ describe('useTradeStore', () => {
     });
 
     const callArgs = vi.mocked(tradeApi.placeMarketOrder).mock.calls[0][0];
-    expect(callArgs.guaranteedStop).toBe(false);
+    expect(callArgs.guaranteedStop).toBeUndefined(); // Should be deleted to prevent 403
   });
 
   it('should reset isExecuting if API call fails immediately', async () => {

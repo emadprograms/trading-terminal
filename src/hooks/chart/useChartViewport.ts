@@ -21,14 +21,16 @@ export function useChartViewport({
   const scrollToRealTime = useCallback(() => {
     if (chartRef.current) {
       const ts = chartRef.current.timeScale();
-      ts.scrollToPosition(ts.options().rightOffset || 15, false);
+      const rightOffset = typeof ts.options === 'function' ? ts.options().rightOffset || 15 : 15;
+      ts.scrollToPosition(rightOffset, false);
     }
   }, [chartRef]);
 
   const resetView = useCallback(() => {
     if (chartRef.current) {
       const ts = chartRef.current.timeScale();
-      ts.scrollToPosition(ts.options().rightOffset || 15, false);
+      const rightOffset = typeof ts.options === 'function' ? ts.options().rightOffset || 15 : 15;
+      ts.scrollToPosition(rightOffset, false);
       chartRef.current.priceScale('right').applyOptions({ autoScale: true });
     }
   }, [chartRef]);
@@ -90,7 +92,8 @@ export function useChartViewport({
         }
         pendingHistoryPrependRef.current = null;
     } else {
-        ts.scrollToPosition(ts.options().rightOffset || 15, false);
+        const rightOffset = typeof ts.options === 'function' ? ts.options().rightOffset || 15 : 15;
+        ts.scrollToPosition(rightOffset, false);
     }
 
     lastDataCountRef.current = chartData.length;

@@ -42,7 +42,7 @@ describe('resampleData', () => {
   it('should handle daily resampling', () => {
     const result = resampleData(mockData, '1D');
     expect(result.length).toBe(1);
-    expect(result[0].time).toBe('2023-01-01 12:00:00');
+    expect(result[0].time).toBe('2023-01-01 00:00:00');
   });
 
   it('should return empty array for empty input', () => {

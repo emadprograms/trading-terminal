@@ -170,17 +170,19 @@ export function useTradeManager({
 
   // Update TradePlugin
   useEffect(() => {
-    if (tradePluginRef.current) {
+    if (tradePluginRef.current && typeof tradePluginRef.current.setItems === 'function') {
       tradePluginRef.current.setItems(markers);
     }
   }, [markers, tradePluginRef, pluginVersion]);
 
   // Subscribe to crosshair move to detect hover over executions
   useEffect(() => {
-    if (chartRef.current && tradePluginRef.current) {
+    if (chartRef?.current && tradePluginRef?.current) {
       const handleCrosshairMove = (param: any) => {
-        if (!param.time || !param.point || !priceSeriesRef.current || !tradePluginRef.current) {
-          tradePluginRef.current?.setHoveredExecutions([]);
+        if (!param.time || !param.point || !priceSeriesRef?.current || !tradePluginRef?.current) {
+          if (tradePluginRef?.current && typeof tradePluginRef.current.setHoveredExecutions === 'function') {
+            tradePluginRef.current.setHoveredExecutions([]);
+          }
           return;
         }
 
@@ -223,12 +225,18 @@ export function useTradeManager({
           }
 
           if (closestExec) {
-            tradePluginRef.current.setHoveredExecutions([closestExec]);
+            if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
+              tradePluginRef.current.setHoveredExecutions([closestExec]);
+            }
           } else {
-            tradePluginRef.current.setHoveredExecutions([]);
+            if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
+              tradePluginRef.current.setHoveredExecutions([]);
+            }
           }
         } else {
-          tradePluginRef.current.setHoveredExecutions([]);
+          if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
+            tradePluginRef.current.setHoveredExecutions([]);
+          }
         }
       };
       
@@ -243,7 +251,7 @@ export function useTradeManager({
 
   // Register badge refs
   const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {
-    if (tradePluginRef.current) {
+    if (tradePluginRef.current && typeof tradePluginRef.current.registerBadgeRef === 'function') {
       tradePluginRef.current.registerBadgeRef(id, ref);
     }
   }, [tradePluginRef, pluginVersion]);
@@ -275,7 +283,7 @@ export function useTradeManager({
   const unrealizedPnL = 0;
 
   const onHoverMarker = useCallback((id: string | null) => {
-    if (tradePluginRef.current) {
+    if (tradePluginRef.current && typeof tradePluginRef.current.setHoveredId === 'function') {
       tradePluginRef.current.setHoveredId(id);
     }
   }, [tradePluginRef, pluginVersion]);

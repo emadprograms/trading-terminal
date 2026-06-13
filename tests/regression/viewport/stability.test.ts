@@ -122,7 +122,7 @@ describe('Viewport Stability Regression Tests', () => {
     rerender({ p: params });
     
     // Should not scroll yet because isHydrated is false
-    expect(mockTimeScale.scrollToRealTime).not.toHaveBeenCalled();
+    expect(mockTimeScale.scrollToPosition).not.toHaveBeenCalled();
 
     // 2. Trigger hydration and wait for effect
     await act(async () => {
@@ -131,6 +131,6 @@ describe('Viewport Stability Regression Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
-    expect(mockTimeScale.scrollToRealTime).toHaveBeenCalled();
+    expect(mockTimeScale.scrollToPosition).toHaveBeenCalled();
   });
 });

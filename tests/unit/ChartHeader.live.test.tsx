@@ -4,13 +4,7 @@ import { ChartHeader } from '../../src/components/ChartHeader';
 import { usePriceStore } from '../../src/store/usePriceStore';
 import React from 'react';
 
-// Mock Store
-vi.mock('../../src/store/usePriceStore', () => ({
-  usePriceStore: {
-    getState: vi.fn(),
-    subscribe: vi.fn(),
-  },
-}));
+// No need to mock usePriceStore, we can use the actual store.
 
 describe('ChartHeader Live Price Integration', () => {
   const defaultProps = {
@@ -36,29 +30,18 @@ describe('ChartHeader Live Price Integration', () => {
   };
 
   it('should update displayed price when usePriceStore updates', async () => {
-    let listener: (state: any) => void = () => {};
-    
-    // Capture the store subscription
-    (usePriceStore.subscribe as any).mockImplementation((cb: any) => {
-      listener = cb;
-      return () => {};
-    });
-
-    // Mock initial state
-    (usePriceStore.getState as any).mockReturnValue({
-      prices: { 'AAPL': { bid: 150.00, ask: 150.10, timestamp: 123456789 } }
+    // Set initial state
+    act(() => {
+      usePriceStore.getState().updatePrice('AAPL', 150.00, 150.10, 123456789);
     });
 
     render(<ChartHeader {...defaultProps} />);
     
     expect(screen.getByText(/150\.00/)).toBeInTheDocument();
 
-    // Update store and trigger listener
+    // Update store
     act(() => {
-      (usePriceStore.getState as any).mockReturnValue({
-        prices: { 'AAPL': { bid: 150.50, ask: 150.60, timestamp: 123456790 } }
-      });
-      listener({}); 
+      usePriceStore.getState().updatePrice('AAPL', 150.50, 150.60, 123456790);
     });
 
     expect(screen.getByText(/150\.50/)).toBeInTheDocument();

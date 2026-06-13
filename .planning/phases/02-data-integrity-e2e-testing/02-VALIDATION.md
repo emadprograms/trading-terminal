@@ -1,9 +1,9 @@
 ---
 phase: 02
 slug: data-integrity-e2e-testing
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: completed
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-13
 ---
 
@@ -17,20 +17,20 @@ created: 2026-06-13
 
 | Property | Value |
 |----------|-------|
-| **Framework** | {pytest 7.x / jest 29.x / vitest / go test / other} |
-| **Config file** | {path or "none — Wave 0 installs"} |
-| **Quick run command** | `{quick command}` |
-| **Full suite command** | `{full command}` |
-| **Estimated runtime** | ~{N} seconds |
+| **Framework** | vitest / playwright |
+| **Config file** | vitest.config.ts / playwright.config.ts |
+| **Quick run command** | `npm run test` |
+| **Full suite command** | `npx playwright test && npm run test` |
+| **Estimated runtime** | ~120 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `{quick run command}`
-- **After every plan wave:** Run `{full suite command}`
+- **After every task commit:** Run `npm run test`
+- **After every plan wave:** Run `npx playwright test`
 - **Before `/gsd-verify-work`:** Full suite must be green
-- **Max feedback latency:** {N} seconds
+- **Max feedback latency:** 120 seconds
 
 ---
 
@@ -38,7 +38,12 @@ created: 2026-06-13
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 1 | REQ-{XX} | T-02-01 / — | {expected secure behavior or "N/A"} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
+| 02-01-01 | 01 | 1 | TEST-01 | T-02-01 | N/A | unit | `npm run test` | ✅ | ✅ green |
+| 02-02-01 | 02 | 2 | TEST-02 | T-02-02 | N/A | e2e | `npx playwright test tests/e2e/critical-path.spec.ts` | ✅ | ✅ green |
+| 02-02-02 | 02 | 2 | TEST-02 | T-02-02 | N/A | e2e | `npx playwright test tests/e2e/stress-test.ts` | ✅ | ✅ green |
+| 02-03-01 | 03 | 3 | TEST-02 | - | N/A | unit | `npm run test` | ✅ | ✅ green |
+| 02-04-01 | 04 | 3 | TEST-02 | - | N/A | e2e | `npx playwright test tests/regression/sync/propagation.spec.ts` | ✅ | ✅ green |
+| 02-05-01 | 05 | 4 | TEST-01 | - | N/A | unit | `npm run test` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -46,31 +51,23 @@ created: 2026-06-13
 
 ## Wave 0 Requirements
 
-- [ ] `{tests/test_file.py}` — stubs for REQ-{XX}
-- [ ] `{tests/conftest.py}` — shared fixtures
-- [ ] `{framework install}` — if no framework detected
-
-*If none: "Existing infrastructure covers all phase requirements."*
+- [x] Existing infrastructure covers all phase requirements.
 
 ---
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| {behavior} | REQ-{XX} | {reason} | {steps} |
-
-*If none: "All phase behaviors have automated verification."*
+All phase behaviors have automated verification.
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < {N}s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** {pending / approved YYYY-MM-DD}
+**Approval:** approved 2026-06-13

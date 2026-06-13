@@ -4,7 +4,9 @@ export const mockTimeScale = {
   setVisibleLogicalRange: vi.fn(),
   getVisibleLogicalRange: vi.fn(() => ({ from: 0, to: 100 })),
   scrollToRealTime: vi.fn(),
+  scrollToPosition: vi.fn(),
   subscribeVisibleLogicalRangeChange: vi.fn(),
+  options: vi.fn(() => ({ barSpacing: 1, rightOffset: 15 })),
 };
 
 export const mockSeries = {

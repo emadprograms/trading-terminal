@@ -14,6 +14,7 @@ describe('WebSocketManager', () => {
       cst: 'test-cst',
       securityToken: 'test-token',
       environment: 'DEMO',
+      setIsWsConnected: vi.fn(),
     });
   });
 

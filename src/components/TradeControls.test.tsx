@@ -43,8 +43,8 @@ describe('TradeControls', () => {
     expect(mockPlaceOrder).toHaveBeenCalledWith(expect.objectContaining({
       direction: 'BUY',
       epic: 'AAPL',
-      guaranteedStop: true,
-      stopDistance: 50,
+      guaranteedStop: false,
+      stopDistance: undefined,
       bid: 150,
       ofr: 151
     }));
@@ -67,7 +67,7 @@ describe('TradeControls', () => {
     const sizeInput = screen.getByDisplayValue('1');
     fireEvent.change(sizeInput, { target: { value: '5' } });
     
-    const slInput = screen.getByDisplayValue('50');
+    const slInput = screen.getByPlaceholderText('Points');
     fireEvent.change(slInput, { target: { value: '100' } });
     
     fireEvent.click(screen.getByText('BUY'));

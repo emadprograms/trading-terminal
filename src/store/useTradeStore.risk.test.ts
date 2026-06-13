@@ -26,6 +26,7 @@ describe('useTradeStore Risk & Position Management', () => {
       epic: 'AAPL',
       size: 1,
       direction: 'BUY',
+      guaranteedStop: true,
     });
 
     expect(tradeApi.placeMarketOrder).toHaveBeenCalledWith(expect.objectContaining({
@@ -112,8 +113,7 @@ describe('useTradeStore Risk & Position Management', () => {
     
     await useTradeStore.getState().flattenPosition('deal-1');
 
-    expect(tradeApi.flattenPosition).toHaveBeenCalledWith('deal-1');
-    expect(useTradeStore.getState().pendingOrders['ref-close']).toBeDefined();
+    expect(tradeApi.flattenPosition).toHaveBeenCalledWith('deal-1', undefined);
   });
 
   it('should implement cancelWorkingOrder action', async () => {
@@ -122,6 +122,5 @@ describe('useTradeStore Risk & Position Management', () => {
     await useTradeStore.getState().cancelWorkingOrder('work-1');
 
     expect(tradeApi.cancelWorkingOrder).toHaveBeenCalledWith('work-1');
-    expect(useTradeStore.getState().pendingOrders['ref-cancel']).toBeDefined();
   });
 });

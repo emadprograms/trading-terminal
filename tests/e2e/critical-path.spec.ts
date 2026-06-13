@@ -6,7 +6,7 @@ test.describe('Critical Path E2E - Data Integrity', () => {
     await page.goto('/');
 
     // Wait for the main UI to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Ensure there's no initial stitching error
     await expect(page.getByText('Data Stitching Error')).toHaveCount(0);

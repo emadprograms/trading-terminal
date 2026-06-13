@@ -32,6 +32,7 @@ describe('AccountHeader', () => {
 
     it('should show online state and account data when authenticated', async () => {
     useSessionStore.getState().setTokens('test-cst', 'test-token')
+    useSessionStore.setState({ isWsConnected: true })
 
     render(<AccountHeader />, { wrapper: Wrapper })
 
