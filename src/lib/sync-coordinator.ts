@@ -11,7 +11,15 @@ export class SyncCoordinator {
   private cache: Map<string, RawBar[]> = new Map();
   private listeners: Map<string, Set<() => void>> = new Map();
 
-  private constructor() {}
+  private constructor() {
+    wsManager.onDisconnect(() => {
+      toast.error('Retrying chart data fetch...', { id: 'ws-retry' });
+    });
+
+    wsManager.onReconnect(() => {
+      toast.success('Chart data fetch succeeded', { id: 'ws-retry' });
+    });
+  }
 
   public static getInstance(): SyncCoordinator {
     if (!SyncCoordinator.instance) {

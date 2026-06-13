@@ -18,6 +18,8 @@ class WebSocketManager {
   private unsubscribeTimeout: number | null = null;
 
   private onConnectListeners: Set<() => void> = new Set();
+  private onDisconnectListeners: Set<() => void> = new Set();
+  private onReconnectListeners: Set<() => void> = new Set();
 
   private constructor() {}
 
@@ -25,6 +27,20 @@ class WebSocketManager {
     this.onConnectListeners.add(cb);
     return () => {
       this.onConnectListeners.delete(cb);
+    };
+  }
+
+  public onDisconnect(cb: () => void): () => void {
+    this.onDisconnectListeners.add(cb);
+    return () => {
+      this.onDisconnectListeners.delete(cb);
+    };
+  }
+
+  public onReconnect(cb: () => void): () => void {
+    this.onReconnectListeners.add(cb);
+    return () => {
+      this.onReconnectListeners.delete(cb);
     };
   }
 
@@ -51,6 +67,17 @@ class WebSocketManager {
 
     this.socket.onopen = () => {
       console.log('[WSManager] Connection established');
+      
+      if (this.reconnectAttempts > 0) {
+        this.onReconnectListeners.forEach(cb => {
+          try {
+            cb();
+          } catch (e) {
+            console.error('[WSManager] Error in onReconnect listener:', e);
+          }
+        });
+      }
+      
       this.reconnectAttempts = 0;
       this.authenticate(cst, securityToken);
       
@@ -79,6 +106,13 @@ class WebSocketManager {
     this.socket.onclose = (event) => {
       console.log(`[WSManager] Connection closed. Code: ${event.code}`);
       if (!this.isExplicitlyDisconnected) {
+        this.onDisconnectListeners.forEach(cb => {
+          try {
+            cb();
+          } catch (e) {
+            console.error('[WSManager] Error in onDisconnect listener:', e);
+          }
+        });
         this.scheduleReconnect();
       }
     };
