@@ -21,7 +21,30 @@ class WebSocketManager {
   private onDisconnectListeners: Set<() => void> = new Set();
   private onReconnectListeners: Set<() => void> = new Set();
 
-  private constructor() {}
+  private reconnectTimeout: number | null = null;
+
+  private constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('offline', () => {
+        console.log('[WSManager] Network offline detected');
+        if (this.socket) {
+          this.socket.close();
+        }
+      });
+
+      window.addEventListener('online', () => {
+        console.log('[WSManager] Network online detected');
+        if (!this.isExplicitlyDisconnected && this.socket?.readyState !== WebSocket.OPEN && this.socket?.readyState !== WebSocket.CONNECTING) {
+          if (this.reconnectTimeout !== null) {
+            window.clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+          }
+          this.reconnectAttempts = Math.max(1, this.reconnectAttempts);
+          this.connect();
+        }
+      });
+    }
+  }
 
   public onConnect(cb: () => void): () => void {
     this.onConnectListeners.add(cb);
@@ -269,12 +292,16 @@ class WebSocketManager {
   }
 
   private scheduleReconnect(): void {
+    if (this.reconnectTimeout !== null) {
+      window.clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     const delay = Math.min(
       this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts),
       this.maxReconnectDelay
     );
     console.log(`[WSManager] Reconnecting in ${delay}ms...`);
-    setTimeout(() => {
+    this.reconnectTimeout = window.setTimeout(() => {
       this.reconnectAttempts++;
       this.connect();
     }, delay);
