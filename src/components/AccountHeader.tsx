@@ -13,6 +13,7 @@ interface AccountData {
 
 export const AccountHeader: React.FC = () => {
   const isAuthenticated = useSessionStore(state => state.isAuthenticated);
+  const isWsConnected = useSessionStore(state => state.isWsConnected);
   const selectedAccountId = useSessionStore(state => state.selectedAccountId);
   const environment = useSessionStore(state => state.environment);
 
@@ -61,8 +62,8 @@ export const AccountHeader: React.FC = () => {
   return (
     <div className="account-header">
       <div className="status-indicator">
-        <span className={`dot ${isAuthenticated ? 'status-online' : ''}`} data-testid="online-indicator" />
-        <span className="status-text">{isAuthenticated ? 'ONLINE' : 'DISCONNECTED'}</span>
+        <span className={`dot ${(isAuthenticated && isWsConnected) ? 'status-online' : ''}`} data-testid="online-indicator" />
+        <span className="status-text">{(isAuthenticated && isWsConnected) ? 'ONLINE' : 'DISCONNECTED'}</span>
       </div>
       
       <div className="metrics">
