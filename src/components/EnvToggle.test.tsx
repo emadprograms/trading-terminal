@@ -14,6 +14,17 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
   )
 }
 
+import { api } from '../services/client'
+import { waitFor } from '@testing-library/react'
+
+vi.mock('../services/client', () => ({
+  api: {
+    get: vi.fn().mockReturnValue({
+      json: vi.fn().mockResolvedValue({ status: 'ok', env: 'LIVE' })
+    })
+  }
+}))
+
 describe('EnvToggle', () => {
   const mockLogin = vi.fn()
   
@@ -22,7 +33,7 @@ describe('EnvToggle', () => {
     useSessionStore.getState().setEnvironment('DEMO')
   })
 
-  it('should display current environment as active', () => {
+  it('should display current environment as active', async () => {
     render(<EnvToggle login={mockLogin} isLoggingIn={false} />, { wrapper: Wrapper })
     
     const demoBtn = screen.getByRole('button', { name: /DEMO/i })
@@ -32,10 +43,15 @@ describe('EnvToggle', () => {
     expect(liveBtn).toHaveAttribute('data-active', 'false')
   })
 
-  it('should call login when toggling environment', () => {
+  it('should call login when toggling environment', async () => {
     render(<EnvToggle login={mockLogin} isLoggingIn={false} />, { wrapper: Wrapper })
     
     const liveBtn = screen.getByRole('button', { name: /LIVE/i })
+    
+    await waitFor(() => {
+      expect(liveBtn).not.toBeDisabled()
+    })
+
     fireEvent.click(liveBtn)
     
     expect(mockLogin).toHaveBeenCalledWith({ environment: 'LIVE' })

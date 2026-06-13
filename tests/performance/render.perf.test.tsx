@@ -92,7 +92,7 @@ describe('React Render-Cycle Proof (Test 3)', () => {
     
     // Wait for mount and hydration effects to settle
     await act(async () => {
-        await new Promise(r => setTimeout(r, 100)); // wait for rAF
+        await new Promise(r => setTimeout(r, 500)); // wait for rAF and intervals
     });
     
     const initialRenders = (window as any).lastRenderCount;
