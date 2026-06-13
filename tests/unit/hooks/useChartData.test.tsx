@@ -6,7 +6,13 @@ import { fetchHistoricalChunk } from '../../../src/lib/db';
 import { useWorkspaceStore } from '../../../src/store/useWorkspaceStore';
 import { wsManager } from '../../../src/lib/ws-manager';
 
-vi.mock('../../../src/lib/sync-coordinator');
+vi.mock('../../../src/lib/sync-coordinator', () => ({
+  syncCoordinator: {
+    syncTicker: vi.fn(),
+    subscribe: vi.fn(() => vi.fn()),
+    getCache: vi.fn(),
+  }
+}));
 vi.mock('../../../src/lib/db');
 vi.mock('../../../src/lib/ws-manager');
 vi.mock('../../../src/store/useWorkspaceStore', async () => {
@@ -18,11 +24,17 @@ vi.mock('../../../src/store/useWorkspaceStore', async () => {
         groups: {},
         groupTickers: {},
         tickers: { '1': 'AAPL' },
+        setTimeframe: vi.fn(),
+        setTicker: vi.fn(),
       };
       return selector(state);
     }),
   };
 });
+
+vi.mock('../../../src/store/useSessionStore', () => ({
+  useSessionStore: vi.fn((selector) => selector({ isAuthenticated: true }))
+}));
 
 describe('useChartData', () => {
   const mockParams = {
