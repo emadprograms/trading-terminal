@@ -272,8 +272,8 @@ export function useChartData({
             const uniqueData: RawBar[] = [];
             const seen = new Set<string>();
             
-            // Sort ascending by time string before deduplication
-            newData.sort((a, b) => a.time.localeCompare(b.time));
+            // Sort ascending by parsed epoch timestamps before deduplication
+            newData.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
             for (const bar of newData) {
               if (!seen.has(bar.time)) {
