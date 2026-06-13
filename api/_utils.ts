@@ -38,7 +38,7 @@ function getCapitalTarget(req: IncomingMessage): { baseUrl: string; apiKey: stri
 /**
  * Helper to read the request body from an IncomingMessage
  */
-async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
+export async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
   // Handle pre-parsed body (e.g. if Vercel body parser wasn't successfully disabled)
   const vReq = req as any;
   if (vReq.body !== undefined) {
@@ -61,7 +61,7 @@ async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
  * Routes requests DIRECTLY to Capital.com, injecting the API key server-side.
  * No Cloudflare Tunnel or Hono server in the chain.
  */
-export async function proxyRequest(req: IncomingMessage, res: ServerResponse, path: string) {
+export async function proxyRequest(req: IncomingMessage, res: ServerResponse, path: string, preParsedBody?: Buffer) {
   const method = req.method || 'GET';
   console.log(`[StabilityTrace] proxyRequest called for path: ${path}, method: ${method}`);
   
@@ -111,8 +111,13 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
     // Determine body handling
     let requestBody: any = undefined;
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      console.log('[StabilityTrace] Reading request body');
-      requestBody = await readBody(req);
+      if (preParsedBody) {
+        console.log('[StabilityTrace] Using pre-parsed request body');
+        requestBody = preParsedBody;
+      } else {
+        console.log('[StabilityTrace] Reading request body');
+        requestBody = await readBody(req);
+      }
       console.log(`[StabilityTrace] Body size: ${requestBody?.length || 0} bytes`);
       if (requestBody) {
         console.log(`[StabilityTrace] Body content: ${requestBody.toString().substring(0, 200)}`);
