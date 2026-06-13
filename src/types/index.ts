@@ -22,10 +22,12 @@ export interface RawBar {
 /** Capital.com API Candle response shape */
 export interface CapitalCandle {
   snapshotTime: string;
+  snapshotTimeUTC?: string;
   openPrice: { bid: number; ask: number };
   closePrice: { bid: number; ask: number };
   highPrice: { bid: number; ask: number };
   lowPrice: { bid: number; ask: number };
+  lastTradedVolume?: number;
 }
 
 /** Capital.com WebSocket tick update shape */

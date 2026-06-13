@@ -9,9 +9,11 @@ import { getSessionType } from './timezones';
 export function transformCapitalCandleToRawBar(candle: CapitalCandle, ticker: string, useAsk = false): RawBar {
   const priceKey = useAsk ? 'ask' : 'bid';
   
-  // Convert ISO 8601 snapshotTime (e.g., "2024-01-15T14:30:00Z") 
-  // to "YYYY-MM-DD HH:mm:ss" format used by RawBar.
-  const date = new Date(candle.snapshotTime);
+  // Capital.com provides snapshotTimeUTC (e.g. "2024-01-15T14:30:00").
+  // We append 'Z' to force UTC parsing regardless of browser timezone.
+  const rawTime = candle.snapshotTimeUTC || candle.snapshotTime;
+  const dateStr = rawTime.endsWith('Z') ? rawTime : rawTime + 'Z';
+  const date = new Date(dateStr);
   const time = date.toISOString().replace('T', ' ').replace(/\..+Z$/, '');
 
   // The REST API uses 'ask' but the WebSocket API uses 'ofr'
