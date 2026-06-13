@@ -4,22 +4,13 @@ import { fetchMarketData, fetchHistoricalChunk } from './db';
 import { usePriceStore } from '../store/usePriceStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import type { RawBar, Timeframe } from '../types';
-import { toast } from 'sonner';
 
 export class SyncCoordinator {
   private static instance: SyncCoordinator;
   private cache: Map<string, RawBar[]> = new Map();
   private listeners: Map<string, Set<() => void>> = new Map();
 
-  private constructor() {
-    wsManager.onDisconnect(() => {
-      toast.error('Retrying chart data fetch...', { id: 'ws-retry' });
-    });
-
-    wsManager.onReconnect(() => {
-      toast.success('Chart data fetch succeeded', { id: 'ws-retry' });
-    });
-  }
+  private constructor() {}
 
   public static getInstance(): SyncCoordinator {
     if (!SyncCoordinator.instance) {
@@ -312,14 +303,7 @@ export class SyncCoordinator {
     while (attempt <= maxRetries) {
       data = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
       if (data && data.length > 0) {
-        if (attempt > 0) {
-          toast.success('Chart data fetch succeeded');
-        }
         return data;
-      }
-
-      if (attempt === 0) {
-        toast.error('Retrying chart data fetch...');
       }
 
       if (attempt < maxRetries) {
