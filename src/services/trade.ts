@@ -43,8 +43,11 @@ async function fetchTradeApi(method: 'get'|'post'|'put'|'delete', path: string, 
       const code = data.errorCode || data.code || '';
       const desc = data.developerMessage || data.message || data.reason || data.error || '';
       if (code || desc) {
-        // Only add the colon if we have both, otherwise just use the one we have
-        msg = (code && desc) ? `${code}: ${desc}` : `${code}${desc}`;
+        if (code === 'PROXY_VALIDATION_ERROR') {
+          msg = `Proxy Validation Error: ${desc}`;
+        } else {
+          msg = (code && desc) ? `Capital.com Rejection: ${code}: ${desc}` : `Capital.com Rejection: ${code || desc}`;
+        }
       }
     }
     if (!msg) {

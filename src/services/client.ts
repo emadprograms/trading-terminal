@@ -10,6 +10,7 @@ const DEFAULT_PREFIX = '/api'
  */
 export const api = ky.create({
   prefix: DEFAULT_PREFIX,
+  retry: 0,
   hooks: {
     beforeRequest: [
       (requestWrapper: any) => {

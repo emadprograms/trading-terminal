@@ -4,6 +4,7 @@ import { fetchMarketData, fetchHistoricalChunk } from './db';
 import { usePriceStore } from '../store/usePriceStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import type { RawBar, Timeframe } from '../types';
+import { toast } from 'sonner';
 
 export class SyncCoordinator {
   private static instance: SyncCoordinator;
@@ -290,19 +291,37 @@ export class SyncCoordinator {
   }
 
   /**
-   * Fetch with a single retry. If the first attempt fails (rate limit, network),
-   * wait 1 second and try once more. This ensures foreground loads are resilient.
+   * Fetch with up to 3 retries (4 total attempts). 
+   * Notifies the user via toast on retry and on successful retry recovery.
    */
   private async fetchWithRetry(
     ticker: string, toIso: string, targetCandles: number, timeframe: Timeframe
   ): Promise<RawBar[]> {
-    let data = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
-    if (data && data.length > 0) return data;
+    const maxRetries = 3;
+    let attempt = 0;
+    let data: RawBar[] | undefined;
 
-    // Retry once after a short delay
-    console.warn(`[SyncCoordinator] First fetch for ${ticker} (${timeframe}) returned empty. Retrying in 1s...`);
-    await new Promise(r => setTimeout(r, 1000));
-    data = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
+    while (attempt <= maxRetries) {
+      data = await fetchMarketData(ticker, toIso, targetCandles, timeframe);
+      if (data && data.length > 0) {
+        if (attempt > 0) {
+          toast.success('Chart data fetch succeeded');
+        }
+        return data;
+      }
+
+      if (attempt === 0) {
+        toast.error('Retrying chart data fetch...');
+      }
+
+      if (attempt < maxRetries) {
+        console.warn(`[SyncCoordinator] Fetch attempt ${attempt + 1} for ${ticker} (${timeframe}) failed. Retrying in 1s...`);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      
+      attempt++;
+    }
+
     return data || [];
   }
 }
