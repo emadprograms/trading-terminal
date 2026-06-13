@@ -23,7 +23,6 @@ export function useChartInit({
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
-    console.log(`[DEBUG-BLANK] 🏗️ useChartInit: Creating new chart instance for ticker=${ticker}`);
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -132,7 +131,6 @@ export function useChartInit({
     volumeSeriesRef.current = volumeSeries;
 
     return () => {
-      console.log(`[DEBUG-BLANK] 💥 useChartInit: DESTROYING chart instance`);
       clearInterval(intervalId);
       resizeObserver.disconnect();
       chart.remove();

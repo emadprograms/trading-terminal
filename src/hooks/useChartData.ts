@@ -123,7 +123,6 @@ export function useChartData({
     async function load() {
       setLocalMasterData([]);
       setIsLoadingHistory(true);
-      console.log(`[DEBUG-BLANK] 📡 useChartData: Starting load for ${ticker} (${timeframe})`);
       
       const targetCandles = 1000;
       
@@ -160,7 +159,6 @@ export function useChartData({
     }
     load();
     return () => { 
-      console.log(`[DEBUG-BLANK] 📡 useChartData: Cancelling load effect for ${ticker}`);
       cancelled = true; 
       abortController.abort();
     };
@@ -311,7 +309,6 @@ export function useChartData({
     */
     
     const result = resampleData(filtered, timeframe);
-    console.log(`[DEBUG-BLANK] 🧮 chartData MEMO: masterLen=${localMasterData.length}, filteredLen=${filtered.length}, resampledLen=${result.length}, tf=${timeframe}, dataTfRef=${dataTimeframeRef.current}, match=${timeframe === dataTimeframeRef.current}`);
     return { data: result, boundaryTime };
   }, [localMasterData, timeframe, showEth, isReplayMode, globalTime]);
 

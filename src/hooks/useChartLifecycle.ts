@@ -233,13 +233,11 @@ export function useChartLifecycle({
   }, [isDrawingMode]);
 
   useEffect(() => {
-    console.log(`[DEBUG-BLANK] 🔄 Ticker changed to ${ticker}, resetting isHydrated to false`);
     currentTickerRef.current = ticker;
     setIsHydrated(false);
   }, [ticker]);
 
   useEffect(() => {
-    console.log(`[DEBUG-BLANK] 🔄 Timeframe changed to ${timeframe}, resetting isHydrated to false`);
     setIsHydrated(false);
   }, [timeframe]);
 
@@ -287,8 +285,6 @@ export function useChartLifecycle({
 
   // 3. Update Chart Data
   useEffect(() => {
-    console.log(`[DEBUG-BLANK] 📊 Effect 3 triggered. chartData.length=${chartData.length}, ticker=${ticker}, tf=${timeframe}, isHydrated=${isHydrated}`);
-    console.log(`[DEBUG-BLANK] 📊 Series refs: price=${!!initPriceSeriesRef.current}, volume=${!!initVolumeSeriesRef.current}, chart=${!!initChartRef.current}`);
     
     if (initPriceSeriesRef.current && initVolumeSeriesRef.current && initChartRef.current && chartData.length > 0) {
       const formatted: any[] = chartData.map(d => {
@@ -306,7 +302,6 @@ export function useChartLifecycle({
       // Check for time ordering issues
       for (let i = 1; i < formatted.length; i++) {
         if (formatted[i].time <= formatted[i-1].time) {
-          console.error(`[DEBUG-BLANK] ⚠️ TIME ORDER VIOLATION at index ${i}: ${formatted[i-1].time} >= ${formatted[i].time}`);
         }
       }
 
@@ -317,15 +312,12 @@ export function useChartLifecycle({
       const isSameContext = lastTickerRef.current === ticker && 
                             lastTfRef.current === timeframe && 
                             lastEthRef.current === showEth;
-      console.log(`[DEBUG-BLANK] 📊 isSameContext: ${isSameContext}, dataLength: ${formatted.length}, first=${formatted[0]?.time}, last=${formatted[formatted.length-1]?.time}`);
       
       try {
         initPriceSeriesRef.current.setData(formatted.map(({ time, open, high, low, close }) => ({
           time, open, high, low, close
         })));
-        console.log(`[DEBUG-BLANK] ✅ Price series setData succeeded`);
       } catch (err) {
-        console.error(`[DEBUG-BLANK] ❌ Price series setData FAILED:`, err);
       }
       
       try {
@@ -337,9 +329,7 @@ export function useChartLifecycle({
             color: isUp ? (highContrast ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (highContrast ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
           };
         }));
-        console.log(`[DEBUG-BLANK] ✅ Volume series setData succeeded`);
       } catch (err) {
-        console.error(`[DEBUG-BLANK] ❌ Volume series setData FAILED:`, err);
       }
 
       initChartRef.current.priceScale('right').applyOptions({ autoScale: true });
@@ -356,14 +346,11 @@ export function useChartLifecycle({
       // reads isHydrated=true (from before ticker change reset it to false),
       // so hydration was never re-scheduled → isHydrated stuck false → blank chart.
       // setIsHydrated(true) is idempotent when already true (no extra re-renders).
-      console.log(`[DEBUG-BLANK] 💧 Scheduling hydration via requestAnimationFrame (isHydrated was: ${isHydrated})`);
       requestAnimationFrame(() => {
-        console.log(`[DEBUG-BLANK] 💧 Hydration state updating to TRUE`);
         setIsHydrated(true);
       });
 
       } else {
-        console.warn(`[DEBUG-BLANK] ⚠️ Effect 3 skipped! Conditions not met: price=${!!initPriceSeriesRef.current}, vol=${!!initVolumeSeriesRef.current}, chart=${!!initChartRef.current}, data=${chartData.length}`);
       }
 
   }, [chartData, isReplayMode, syncViewport]);
@@ -516,9 +503,7 @@ export function useChartLifecycle({
   }, [highContrast]);
 
   useEffect(() => {
-    console.log(`[DEBUG-BLANK] 🎯 Effect 7 (Live Ticks) MOUNTING. ticker=${ticker}, tf=${timeframe}, isHydrated=${isHydrated}, price=${!!initPriceSeriesRef.current}, vol=${!!initVolumeSeriesRef.current}`);
     if (!initPriceSeriesRef.current || !initVolumeSeriesRef.current) {
-      console.warn(`[DEBUG-BLANK] 🎯 Effect 7 SKIPPED - series not ready`);
       return;
     }
 
@@ -536,7 +521,6 @@ export function useChartLifecycle({
       if (!isHydratedRef.current) {
         skippedNoHydration++;
         if (skippedNoHydration <= 5) {
-          console.log(`[DEBUG-BLANK] ⏳ Tick skipped (not hydrated yet) for ${effectTicker}. count=${skippedNoHydration}`);
         }
         return;
       }
@@ -553,13 +537,11 @@ export function useChartLifecycle({
       if (lastCandle) {
         // SAFETY GUARD: Lightweight-charts fails if we try to update a candle older than the latest one.
         if (bucketTime < lastCandle.time) {
-          console.warn(`[DEBUG-BLANK] ⏪ Skipping out-of-order tick: tickBucket=${bucketTime}, lastCandle=${lastCandle.time}, ticker=${effectTicker}`);
           return;
         }
 
         tickCount++;
         if (tickCount <= 3 || tickCount % 50 === 0) {
-          console.log(`[DEBUG-BLANK] 📈 Processing tick #${tickCount} for ${effectTicker}: price=${tickPrice}, bucket=${bucketTime}, lastCandleTime=${lastCandle.time}, match=${lastCandle.time === bucketTime}`);
         }
 
         try {
@@ -586,7 +568,6 @@ export function useChartLifecycle({
             });
           } else {
             // New candle bucket
-            console.log(`[DEBUG-BLANK] 🕯️ NEW CANDLE for ${effectTicker}: oldTime=${lastCandle.time} -> newTime=${bucketTime}`);
             const newCandle = {
               time: bucketTime,
               open: tickPrice,
@@ -613,19 +594,15 @@ export function useChartLifecycle({
           }
         } catch (err) {
           errorCount++;
-          console.error(`[DEBUG-BLANK] ❌ CHART UPDATE ERROR #${errorCount} for ${effectTicker}:`, err);
-          console.error(`[DEBUG-BLANK] ❌ Tick details: bucketTime=${bucketTime}, lastCandle=`, JSON.stringify(lastCandle));
         }
       } else {
         skippedNoLastCandle++;
         if (skippedNoLastCandle <= 5) {
-          console.warn(`[DEBUG-BLANK] ⚠️ lastCandleRef is NULL for ${effectTicker}! Tick #${skippedNoLastCandle} dropped. price=${tickPrice}, bucket=${bucketTime}`);
         }
       }
     });
 
     return () => {
-      console.log(`[DEBUG-BLANK] 🎯 Effect 7 UNMOUNTING for ${effectTicker}. Processed ${tickCount} ticks, ${errorCount} errors, ${skippedNoHydration} skipped(hydration), ${skippedNoLastCandle} skipped(noLastCandle)`);
       unsubscribe();
     };
   }, [ticker, timeframe, initPriceSeriesRef.current, initVolumeSeriesRef.current]);
@@ -645,9 +622,7 @@ export function useChartLifecycle({
         close: last.close,
         volume: last.volume,
       };
-      console.log(`[DEBUG-BLANK] 🌱 Effect 7b: Seeded lastCandleRef. prevTime=${prev?.time ?? 'null'} -> newTime=${bucketTime}, ticker=${ticker}, dataLen=${chartData.length}`);
     } else {
-      console.warn(`[DEBUG-BLANK] 🌱 Effect 7b: chartData is EMPTY for ${ticker}, lastCandleRef NOT seeded`);
     }
   }, [chartData]);
 

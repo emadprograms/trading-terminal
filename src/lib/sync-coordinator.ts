@@ -133,7 +133,6 @@ export class SyncCoordinator {
     onCacheHit?: (data: RawBar[]) => void,
     abortSignal?: AbortSignal
   ): Promise<RawBar[]> {
-    console.log(`[DEBUG-BLANK] 🔄 SyncCoordinator.syncTicker START: ${ticker} (${timeframe})`);
     this.activeSyncs++;
 
     try {
@@ -164,7 +163,6 @@ export class SyncCoordinator {
         history = await this.fetchWithRetry(ticker, toIso, targetCandles, timeframe);
 
         if (!history || history.length === 0) {
-          console.error(`[DEBUG-BLANK] ❌ SyncCoordinator: fetchWithRetry returned EMPTY for ${ticker} (${timeframe})! This will cause blank chart.`);
           wsManager.setBuffering(ticker, false);
           return [];
         }
@@ -285,7 +283,6 @@ export class SyncCoordinator {
         });
       }
 
-      console.log(`[DEBUG-BLANK] ✅ SyncCoordinator.syncTicker DONE: ${ticker} (${timeframe}), returning ${history.length} bars`);
       return [...history];
     } finally {
       this.activeSyncs--;
