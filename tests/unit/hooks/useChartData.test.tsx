@@ -42,6 +42,12 @@ vi.mock('../../../src/store/useSessionStore', () => ({
 }));
 
 describe('useChartData', () => {
+  const timeScaleMock = {
+    subscribeVisibleLogicalRangeChange: vi.fn(),
+    unsubscribeVisibleLogicalRangeChange: vi.fn(),
+    getVisibleLogicalRange: vi.fn().mockReturnValue({ from: 50, to: 500 }),
+  };
+
   const mockParams = {
     id: 1,
     initialTicker: 'AAPL',
@@ -52,17 +58,15 @@ describe('useChartData', () => {
     groupColor: 'none',
     tickers: ['AAPL', 'MSFT'],
     chartRef: { current: {
-      timeScale: () => ({
-        subscribeVisibleLogicalRangeChange: vi.fn(),
-        unsubscribeVisibleLogicalRangeChange: vi.fn(),
-        getVisibleLogicalRange: vi.fn().mockReturnValue({ from: 50, to: 500 }),
-      }),
+      timeScale: () => timeScaleMock,
     }},
     priceSeriesRef: { current: { data: vi.fn().mockReturnValue([]) } },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    timeScaleMock.subscribeVisibleLogicalRangeChange.mockClear();
+    timeScaleMock.unsubscribeVisibleLogicalRangeChange.mockClear();
   });
 
   it('should sync ticker data on mount', async () => {
@@ -98,7 +102,7 @@ describe('useChartData', () => {
     let rangeCallback: (range: any) => void = () => {};
     
     // Mock the timeScale subscribe to capture the callback
-    (mockParams.chartRef.current.timeScale().subscribeVisibleLogicalRangeChange as any).mockImplementation((cb: any) => {
+    (timeScaleMock.subscribeVisibleLogicalRangeChange as any).mockImplementation((cb: any) => {
       rangeCallback = cb;
       return () => {};
     });
