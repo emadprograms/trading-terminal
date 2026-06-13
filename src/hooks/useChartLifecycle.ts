@@ -167,16 +167,18 @@ export function useChartLifecycle({
         initChartRef.current.priceScale('right').applyOptions({
             borderColor: '#a3a3a3'
         });
-        initPriceSeriesRef.current.applyOptions({
-            upColor: '#ffffff',
-            downColor: '#000000',
-            borderVisible: true,
-            borderColor: '#000000',
-            borderUpColor: '#000000',
-            borderDownColor: '#000000',
-            wickUpColor: '#000000',
-            wickDownColor: '#000000',
-        });
+        if (typeof initPriceSeriesRef.current.applyOptions === 'function') {
+            initPriceSeriesRef.current.applyOptions({
+                upColor: '#ffffff',
+                downColor: '#000000',
+                borderVisible: true,
+                borderColor: '#000000',
+                borderUpColor: '#000000',
+                borderDownColor: '#000000',
+                wickUpColor: '#000000',
+                wickDownColor: '#000000',
+            });
+        }
     } else {
         initChartRef.current.applyOptions({
             layout: { background: { color: 'transparent' }, textColor: '#94a3b8' },
@@ -186,22 +188,24 @@ export function useChartLifecycle({
         initChartRef.current.priceScale('right').applyOptions({
             borderColor: 'rgba(255, 255, 255, 0.1)'
         });
-        initPriceSeriesRef.current.applyOptions({
-            upColor: '#26a69a',
-            downColor: '#ef5350',
-            borderVisible: false,
-            borderColor: 'transparent',
-            borderUpColor: 'transparent',
-            borderDownColor: 'transparent',
-            wickUpColor: '#26a69a',
-            wickDownColor: '#ef5350',
-        });
+        if (typeof initPriceSeriesRef.current.applyOptions === 'function') {
+            initPriceSeriesRef.current.applyOptions({
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderVisible: false,
+                borderColor: 'transparent',
+                borderUpColor: 'transparent',
+                borderDownColor: 'transparent',
+                wickUpColor: '#26a69a',
+                wickDownColor: '#ef5350',
+            });
+        }
     }
   }, [highContrast, initChartRef.current, initPriceSeriesRef.current, initVolumeSeriesRef.current]);
 
   // 3c. Update volume series colors when highContrast changes
   useEffect(() => {
-    if (!initVolumeSeriesRef.current) return;
+    if (!initVolumeSeriesRef.current || typeof initVolumeSeriesRef.current.data !== 'function') return;
     const currentData = initVolumeSeriesRef.current.data();
     if (!currentData || currentData.length === 0) return;
     
@@ -212,7 +216,9 @@ export function useChartLifecycle({
         color: isUp ? (highContrast ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (highContrast ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
       };
     });
-    initVolumeSeriesRef.current.setData(newData);
+    if (typeof initVolumeSeriesRef.current.setData === 'function') {
+      initVolumeSeriesRef.current.setData(newData);
+    }
   }, [highContrast, initVolumeSeriesRef.current]);
 
   const lastDataCountRef = useRef(0);
@@ -299,11 +305,6 @@ export function useChartLifecycle({
         };
       });
 
-      // Check for time ordering issues
-      for (let i = 1; i < formatted.length; i++) {
-        if (formatted[i].time <= formatted[i-1].time) {
-        }
-      }
 
       if (vpPluginRef.current) {
           vpPluginRef.current.setData(formatted);
@@ -318,6 +319,7 @@ export function useChartLifecycle({
           time, open, high, low, close
         })));
       } catch (err) {
+        console.warn('lightweight-charts price series error:', err);
       }
       
       try {
@@ -330,6 +332,7 @@ export function useChartLifecycle({
           };
         }));
       } catch (err) {
+        console.warn('lightweight-charts volume series error:', err);
       }
 
       initChartRef.current.priceScale('right').applyOptions({ autoScale: true });
