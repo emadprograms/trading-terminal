@@ -142,7 +142,8 @@ export class SyncCoordinator {
     toIso: string, 
     targetCandles: number,
     onCacheHit?: (data: RawBar[]) => void,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    isReplayMode: boolean = false
   ): Promise<RawBar[]> {
     this.activeSyncs++;
 
@@ -210,7 +211,7 @@ export class SyncCoordinator {
       };
       const thresholdMs = tfMins[timeframe] * 60000;
 
-      if (buffer.length > 0 && firstWsTimeMs - lastRestTimeMs > thresholdMs) {
+      if (!isReplayMode && firstWsTimeMs - lastRestTimeMs > thresholdMs) {
         const gapMins = Math.round((firstWsTimeMs - lastRestTimeMs) / 60000);
         console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. (firstWs: ${new Date(firstWsTimeMs).toISOString()}, lastRest: ${new Date(lastRestTimeMs).toISOString()})`);
         

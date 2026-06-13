@@ -84,10 +84,11 @@ describe('useChartData', () => {
     expect(syncCoordinator.syncTicker).toHaveBeenCalledWith(
       'AAPL', 
       '1H', 
-      '2024-01-01', 
+      expect.any(String), 
       1000,
       expect.any(Function),
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
+      false
     );
     expect(result.current.localMasterData).toHaveLength(1);
   });

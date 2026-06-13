@@ -134,7 +134,7 @@ export function useChartData({
         const data = await syncCoordinator.syncTicker(
           ticker, 
           timeframe, 
-          selectedDate, 
+          isReplayMode ? selectedDate : new Date().toISOString(), 
           targetCandles,
           (cachedData) => {
             if (cancelled) return;
@@ -147,7 +147,8 @@ export function useChartData({
             setLocalMasterData(cachedData as RawBar[]);
             setIsLoadingHistory(false);
           },
-          abortController.signal
+          abortController.signal,
+          isReplayMode
         );
         
         if (cancelled) return;
@@ -194,8 +195,11 @@ export function useChartData({
         const data = await syncCoordinator.syncTicker(
           ticker,
           timeframe,
-          selectedDate,
-          targetCandles
+          isReplayMode ? selectedDate : new Date().toISOString(),
+          targetCandles,
+          undefined,
+          undefined,
+          isReplayMode
         );
         
         if (cancelled) return;
