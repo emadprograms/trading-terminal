@@ -8,9 +8,6 @@ export default defineConfig(() => {
     server: {
       port: 3001,
       // Local development now relies on Vercel dev or direct /api handlers
-    },
-    optimizeDeps: {
-      exclude: ['sql.js']
     }
   }
 })
