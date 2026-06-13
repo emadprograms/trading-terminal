@@ -17,7 +17,16 @@ class WebSocketManager {
   private pendingUnsubscribes: Set<string> = new Set();
   private unsubscribeTimeout: number | null = null;
 
+  private onConnectListeners: Set<() => void> = new Set();
+
   private constructor() {}
+
+  public onConnect(cb: () => void): () => void {
+    this.onConnectListeners.add(cb);
+    return () => {
+      this.onConnectListeners.delete(cb);
+    };
+  }
 
   public static getInstance(): WebSocketManager {
     if (!WebSocketManager.instance) {
@@ -51,6 +60,15 @@ class WebSocketManager {
       Array.from(this.activeEpics.keys()).forEach(epic => {
         console.log(`[WSManager] Auto-resubscribing to ${epic}`);
         this._sendSubscribe(epic);
+      });
+
+      // Notify connection listeners
+      this.onConnectListeners.forEach(cb => {
+        try {
+          cb();
+        } catch (e) {
+          console.error('[WSManager] Error in onConnect listener:', e);
+        }
       });
     };
 

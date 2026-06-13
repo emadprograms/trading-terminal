@@ -103,8 +103,15 @@ export const fetchHistoricalChunk = async (ticker: string, endTimestamp: string,
     const candles = await marketApi.fetchCandles(ticker, timeframe, { to: endTimestamp, max: maxCandles });
     return transformCapitalCandles(candles, ticker);
   } catch (error) {
-    console.error(`[fetchHistoricalChunk] Error fetching chunk for ${ticker}:`, error);
-    return [];
+    console.warn(`[fetchHistoricalChunk] First fetch chunk failed for ${ticker} (${timeframe}). Retrying in 1s...`, error);
+    try {
+      await new Promise(r => setTimeout(r, 1000));
+      const candles = await marketApi.fetchCandles(ticker, timeframe, { to: endTimestamp, max: maxCandles });
+      return transformCapitalCandles(candles, ticker);
+    } catch (retryError) {
+      console.error(`[fetchHistoricalChunk] Retry fetch chunk failed for ${ticker} (${timeframe}):`, retryError);
+      return [];
+    }
   }
 };
 

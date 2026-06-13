@@ -166,6 +166,57 @@ export function useChartData({
     };
   }, [ticker, selectedDate, timeframe, isAuthenticated]);
 
+  // Trigger sync on tab visibility, network recovery, or WebSocket reconnect to bridge any offline gaps
+  useEffect(() => {
+    if (!isAuthenticated || !ticker) return;
+
+    let cancelled = false;
+
+    const triggerSync = async (reason: string) => {
+      console.log(`[useChartData] Visibility/Network/WS event (${reason}): Triggering sync for ${ticker} (${timeframe})`);
+      setIsLoadingHistory(true);
+      const targetCandles = 1000;
+      
+      const data = await syncCoordinator.syncTicker(
+        ticker,
+        timeframe,
+        selectedDate,
+        targetCandles
+      );
+      
+      if (cancelled) return;
+      
+      console.log(`[useChartData] Sync triggered by ${reason} completed. Received ${data?.length || 0} bars.`);
+      if (data && data.length > 0) {
+        earliestLoadedDateRef.current = data[0].time;
+        setLocalMasterData(data as RawBar[]);
+      }
+      setIsLoadingHistory(false);
+    };
+
+    const handleSyncOnActivity = () => {
+      if (document.visibilityState === 'visible' && window.navigator.onLine) {
+        triggerSync('visibility/online');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleSyncOnActivity);
+    window.addEventListener('online', handleSyncOnActivity);
+    
+    const unsubscribeWs = wsManager.onConnect(() => {
+      if (document.visibilityState === 'visible') {
+        triggerSync('ws_reconnect');
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', handleSyncOnActivity);
+      window.removeEventListener('online', handleSyncOnActivity);
+      unsubscribeWs();
+    };
+  }, [ticker, selectedDate, timeframe, isAuthenticated]);
+
   // Infinite Scroll Listener
   useEffect(() => {
     if (!chartRef.current || !localMasterData || localMasterData.length === 0) return;
