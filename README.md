@@ -5,7 +5,7 @@ Trading Terminal is a professional-grade, lightning-fast live market terminal co
 ## 🏗️ Architecture
 
 - **Vercel Serverless Proxy:** Replaces legacy middleware (like Hono/Cloudflare Tunnels) with highly optimized Vercel Serverless functions (`api/`). Requests are proxied via `undici` to securely inject Capital.com API credentials without exposing them to the client.
-- **SQLite Web Worker Cache:** Uses `sql.js` (SQLite WASM) in a dedicated Web Worker to cache thousands of historical candles and real-time ticks, keeping the main React thread completely unblocked.
+- **In-Memory Caching Engine:** The `syncCoordinator` manages thousands of historical candles and real-time ticks entirely in-memory using an optimized `Map` to ensure zero-lag switching, keeping the main React thread free without the overhead of database transactions. (SQLite WASM is still available but restricted to static backtesting playback).
 - **Intelligent Data Stitching:** Automatically prepends historical REST data via infinite scroll, stitches it with live WebSocket streams, and features a custom resampling engine to generate accurate 1D (Daily) candles strictly for Regular Trading Hours (RTH) using 30-minute intraday data.
 - **High-Performance Rendering:** Powered by `lightweight-charts` for fluid price updates, zero-flicker chart reuse, and immediate rendering upon symbol switching.
 
@@ -50,7 +50,7 @@ The terminal is heavily optimized for keyboard-driven execution to ensure trader
 
 - **Frontend**: React 18, Vite, Lightweight Charts, Zustand (State), React Query.
 - **Backend Proxy**: Vercel Serverless Functions (`api/`), Undici.
-- **Data/Cache**: Web Worker, `sql.js` (SQLite WASM).
+- **Data/Cache**: In-Memory `Map` via `syncCoordinator` (Live), Web Worker + `sql.js` (Static Playback).
 - **Real-time**: WebSockets for live pricing and account synchronization.
 
 ## 📄 License
