@@ -9,9 +9,13 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://trading-terminal-demo.vercel.app',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // D-01, D-02, D-04: Bypass MSW usage and interact with real Capital.com demo via proxy
+    extraHTTPHeaders: {
+      'x-bypass-mocks': 'true'
+    }
   },
   projects: [
     {
