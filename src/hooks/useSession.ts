@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api } from '../services/client';
 import { useSessionStore } from '../store/useSessionStore';
 import { wsManager } from '../lib/ws-manager';
 import { useTradeStore } from '../store/useTradeStore';

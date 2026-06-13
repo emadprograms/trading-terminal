@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { accountApi } from '../api/account';
+import { accountApi } from '../services/account';
 import { useSessionStore } from '../store/useSessionStore';
 
 interface AccountData {

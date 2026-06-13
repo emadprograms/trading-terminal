@@ -4,7 +4,7 @@ import { useWatchlistStore } from '../store/useWatchlistStore';
 import { usePriceStore } from '../store/usePriceStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useDebounce } from '../hooks/useDebounce';
-import { marketApi } from '../api/market';
+import { marketApi } from '../services/market';
 import { MarketSearchResult } from '../types';
 
 export const Watchlist: React.FC = () => {

@@ -1,5 +1,5 @@
 import type { RawBar, Timeframe } from "../types";
-import { marketApi } from "../api/market";
+import { marketApi } from "../services/market";
 import { transformCapitalCandles } from "./data-adapter";
 
 // --- Market Data API Integration ---

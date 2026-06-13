@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Globe, FlaskConical, Loader2 } from 'lucide-react';
 import { useSessionStore } from '../store/useSessionStore';
-import { api } from '../api/client';
+import { api } from '../services/client';
 
 interface EnvToggleProps {
   login: (params?: { environment: 'DEMO' | 'LIVE' }) => Promise<void>;

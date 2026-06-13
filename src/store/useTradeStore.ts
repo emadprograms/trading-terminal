@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { Order, Position, OrderStatus, TradeConfirmation, Execution } from '../types/trade';
-import { tradeApi, MarketOrderParams, LimitOrderParams } from '../api/trade';
+import { tradeApi, MarketOrderParams, LimitOrderParams } from '../services/trade';
 
 interface TradeState {
   pendingOrders: Record<string, Order>;

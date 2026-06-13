@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useTradeStore } from './useTradeStore';
-import { tradeApi } from '../api/trade';
+import { tradeApi } from '../services/trade';
 
 // Mock tradeApi
-vi.mock('../api/trade', () => ({
+vi.mock('../services/trade', () => ({
   tradeApi: {
     placeMarketOrder: vi.fn(),
     flattenPosition: vi.fn(),
