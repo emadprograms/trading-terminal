@@ -180,6 +180,7 @@ export function useTradeManager({
     if (chartRef?.current && tradePluginRef?.current) {
       const handleCrosshairMove = (param: any) => {
         if (!param.time || !param.point || !priceSeriesRef?.current || !tradePluginRef?.current) {
+          chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
           if (tradePluginRef?.current && typeof tradePluginRef.current.setHoveredExecutions === 'function') {
             tradePluginRef.current.setHoveredExecutions([]);
           }
@@ -218,6 +219,7 @@ export function useTradeManager({
               closestExec = {
                 x: param.point.x,
                 y,
+                price: execData.price,
                 direction: execData.direction,
                 action: execData.action
               };
@@ -225,15 +227,18 @@ export function useTradeManager({
           }
 
           if (closestExec) {
+            chartRef.current.applyOptions({ crosshair: { horzLine: { visible: false, labelVisible: false } } });
             if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
               tradePluginRef.current.setHoveredExecutions([closestExec]);
             }
           } else {
+            chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
             if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
               tradePluginRef.current.setHoveredExecutions([]);
             }
           }
         } else {
+          chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
           if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
             tradePluginRef.current.setHoveredExecutions([]);
           }
