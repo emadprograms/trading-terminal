@@ -36,7 +36,7 @@ describe('SyncCoordinator', () => {
     vi.mocked(fetchMarketData).mockResolvedValue(mockHistory as any);
     vi.mocked(wsManager.getAndClearBuffer).mockReturnValue([]);
 
-    const result = await syncCoordinator.syncTicker('SPY', '5min', '2026-06-05T08:00:00', 1000, undefined, undefined, true);
+    const result = await syncCoordinator.syncTicker('SPY', '5min', '2026-06-05T08:00:00', 1000);
 
     expect(result).toEqual(mockHistory);
     expect(wsManager.subscribe).toHaveBeenCalledWith('SPY', true);
