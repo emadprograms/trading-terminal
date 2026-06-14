@@ -5,6 +5,7 @@ import type {
     ISeriesPrimitive, 
     ISeriesPrimitivePaneRenderer, 
     ISeriesPrimitivePaneView,
+    ISeriesPrimitiveAxisView,
     Time,
     SeriesPrimitivePaneViewZOrder,
     SeriesAttachedParameter,
@@ -44,14 +45,14 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
     _items: TradeRenderItem[];
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
     _hoveredId: string | null;
-    _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[];
+    _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT', price: number }[];
     _chart: IChartApi | null;
 
     constructor(
         items: TradeRenderItem[], 
         badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>, 
         hoveredId: string | null,
-        hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[] = [],
+        hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT', price: number }[] = [],
         chart: IChartApi | null = null
     ) {
         this._items = items;
@@ -256,6 +257,32 @@ class TradePaneView implements ISeriesPrimitivePaneView {
     }
 }
 
+class TradeAxisView implements ISeriesPrimitiveAxisView {
+    _plugin: TradePlugin;
+    _exec: { x: Coordinate, y: Coordinate, direction: OrderDirection, price: number };
+
+    constructor(plugin: TradePlugin, exec: { x: Coordinate, y: Coordinate, direction: OrderDirection, price: number }) {
+        this._plugin = plugin;
+        this._exec = exec;
+    }
+
+    coordinate(): number {
+        return this._exec.y;
+    }
+
+    text(): string {
+        return this._plugin._series ? this._plugin._series.priceFormatter().format(this._exec.price) : '';
+    }
+
+    textColor(): string {
+        return '#ffffff';
+    }
+
+    backColor(): string {
+        return this._exec.direction === 'BUY' ? '#007aff' : '#ff3b30';
+    }
+}
+
 export class TradePlugin implements ISeriesPrimitive<Time> {
     _chart: IChartApi | null;
     _series: ISeriesApi<"Candlestick"> | null;
@@ -264,7 +291,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
     _items: ChartMarker[];
     _badgeRefs: Map<string, React.RefObject<HTMLDivElement | null>>;
     _hoveredId: string | null;
-    _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[] = [];
+    _hoveredExecutions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT', price: number }[] = [];
 
     constructor() {
         this._chart = null;
@@ -290,7 +317,7 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
         }
     }
 
-    setHoveredExecutions(executions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT' }[]) {
+    setHoveredExecutions(executions: { x: Coordinate, y: Coordinate, direction: OrderDirection, action: 'ENTRY' | 'EXIT', price: number }[]) {
         this._hoveredExecutions = executions;
         this._requestUpdate();
     }
@@ -317,6 +344,11 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
 
     paneViews(): readonly ISeriesPrimitivePaneView[] {
         return this._paneViews;
+    }
+
+    priceAxisViews(): readonly ISeriesPrimitiveAxisView[] {
+        if (!this._hoveredExecutions.length) return [];
+        return this._hoveredExecutions.map(exec => new TradeAxisView(this, exec));
     }
 
     _getViewData(): TradeRenderItem[] {
