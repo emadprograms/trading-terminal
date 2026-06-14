@@ -10,8 +10,6 @@ interface ChartWorkspaceProps {
   activeGutter: number | null;
   tickers: string[];
   sessionTicker: string;
-  selectedDate: string;
-  isSessionStarted: boolean;
   drawings: AllDrawings;
   chartGroups: Record<string, GroupColor>;
   groupTickers: Record<string, string>;
@@ -35,8 +33,6 @@ export const ChartWorkspace: React.FC<ChartWorkspaceProps> = ({
   activeGutter,
   tickers,
   sessionTicker,
-  selectedDate,
-  isSessionStarted,
   drawings,
   chartGroups,
   groupTickers,
@@ -106,8 +102,6 @@ export const ChartWorkspace: React.FC<ChartWorkspaceProps> = ({
           initialTicker={initialTicker}
           initialTf={initialTf}
           initialEth={initialEth}
-          selectedDate={selectedDate} 
-          isReplayMode={isSessionStarted}
           isMaximized={maximizedId === i}
           onToggleMaximize={() => onToggleMaximize(i)}
           allDrawings={drawings}

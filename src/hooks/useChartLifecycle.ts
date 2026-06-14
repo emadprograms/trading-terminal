@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IChartApi, ISeriesApi, MouseEventParams, Time, TickMarkType, IPriceLine } from 'lightweight-charts';
 import type { ActiveTrade, ChartBar, DrawType, RawBar, RayDrawing, RectDrawing, RectPoint, TickerDrawings, Timeframe, HistoryPrependState } from '../types';
 import { getTzForTicker } from '../lib/timezones';
-import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useChartInit } from './chart/useChartInit';
 import { useChartPlugins } from './chart/useChartPlugins';
 import { useChartDrawings } from './chart/useChartDrawings';
@@ -42,7 +41,6 @@ interface UseChartLifecycleParams {
   chartData: ChartBar[];
   boundaryTime: string | null;
   localMasterData: RawBar[];
-  isReplayMode: boolean;
   isLoadingHistory: boolean;
   pendingHistoryPrependRef: React.MutableRefObject<HistoryPrependState | null>;
   isDrawingMode: boolean;
@@ -68,7 +66,6 @@ export function useChartLifecycle({
   chartData,
   boundaryTime,
   localMasterData,
-  isReplayMode,
   isLoadingHistory,
   pendingHistoryPrependRef,
   isDrawingMode,
@@ -83,8 +80,6 @@ export function useChartLifecycle({
   priceSeriesRef,
   onFocus,
 }: UseChartLifecycleParams) {
-  const globalTime = usePlaybackStore((state) => state.currentTime);
-  
   const { 
     chartRef: initChartRef, 
     priceSeriesRef: initPriceSeriesRef, 
@@ -118,7 +113,6 @@ export function useChartLifecycle({
 
   const {
     syncViewport,
-    checkAutoReveal,
     scrollToRealTime,
     resetView,
   } = useChartViewport({
@@ -356,7 +350,7 @@ export function useChartLifecycle({
       } else {
       }
 
-  }, [chartData, isReplayMode, syncViewport]);
+  }, [chartData, syncViewport]);
 
   // 3b. Refresh shading plugin when ticker/timeframe/ETH changes
   useEffect(() => {
@@ -365,12 +359,6 @@ export function useChartLifecycle({
     updateShadingConfig(isET);
   }, [ticker, timeframe, showEth, updateShadingConfig]);
 
-  // 4. Auto-Reveal Logic during Replay
-  useEffect(() => {
-    if (!isReplayMode || !initChartRef.current || !initPriceSeriesRef.current) return;
-
-    checkAutoReveal();
-  }, [globalTime, isReplayMode, checkAutoReveal]);
 
   // 5. Handle Focus Click
   useEffect(() => {
@@ -449,49 +437,7 @@ export function useChartLifecycle({
     };
   }, [ticker, isHydrated]);
 
-  // 6b. Replay Price Line for 1D chart or Replay Mode
-  useEffect(() => {
-    if (!initPriceSeriesRef.current) return;
 
-    if (timeframe === '1D' && globalTime && localMasterData.length > 0) {
-      let lastPrice = null;
-
-      for (let i = localMasterData.length - 1; i >= 0; i--) {
-        const barMs = new Date(localMasterData[i].time.replace(' ', 'T') + 'Z').getTime();
-        if (barMs <= globalTime) {
-          lastPrice = localMasterData[i].close;
-          break;
-        }
-      }
-
-      if (lastPrice !== null) {
-        if (!replayPriceLineRef.current) {
-          replayPriceLineRef.current = initPriceSeriesRef.current.createPriceLine({
-            price: lastPrice,
-            color: 'rgba(255, 210, 0, 0.6)',
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: 'Replay',
-          });
-        } else {
-          replayPriceLineRef.current.applyOptions({ price: lastPrice });
-        }
-      }
-    } else if (replayPriceLineRef.current && initPriceSeriesRef.current) {
-      initPriceSeriesRef.current.removePriceLine(replayPriceLineRef.current);
-      replayPriceLineRef.current = null;
-    }
-    
-    return () => {
-      if (replayPriceLineRef.current && initPriceSeriesRef.current) {
-        try {
-          initPriceSeriesRef.current.removePriceLine(replayPriceLineRef.current);
-          replayPriceLineRef.current = null;
-        } catch(_) {}
-      }
-    };
-  }, [globalTime, timeframe, ticker, localMasterData]);
 
   // 7. Live Tick Updates from WebSocket
   const isHydratedRef = useRef(false);

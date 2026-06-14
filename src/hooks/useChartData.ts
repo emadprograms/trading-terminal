@@ -4,7 +4,6 @@ import type { ChartBar, GroupColor, RawBar, Timeframe, HistoryPrependState } fro
 import { fetchMarketData, fetchHistoricalChunk } from '../lib/db';
 import { resampleData } from '../lib/resampling';
 import { getTzForTicker } from '../lib/timezones';
-import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { wsManager } from '../lib/ws-manager';
 import { useSessionStore } from '../store/useSessionStore';
@@ -14,8 +13,6 @@ interface UseChartDataParams {
   initialTicker: string;
   initialTf: Timeframe;
   initialEth: boolean;
-  selectedDate: string;
-  isReplayMode: boolean;
   groupColor: GroupColor;
   groupTicker?: string;
   tickers: string[];
@@ -30,8 +27,6 @@ export function useChartData({
   initialTicker,
   initialTf,
   initialEth,
-  selectedDate,
-  isReplayMode,
   groupColor,
   groupTicker,
   tickers,
@@ -73,8 +68,6 @@ export function useChartData({
     setStoreTimeframe(chartId, timeframe);
   }, []);
 
-  const globalTime = usePlaybackStore((state) => state.currentTime);
-
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const earliestLoadedDateRef = useRef<string | null>(null);
   const hasReachedHistoryEndRef = useRef<boolean>(false);
@@ -110,7 +103,7 @@ export function useChartData({
     const unsubscribe = syncCoordinator.subscribe(ticker, timeframe, () => {
       setTick(t => t + 1);
     });
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, [ticker, timeframe]);
 
   // Initial data fetch + Sync
@@ -134,7 +127,7 @@ export function useChartData({
         const data = await syncCoordinator.syncTicker(
           ticker, 
           timeframe, 
-          selectedDate, 
+          new Date().toISOString(), 
           targetCandles,
           (cachedData) => {
             if (cancelled) return;
@@ -177,7 +170,7 @@ export function useChartData({
       cancelled = true; 
       abortController.abort();
     };
-  }, [ticker, selectedDate, timeframe, isAuthenticated]);
+  }, [ticker, timeframe, isAuthenticated]);
 
   // Trigger sync on tab visibility, network recovery, or WebSocket reconnect to bridge any offline gaps
   useEffect(() => {
@@ -194,7 +187,7 @@ export function useChartData({
         const data = await syncCoordinator.syncTicker(
           ticker,
           timeframe,
-          selectedDate,
+          new Date().toISOString(),
           targetCandles
         );
         
@@ -239,7 +232,7 @@ export function useChartData({
       window.removeEventListener('online', handleSyncOnActivity);
       unsubscribeWs();
     };
-  }, [ticker, selectedDate, timeframe, isAuthenticated]);
+  }, [ticker, timeframe, isAuthenticated]);
 
   // Infinite Scroll Listener
   useEffect(() => {
@@ -327,16 +320,9 @@ export function useChartData({
       filtered = localMasterDataState.filter(d => d.session === 'RTH');
     }
     
-    // Legacy replay filtering disabled for Live Terminal
-    /*
-    if (isReplayMode && globalTime) {
-      filtered = filtered.filter(d => new Date(d.time.replace(' ', 'T') + 'Z').getTime() <= globalTime);
-    }
-    */
-    
     const result = resampleData(filtered, timeframe);
     return { data: result, boundaryTime };
-  }, [localMasterData, timeframe, showEth, isReplayMode, globalTime]);
+  }, [localMasterData, timeframe, showEth]);
 
   const chartData = chartDataResult.data;
   const boundaryTime = chartDataResult.boundaryTime;

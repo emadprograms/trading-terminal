@@ -40,16 +40,8 @@ export default function App() {
   }, [globalHighContrast]);
 
   const {
-    selectedDate,
-    setSelectedDate,
     sessionTicker,
     setSessionTicker,
-    entryTime,
-    setEntryTime,
-    isSessionStarted,
-    startSession,
-    endSession,
-    getUtcTimeFromEt,
     login,
     isAuthenticated,
     isLoggingIn,
@@ -98,10 +90,6 @@ export default function App() {
         dbStatus={dbStatus}
         isDbLoaded={isDbLoaded}
         handleFileUpload={handleFileUpload}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        isSessionStarted={isSessionStarted}
-        onEndSession={endSession}
         layoutMode={layoutMode}
         setLayoutMode={setLayoutMode}
       />
@@ -132,16 +120,14 @@ export default function App() {
                <Activity className="animate-pulse" size={48} />
             </main>
           ) : (
-            <ChartWorkspace 
-              layoutMode={layoutMode}
-              maximizedId={maximizedId}
-              panelSizes={panelSizes}
-              activeGutter={activeGutter}
-              tickers={tickers}
-              sessionTicker={sessionTicker}
-              selectedDate={selectedDate}
-              isSessionStarted={true}
-              drawings={drawings}
+              <ChartWorkspace 
+                layoutMode={layoutMode}
+                maximizedId={maximizedId}
+                panelSizes={panelSizes}
+                activeGutter={activeGutter}
+                tickers={tickers}
+                sessionTicker={sessionTicker}
+                drawings={drawings}
               chartGroups={chartGroups}
               groupTickers={groupTickers}
               workspaceRef={workspaceRef}

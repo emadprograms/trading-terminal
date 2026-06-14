@@ -7,10 +7,6 @@ interface SidebarProps {
   dbStatus: string;
   isDbLoaded: boolean;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  selectedDate: string;
-  setSelectedDate: (date: string) => void;
-  isSessionStarted: boolean;
-  onEndSession: () => void;
   layoutMode: string;
   setLayoutMode: (mode: string) => void;
 }
@@ -32,10 +28,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   dbStatus,
   isDbLoaded,
   handleFileUpload,
-  selectedDate,
-  setSelectedDate,
-  isSessionStarted,
-  onEndSession,
   layoutMode,
   setLayoutMode
 }) => {

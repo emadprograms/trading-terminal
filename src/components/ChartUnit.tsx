@@ -17,8 +17,6 @@ import { StitchingErrorBanner } from './StitchingErrorBanner';
 
 export default function ChartUnit({ 
   id, 
-  selectedDate,
-  isReplayMode, 
   tickers, 
   initialTicker, 
   initialTf,
@@ -51,8 +49,6 @@ export default function ChartUnit({
     initialTicker, 
     initialTf, 
     initialEth, 
-    selectedDate, 
-    isReplayMode, 
     groupColor, 
     groupTicker, 
     tickers, 
@@ -101,7 +97,6 @@ export default function ChartUnit({
     chartData: data.chartData,
     boundaryTime: data.boundaryTime,
     localMasterData: data.localMasterData,
-    isReplayMode,
     isLoadingHistory: data.isLoadingHistory,
     pendingHistoryPrependRef: data.pendingHistoryPrependRef,
     isDrawingMode: keyboard.isDrawingMode,
