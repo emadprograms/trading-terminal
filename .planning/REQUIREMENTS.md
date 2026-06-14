@@ -2,7 +2,7 @@
 
 ## UI Polishing & Bug Fixes
 
-- [ ] **UI-01**: User sees the correct entry price when hovering over the historical order triangle on the chart (an arrow without a dash must pop up showing the exact correct entry price for that candle).
+- [x] **UI-01**: User sees the correct entry price when hovering over the historical order triangle on the chart (an arrow without a dash must pop up showing the exact correct entry price for that candle).
 
 ## Data Integrity & Testing
 
