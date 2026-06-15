@@ -30,6 +30,7 @@ export function useKeyboardShortcuts({
 
   const lastCtrlPressRef = useRef<number>(0);
   const lastAltPressRef = useRef<number>(0);
+  const lastShiftPressRef = useRef<number>(0);
 
   const keyboardInputRef = useRef<HTMLInputElement>(null);
   const keyboardActionRef = useRef(keyboardAction);
@@ -86,10 +87,23 @@ export function useKeyboardShortcuts({
         e.preventDefault();
         const now = Date.now();
         if (now - lastAltPressRef.current < DOUBLE_PRESS_DELAY) {
-          useTradeStore.getState().closeClosestPosition(currentTickerRef.current);
+          useTradeStore.getState().flattenHalfSymbol(currentTickerRef.current);
           lastAltPressRef.current = 0;
         } else {
           lastAltPressRef.current = now;
+        }
+        return;
+      }
+
+      const isShiftKeyOnly = e.key === 'Shift';
+      if (isShiftKeyOnly) {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastShiftPressRef.current < DOUBLE_PRESS_DELAY) {
+          useTradeStore.getState().closeClosestPosition(currentTickerRef.current);
+          lastShiftPressRef.current = 0;
+        } else {
+          lastShiftPressRef.current = now;
         }
         return;
       }
