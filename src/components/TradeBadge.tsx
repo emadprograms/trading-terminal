@@ -44,6 +44,7 @@ export function TradeBadge({
   const isBuy = marker.direction === 'BUY';
   const isSL = marker.label === 'SL' || marker.id.endsWith('_SL');
   const isTP = marker.label === 'TP';
+  const isPendingMarket = marker.type === 'ORDER' && marker.label?.startsWith('✓');
 
   let borderColor = tvBlue;
   let sizeBg = tvBlue;
@@ -51,11 +52,11 @@ export function TradeBadge({
   let textColor = '#333';
   let closeColor = tvBlue;
 
-  if (isPosition) {
+  if (isPosition || isPendingMarket) {
      borderColor = isBuy ? tvBlue : tvRed;
      sizeBg = isBuy ? tvBlue : tvRed;
      closeColor = isBuy ? tvBlue : tvRed;
-     textColor = pnl >= 0 ? tvGreen : tvRed;
+     textColor = isPendingMarket ? (isBuy ? tvBlue : tvRed) : (pnl >= 0 ? tvGreen : tvRed);
   } else if (isSL) {
      borderColor = tvOrange;
      sizeBg = '#f8f9fa';
