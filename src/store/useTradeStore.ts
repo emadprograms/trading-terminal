@@ -119,6 +119,7 @@ export const useTradeStore = create<TradeState>()(
             type: orderType,
             direction: params.direction,
             status: 'PENDING',
+            level: orderType === 'MARKET' ? (params.direction === 'BUY' ? ofr : bid) : (params as LimitOrderParams).level,
             timestamp: Date.now(),
             guaranteedStop: finalParams.guaranteedStop,
             stopLevel: finalParams.stopLevel,
