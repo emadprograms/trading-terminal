@@ -300,7 +300,7 @@ export const useTradeStore = create<TradeState>()(
             else netSize -= p.size;
         });
 
-        Object.values(pendingOrders).filter(o => o.epic === epic && o.type === 'MARKET').forEach(o => {
+        Object.values(pendingOrders).filter(o => o.epic === epic && o.type === 'MARKET' && o.status === 'PENDING').forEach(o => {
             if (o.direction === 'BUY') netSize += o.size;
             else netSize -= o.size;
         });
