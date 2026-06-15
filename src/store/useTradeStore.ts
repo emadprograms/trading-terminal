@@ -298,11 +298,18 @@ export const useTradeStore = create<TradeState>()(
         set({ isExecuting: true });
         try {
           for (const pos of symbolPositions) {
-            const halfSize = pos.size / 2;
-            if (halfSize <= 0) continue; // Safety check
+            const getDecimals = (num: number) => {
+              if (Math.floor(num) === num) return 0;
+              return num.toString().split(".")[1]?.length || 0;
+            };
+            const decimals = getDecimals(pos.size);
+            const multiplier = Math.pow(10, decimals);
+            
+            // Round down to the same number of decimal places as the original position
+            // e.g. pos.size = 0.25 (2 decimals). halfSize = 0.125 -> floor to 2 decimals -> 0.12
+            let halfSize = Math.floor((pos.size / 2) * multiplier) / multiplier;
 
-            // If half size is too small for Capital.com to accept, just close the full position
-            if (halfSize < 0.1) {
+            if (halfSize <= 0) {
               toast.info('Size too small to half. Closed full position.');
               await get().flattenPosition(pos.dealId);
               continue;
@@ -321,8 +328,17 @@ export const useTradeStore = create<TradeState>()(
                  ofr: currentPriceObj?.ask || currentPriceObj?.ofr
                });
             } catch (error: any) {
-              console.error(`Failed to halve position ${pos.dealId}:`, error);
-              toast.error(`Failed to halve position: ${error.message || 'Unknown error'}`);
+               const msg = error.message?.toLowerCase() || '';
+               // If the order was rejected by Capital.com for being under the minimum size, 
+               // fallback to fully closing the position
+               if (msg.includes('size') || msg.includes('min') || msg.includes('step') || msg.includes('amount')) {
+                  console.warn(`[TradeStore] Half size ${halfSize} rejected. Closing full position ${pos.dealId} instead.`);
+                  toast.info('Half size rejected by broker. Closed full position instead.');
+                  await get().flattenPosition(pos.dealId);
+               } else {
+                  console.error(`Failed to halve position ${pos.dealId}:`, error);
+                  toast.error(`Failed to halve position: ${error.message || 'Unknown error'}`);
+               }
             }
             
             // Throttle
