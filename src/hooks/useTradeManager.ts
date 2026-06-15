@@ -99,6 +99,12 @@ export function useTradeManager({
         price = 0;
       }
 
+      let label = o.type;
+      if (o.type === 'MARKET') {
+        const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
+        label = `✓ ${shortId}`;
+      }
+
       return {
         id: o.dealId || o.dealReference,
         epic: o.epic,
@@ -106,7 +112,7 @@ export function useTradeManager({
         direction: o.direction,
         size: o.size,
         type: 'ORDER',
-        label: o.type
+        label
       };
     });
 
