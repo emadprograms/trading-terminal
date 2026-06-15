@@ -45,7 +45,7 @@ export function useTradeManager({
   );
 
   // --- VISUAL FIFO NETTING ---
-  const nettedItems = useMemo(() => {
+  const rawNettedItems = useMemo(() => {
     const longs: any[] = [];
     const shorts: any[] = [];
 
@@ -80,6 +80,24 @@ export function useTradeManager({
     return [...longs, ...shorts];
   }, [tickerPositions, tickerOrders]);
 
+  // Prevent flicker during Capital.com backend netting (which deletes legs before creating the netted leg)
+  const [debouncedNettedItems, setDebouncedNettedItems] = React.useState(rawNettedItems);
+  const nettingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (rawNettedItems.length === 0 && debouncedNettedItems.length > 0) {
+      nettingTimeoutRef.current = setTimeout(() => {
+        setDebouncedNettedItems(rawNettedItems);
+      }, 500);
+    } else {
+      if (nettingTimeoutRef.current) clearTimeout(nettingTimeoutRef.current);
+      setDebouncedNettedItems(rawNettedItems);
+    }
+    return () => {
+      if (nettingTimeoutRef.current) clearTimeout(nettingTimeoutRef.current);
+    };
+  }, [rawNettedItems]);
+
   const nonMarketOrders = useMemo(() => 
     tickerOrders.filter(o => o.type !== 'MARKET'),
   [tickerOrders]);
@@ -88,7 +106,7 @@ export function useTradeManager({
 
   // Map to ChartMarkers
   const baseMarkers = useMemo((): ChartMarker[] => {
-    const posMarkers: ChartMarker[] = nettedItems.filter(i => !i.isPending).flatMap(p => {
+    const posMarkers: ChartMarker[] = debouncedNettedItems.filter(i => !i.isPending).flatMap(p => {
       const markers: ChartMarker[] = [{
         id: p.dealId,
         epic: p.epic,
@@ -185,7 +203,7 @@ export function useTradeManager({
     });
 
     return [...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers];
-  }, [nettedItems, nonMarketOrders, tickerExecutions, chartData]);
+  }, [debouncedNettedItems, nonMarketOrders, tickerExecutions, chartData]);
 
   const markers = useMemo(() => {
     if (!dragPreview) return baseMarkers;
