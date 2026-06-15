@@ -8,6 +8,7 @@ Trading Terminal is a professional-grade, lightning-fast live market terminal co
 - **In-Memory Caching Engine:** The `syncCoordinator` manages thousands of historical candles and real-time ticks entirely in-memory using an optimized `Map` to ensure zero-lag switching, keeping the main React thread free without the overhead of database transactions. (SQLite WASM is still available but restricted to static backtesting playback).
 - **Intelligent Data Stitching:** Automatically prepends historical REST data via infinite scroll, stitches it with live WebSocket streams, and features a custom resampling engine to generate accurate 1D (Daily) candles strictly for Regular Trading Hours (RTH) using 30-minute intraday data.
 - **High-Performance Rendering:** Powered by `lightweight-charts` for fluid price updates, zero-flicker chart reuse, and immediate rendering upon symbol switching.
+- **Visual FIFO Netting Engine:** An instantaneous UI-layer netting engine intercepting optimistic counter-orders. It mathematically nets opposing positions in-memory to prevent visual UI flicker and psychological ghost positions while the broker backend executes the actual cleanup.
 
 ## ⚡ Keyboard Shortcuts & Execution
 
@@ -21,7 +22,8 @@ The terminal is heavily optimized for keyboard-driven execution to ensure trader
 
 ### Position Management
 - **`Double Ctrl` (Tap twice)**: Flatten Symbol (Close all positions for the active ticker)
-- **`Double Alt` (Tap twice)**: Flatten Half (Close 50% of the active position)
+- **`Double Shift` (Tap twice)**: Scratch Closest (Close the single position closest to the current market price)
+- **`Double Alt` (Tap twice)**: Flatten Half (Dynamically scale out 50% of your position. Features **Smart Fractional Halving** that automatically matches the original order's step size constraints and safely falls back to a full close if the halved size violates the broker's minimum limits).
 
 ### Chart & Navigation
 - **`Type Letters`**: Instantly switch ticker (e.g., type "AAPL")
