@@ -301,6 +301,13 @@ export const useTradeStore = create<TradeState>()(
             const halfSize = pos.size / 2;
             if (halfSize <= 0) continue; // Safety check
 
+            // If half size is too small for Capital.com to accept, just close the full position
+            if (halfSize < 0.1) {
+              toast.info('Size too small to half. Closed full position.');
+              await get().flattenPosition(pos.dealId);
+              continue;
+            }
+
             try {
                const priceStore = (await import('./usePriceStore')).usePriceStore;
                const currentPriceObj = priceStore.getState().prices[pos.epic];
