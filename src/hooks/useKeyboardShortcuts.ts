@@ -53,17 +53,18 @@ export function useKeyboardShortcuts({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
       const isInput = e.target && ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'TEXTAREA');
       const keyLowerForShortcut = e.key.toLowerCase();
       const isTradeShortcutKey = e.code === 'KeyQ' || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || ['q','w','a','s'].includes(keyLowerForShortcut);
-      const isTradeShortcut = e.altKey && isTradeShortcutKey && !e.shiftKey;
+      const isTradeShortcut = e.altKey && isTradeShortcutKey;
 
       if (isInput && !isTradeShortcut) return;
 
       const container = chartContainerRef.current;
       if (!container) return;
       const isHovered = container.matches(':hover') || container.contains(document.activeElement);
-      if (!isHovered && !isSelected && !keyboardActionRef.current.active && !isTradeShortcut) return;
+      if (!isHovered && !isSelected && !keyboardActionRef.current.active) return;
 
       const isAltKeyOnly = e.key === 'Alt';
       const isCtrlKeyOnly = e.key === 'Control';
@@ -102,7 +103,7 @@ export function useKeyboardShortcuts({
           const isKeyA = e.code === 'KeyA' || keyLower === 'a';
           const isKeyS = e.code === 'KeyS' || keyLower === 's';
 
-          if ((isKeyQ || isKeyW || isKeyA || isKeyS) && !e.shiftKey) {
+          if ((isKeyQ || isKeyW || isKeyA || isKeyS)) {
             e.preventDefault();
             
             const ticker = currentTickerRef.current;
@@ -118,12 +119,15 @@ export function useKeyboardShortcuts({
             const priceData = usePriceStore.getState().prices[ticker];
             const direction = (isKeyQ || isKeyW) ? 'BUY' : 'SELL';
             
+            const stopMultiplier = e.shiftKey ? 2 : 1;
+            const stopDistance = settings.stopDistance ? settings.stopDistance * stopMultiplier : undefined;
+            
             const promise = useTradeStore.getState().placeOrder({
               epic: ticker,
               size,
               direction,
               type: 'MARKET',
-              stopDistance: settings.stopDistance || undefined,
+              stopDistance,
               guaranteedStop: settings.guaranteedStop,
               bid: priceData?.bid,
               ofr: priceData?.ask || priceData?.ofr
