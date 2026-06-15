@@ -29,6 +29,7 @@ interface TradeState {
   flattenPosition: (dealId: string) => Promise<void>;
   flattenSymbol: (epic: string) => Promise<void>;
   flattenHalfSymbol: (epic: string) => Promise<void>;
+  closeClosestPosition: (epic: string) => Promise<void>;
   flattenAll: () => Promise<void>;
   cancelWorkingOrder: (workingOrderId: string) => Promise<void>;
   updatePositionStopLoss: (dealId: string, stopLevel: number) => Promise<void>;
@@ -322,6 +323,34 @@ export const useTradeStore = create<TradeState>()(
           }
         } finally {
           set({ isExecuting: false });
+        }
+      },
+
+      closeClosestPosition: async (epic) => {
+        const { positions } = get();
+        const symbolPositions = positions.filter(p => p.epic === epic);
+        if (symbolPositions.length === 0) return;
+
+        const priceStore = (await import('./usePriceStore')).usePriceStore;
+        const currentPriceObj = priceStore.getState().prices[epic];
+        if (!currentPriceObj) return;
+
+        let closestPos = symbolPositions[0];
+        let minDistance = Infinity;
+
+        for (const pos of symbolPositions) {
+          const currentPrice = pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr;
+          if (currentPrice === undefined) continue;
+
+          const distance = Math.abs(pos.entryPrice - currentPrice);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestPos = pos;
+          }
+        }
+
+        if (closestPos) {
+          await get().flattenPosition(closestPos.dealId);
         }
       },
 

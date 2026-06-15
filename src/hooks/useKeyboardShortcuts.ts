@@ -86,7 +86,7 @@ export function useKeyboardShortcuts({
         e.preventDefault();
         const now = Date.now();
         if (now - lastAltPressRef.current < DOUBLE_PRESS_DELAY) {
-          useTradeStore.getState().flattenHalfSymbol(currentTickerRef.current);
+          useTradeStore.getState().closeClosestPosition(currentTickerRef.current);
           lastAltPressRef.current = 0;
         } else {
           lastAltPressRef.current = now;
