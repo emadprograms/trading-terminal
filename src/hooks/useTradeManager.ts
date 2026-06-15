@@ -149,7 +149,7 @@ export function useTradeManager({
       return markers;
     });
 
-    const marketOrderMarkers: ChartMarker[] = nettedItems.filter(i => i.isPending).map(o => {
+    const marketOrderMarkers: ChartMarker[] = debouncedNettedItems.filter(i => i.isPending).map(o => {
       let price = o.level || 0;
       let label = 'MARKET';
       const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
