@@ -291,59 +291,68 @@ export const useTradeStore = create<TradeState>()(
       },
 
       flattenHalfSymbol: async (epic) => {
-        const { positions } = get();
-        const symbolPositions = positions.filter(p => p.epic === epic);
-        if (symbolPositions.length === 0) return;
+        const { positions, pendingOrders } = get();
+        
+        // Calculate true net size including both open positions and pending market orders
+        let netSize = 0;
+        positions.filter(p => p.epic === epic).forEach(p => {
+            if (p.direction === 'BUY') netSize += p.size;
+            else netSize -= p.size;
+        });
+
+        Object.values(pendingOrders).filter(o => o.epic === epic && o.type === 'MARKET').forEach(o => {
+            if (o.direction === 'BUY') netSize += o.size;
+            else netSize -= o.size;
+        });
+
+        if (Math.abs(netSize) === 0) return;
+
+        const netDirection = netSize > 0 ? 'BUY' : 'SELL';
+        const absoluteNetSize = Math.abs(netSize);
+        
+        // Round to 4 decimal places to avoid float issues, but don't arbitrarily floor it to 0
+        let halfSize = parseFloat((absoluteNetSize / 2).toFixed(4));
+
+        if (halfSize <= 0) return;
 
         set({ isExecuting: true });
         try {
-          for (const pos of symbolPositions) {
-            const getDecimals = (num: number) => {
-              if (Math.floor(num) === num) return 0;
-              return num.toString().split(".")[1]?.length || 0;
-            };
-            const decimals = getDecimals(pos.size);
-            const multiplier = Math.pow(10, decimals);
-            
-            // Round down to the same number of decimal places as the original position
-            // e.g. pos.size = 0.25 (2 decimals). halfSize = 0.125 -> floor to 2 decimals -> 0.12
-            let halfSize = Math.floor((pos.size / 2) * multiplier) / multiplier;
+            // Find a valid dealId to use if we need to fully close
+            const symbolPositions = positions.filter(p => p.epic === epic);
+            const primaryDealId = symbolPositions.length > 0 ? symbolPositions[0].dealId : null;
 
-            if (halfSize <= 0) {
-              toast.info('Size too small to half. Closed full position.');
-              await get().flattenPosition(pos.dealId);
-              continue;
+            if (halfSize < 0.001) { // Safe absolute minimum
+              if (primaryDealId) {
+                toast.info('Net size too small to half. Closed full position.');
+                await get().flattenPosition(primaryDealId);
+              }
+              return;
             }
 
             try {
                const priceStore = (await import('./usePriceStore')).usePriceStore;
-               const currentPriceObj = priceStore.getState().prices[pos.epic];
+               const currentPriceObj = priceStore.getState().prices[epic];
                
                await get().placeOrder({
-                 epic: pos.epic,
+                 epic: epic,
                  size: halfSize,
-                 direction: pos.direction === 'BUY' ? 'SELL' : 'BUY',
+                 direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
                  type: 'MARKET',
                  bid: currentPriceObj?.bid,
                  ofr: currentPriceObj?.ask || currentPriceObj?.ofr
                });
             } catch (error: any) {
                const msg = error.message?.toLowerCase() || '';
-               // If the order was rejected by Capital.com for being under the minimum size, 
-               // fallback to fully closing the position
+               // If the order was rejected by Capital.com for being under the minimum size
                if (msg.includes('size') || msg.includes('min') || msg.includes('step') || msg.includes('amount')) {
-                  console.warn(`[TradeStore] Half size ${halfSize} rejected. Closing full position ${pos.dealId} instead.`);
+                  console.warn(`[TradeStore] Half size ${halfSize} rejected. Closing full positions instead.`);
                   toast.info('Half size rejected by broker. Closed full position instead.');
-                  await get().flattenPosition(pos.dealId);
+                  if (primaryDealId) await get().flattenAll(); // Flatten all legs for this symbol
                } else {
-                  console.error(`Failed to halve position ${pos.dealId}:`, error);
+                  console.error(`Failed to halve position:`, error);
                   toast.error(`Failed to halve position: ${error.message || 'Unknown error'}`);
                }
             }
-            
-            // Throttle
-            await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
-          }
         } finally {
           set({ isExecuting: false });
         }
