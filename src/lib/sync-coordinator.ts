@@ -210,15 +210,44 @@ export class SyncCoordinator {
       };
       const thresholdMs = tfMins[timeframe] * 60000;
 
-      if (buffer.length > 0 && firstWsTimeMs - lastRestTimeMs > thresholdMs) {
-        const gapMins = Math.round((firstWsTimeMs - lastRestTimeMs) / 60000);
-        console.log(`[SyncCoordinator] Gap detected for ${ticker}: ${gapMins} minutes. (firstWs: ${new Date(firstWsTimeMs).toISOString()}, lastRest: ${new Date(lastRestTimeMs).toISOString()})`);
+      if (firstWsTimeMs - lastRestTimeMs > thresholdMs) {
+        console.log(`[SyncCoordinator] Gap detected for ${ticker} (${Math.round((firstWsTimeMs - lastRestTimeMs) / 60000)} mins). Fetching bridge...`);
         
-        wsManager.setBuffering(ticker, false);
-        throw new DataStitchingError(
-          "Timestamp continuity broken", 
-          `Gap of ${gapMins} minutes between REST history and WebSocket ticks exceeds acceptable threshold`
-        );
+        // Attempt to bridge the gap
+        const bridgeTo = new Date(firstWsTimeMs).toISOString();
+        const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
+        
+        if (bridgeData && bridgeData.length > 0) {
+          const merged = [...history, ...bridgeData];
+          const seen = new Set<string>();
+          history = [];
+          
+          merged.sort((a, b) => a.time.localeCompare(b.time));
+          for (const bar of merged) {
+            if (!seen.has(bar.time)) {
+              seen.add(bar.time);
+              history.push(bar);
+            }
+          }
+          this.cache.set(cacheKey, history);
+          console.log(`[SyncCoordinator] Bridge complete for ${ticker}. Cache updated.`);
+        }
+
+        // Recalculate gap after bridge attempt
+        const newLastRestCandle = history[history.length - 1];
+        const newLastRestTimeMs = new Date(newLastRestCandle.time.replace(' ', 'T') + 'Z').getTime();
+
+        // If gap still exists AND we have active live ticks proving the market is open and moving
+        if (buffer.length > 0 && firstWsTimeMs - newLastRestTimeMs > thresholdMs) {
+          const finalGapMins = Math.round((firstWsTimeMs - newLastRestTimeMs) / 60000);
+          console.log(`[SyncCoordinator] Bridge failed to close gap for ${ticker}: ${finalGapMins} minutes remaining.`);
+          
+          wsManager.setBuffering(ticker, false);
+          throw new DataStitchingError(
+            "Timestamp continuity broken", 
+            `Unrecoverable gap of ${finalGapMins} minutes between REST history and WebSocket ticks.`
+          );
+        }
       }
 
       // 5b. Bridge Gap Detection for Companion 30min data (for 1D ETH toggling)
