@@ -44,11 +44,51 @@ export function useTradeManager({
     [executions, ticker]
   );
 
+  // --- VISUAL FIFO NETTING ---
+  const nettedItems = useMemo(() => {
+    const longs: any[] = [];
+    const shorts: any[] = [];
+
+    tickerPositions.forEach(p => {
+      const clone = { ...p, isPending: false };
+      if (p.direction === 'BUY') longs.push(clone);
+      else shorts.push(clone);
+    });
+
+    tickerOrders.filter(o => o.type === 'MARKET').forEach(o => {
+      const clone = { ...o, isPending: true };
+      if (o.direction === 'BUY') longs.push(clone);
+      else shorts.push(clone);
+    });
+
+    while (longs.length > 0 && shorts.length > 0) {
+      let oldestLong = longs[0];
+      let oldestShort = shorts[0];
+      
+      if (oldestLong.size > oldestShort.size) {
+        oldestLong.size -= oldestShort.size;
+        shorts.shift(); 
+      } else if (oldestLong.size < oldestShort.size) {
+        oldestShort.size -= oldestLong.size;
+        longs.shift(); 
+      } else {
+        longs.shift();
+        shorts.shift();
+      }
+    }
+
+    return [...longs, ...shorts];
+  }, [tickerPositions, tickerOrders]);
+
+  const nonMarketOrders = useMemo(() => 
+    tickerOrders.filter(o => o.type !== 'MARKET'),
+  [tickerOrders]);
+
   const [dragPreview, setDragPreview] = React.useState<{ id: string, price: number } | null>(null);
 
   // Map to ChartMarkers
   const baseMarkers = useMemo((): ChartMarker[] => {
-    const posMarkers: ChartMarker[] = tickerPositions.flatMap(p => {
+    const posMarkers: ChartMarker[] = nettedItems.filter(i => !i.isPending).flatMap(p => {
       const markers: ChartMarker[] = [{
         id: p.dealId,
         epic: p.epic,
@@ -65,7 +105,7 @@ export function useTradeManager({
           id: `${p.dealId}_SL`,
           epic: p.epic,
           price: p.stopLevel,
-          direction: p.direction === 'BUY' ? 'SELL' : 'BUY', // Stop loss is opposite direction
+          direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
           size: p.size,
           type: 'ORDER',
           label: 'SL',
@@ -79,7 +119,7 @@ export function useTradeManager({
           id: `${p.dealId}_TP`,
           epic: p.epic,
           price: p.profitLevel,
-          direction: p.direction === 'BUY' ? 'SELL' : 'BUY', // Take profit is opposite direction
+          direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
           size: p.size,
           type: 'ORDER',
           label: 'TP',
@@ -91,19 +131,11 @@ export function useTradeManager({
       return markers;
     });
 
-    const orderMarkers: ChartMarker[] = tickerOrders.map(o => {
+    const marketOrderMarkers: ChartMarker[] = nettedItems.filter(i => i.isPending).map(o => {
       let price = o.level || 0;
-      
-      // For Market orders, default to 0 and let plugin handle or wait for execution
-      if (o.type === 'MARKET' && !o.level) {
-        price = 0;
-      }
-
-      let label = o.type;
-      if (o.type === 'MARKET') {
-        const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
-        label = `✓ ${shortId}`;
-      }
+      let label = 'MARKET';
+      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
+      label = `✓ ${shortId}`;
 
       return {
         id: o.dealId || o.dealReference,
@@ -113,6 +145,18 @@ export function useTradeManager({
         size: o.size,
         type: 'ORDER',
         label
+      };
+    });
+
+    const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
+      return {
+        id: o.dealId || o.dealReference,
+        epic: o.epic,
+        price: o.level || 0,
+        direction: o.direction,
+        size: o.size,
+        type: 'ORDER',
+        label: o.type
       };
     });
 
@@ -137,11 +181,11 @@ export function useTradeManager({
          size: e.size,
          type: 'EXECUTION',
          time: Math.floor(new Date(matchBar ? matchBar.time + 'Z' : 0).getTime() / 1000) as Time,
-       };
+        };
     });
 
-    return [...posMarkers, ...orderMarkers, ...executionMarkers];
-  }, [tickerPositions, tickerOrders, tickerExecutions, chartData]);
+    return [...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers];
+  }, [nettedItems, nonMarketOrders, tickerExecutions, chartData]);
 
   const markers = useMemo(() => {
     if (!dragPreview) return baseMarkers;
