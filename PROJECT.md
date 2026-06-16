@@ -9,15 +9,15 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 - **Robust Local State:** High-performance, play-by-play market data caching using a Web Worker-based SQLite (sql.js) database to prevent main thread blocking.
 - **Premium Aesthetics:** A sleek, modern, and highly polished user interface with fluid micro-animations and exact interaction states.
 
-## Current Milestone: v1.0 Hardening & Polishing
+## Current Milestone: v1.1 Orders Audit & Hardening
 
-**Goal:** Take the app from "working" to production-grade robust and beautiful by fixing UI bugs, adding robust E2E tests, and thoroughly testing the backend proxy.
+**Goal:** Rigorously audit, harden, and comprehensively test the entire order placement and lifecycle logic to ensure bulletproof execution and discover/fix hidden bugs (including unknown edge cases like event duplication across multiple charts).
 
 **Target features:**
-- UI Polishing & Bug Fixes (e.g., fix entry price indicator dash to arrow)
-- General Aesthetic Polish for a premium, state-of-the-art dark mode UI
-- Robust End-to-End Testing (Playwright) focusing on order placement, data fetching, and state integrity
-- Backend Proxy Hardening & Testing (Vercel Serverless Functions in `api/`) to ensure complete reliability
+- **Comprehensive Code & Event Audit:** Deep dive into the codebase to find undiscovered bugs, race conditions, event listener duplications, and state mismanagement in order execution.
+- **Double Alt Fix:** Fix the known `flattenHalfSymbol` bug caused by summing unfiltered historical pending orders (`FLATTEN_HALF_DIAGNOSIS.md`).
+- **Double/Ghost Orders & Stuck Limit Orders Fix:** Identify and resolve root causes of known issues (double orders, ghost orders, non-cancellable limit orders).
+- **Rigorous Order Testing Suite:** Implement a comprehensive, edge-case-heavy test suite designed to stress-test the entire order lifecycle under extreme conditions.
 
 ## Future Milestones
 - Advanced Order Types & Strategies
