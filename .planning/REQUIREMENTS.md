@@ -1,38 +1,30 @@
-# Milestone v1.0 Requirements
+# Milestone v1.1 Requirements
 
-## UI Polishing & Bug Fixes
+## Code & Event Audit
+- [ ] **AUDIT-01**: System executes orders perfectly without event listener duplication (e.g. multi-chart alt+q bugs) or unmanaged state causing ghost orders.
 
-- [x] **UI-01**: User sees the correct entry price when hovering over the historical order triangle on the chart (an arrow without a dash must pop up showing the exact correct entry price for that candle).
+## Order System Hardening
+- [ ] **ORDER-01**: `flattenHalfSymbol` (Double Alt) calculates true net size exclusively using `status === 'PENDING'` orders (fixes historical sum bug).
+- [ ] **ORDER-02**: Limit orders are fully cancellable and never get permanently stuck in a pending/un-cancellable state.
+- [ ] **ORDER-03**: Shortcut and UI-triggered orders fire exactly once, guaranteeing no double orders regardless of UI load or chart switching.
 
-## Data Integrity & Testing
-
-- [ ] **TEST-01**: Thoroughly test and validate the data stitching (REST history seamlessly synced with live WebSocket ticks) to guarantee state integrity.
-- [x] **TEST-02**: Playwright E2E suite successfully tests the critical path (order placement, chart switching, order histories) against regressions in latency and correctness.
-
-## Proxy Hardening & Syncing
-
-- [ ] **PROXY-01**: System correctly and reliably syncs order history, prices, and orders with Capital.com without data misinterpretation.
-- [ ] **PROXY-02**: User orders are executed reliably via Vercel Serverless Functions with strict Zod validation.
-- [ ] **PROXY-03**: System gracefully handles Capital.com backend errors without crashing the client or blocking the UI.
+## Order Lifecycle Testing
+- [ ] **TEST-03**: A rigorous order lifecycle test suite covers extreme latency edge cases, limit order cancellations, multi-chart event handling, and double alt logic.
 
 ## Future Requirements
-
 - Advanced UI Micro-animations (framer-motion)
-- Edge Case E2E Tests
+- Edge Case E2E Tests (Non-order related)
 - Advanced Order Types & Strategies
 - Portfolio Analytics & Performance History
 
 ## Out of Scope
-
 - Heavy Client-Side Analytics (deferred to prevent main thread blocking)
 - Over-Mocked Tests (we need to test the real Capital.com integrations via the proxy)
 - Premium Aesthetic Polish (deferred to prioritize core functional correctness and accurate data stitching)
 
 ## Traceability
-
-- **PROXY-01**: Phase 1
-- **PROXY-02**: Phase 1
-- **PROXY-03**: Phase 1
-- **TEST-01**: Phase 2
-- **TEST-02**: Phase 2
-- **UI-01**: Phase 3
+- **AUDIT-01**: 
+- **ORDER-01**: 
+- **ORDER-02**: 
+- **ORDER-03**: 
+- **TEST-03**: 
