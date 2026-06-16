@@ -25,7 +25,7 @@ export function TradeControls({ ticker }: TradeControlsProps) {
 
   const priceData = usePriceStore((state) => state.prices[ticker]);
   const placeOrder = useTradeStore((state) => state.placeOrder);
-  const isExecuting = useTradeStore((state) => state.isExecuting);
+  const isExecuting = useTradeStore((state) => Array.from(state.executingOperations || []).some(op => op.includes(ticker)));
 
   const bid = priceData?.bid;
   const ask = priceData?.ask;

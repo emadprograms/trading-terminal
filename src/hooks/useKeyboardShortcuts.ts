@@ -144,7 +144,7 @@ export function useKeyboardShortcuts({
               stopDistance,
               guaranteedStop: settings.guaranteedStop,
               bid: priceData?.bid,
-              ofr: priceData?.ask || priceData?.ofr
+              ofr: priceData?.ask
             });
             toast.promise(promise, {
               loading: `Placing ${direction} ${size}...`,

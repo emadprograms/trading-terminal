@@ -9,7 +9,7 @@ interface TradeState {
   positions: Position[];
   confirmationBuffer: Record<string, TradeConfirmation>;
   watchdogTimers: Record<string, any>;
-  isExecuting: boolean;
+  executingOperations: Set<string>;
   closingDealIds: Set<string>;
   executions: Execution[];
   
@@ -51,7 +51,7 @@ export const useTradeStore = create<TradeState>()(
       positions: [],
       confirmationBuffer: {},
       watchdogTimers: {},
-      isExecuting: false,
+      executingOperations: new Set<string>(),
       closingDealIds: new Set<string>(),
       executions: [],
 
@@ -62,7 +62,13 @@ export const useTradeStore = create<TradeState>()(
       },
 
       placeOrder: async (params) => {
-        set({ isExecuting: true });
+        const lockKey = `placeOrder_${params.epic}`;
+        if (get().executingOperations.has(lockKey)) return Promise.reject(new Error('Operation in progress'));
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           const { bid, ofr, type, ...apiParams } = params;
           
@@ -139,7 +145,11 @@ export const useTradeStore = create<TradeState>()(
         } catch (error) {
           throw error;
         } finally {
-          set({ isExecuting: false });
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(`placeOrder_${params.epic}`);
+            return { executingOperations: ops };
+          });
         }
       },
 
@@ -147,10 +157,15 @@ export const useTradeStore = create<TradeState>()(
         const { positions } = get();
         const position = positions.find(p => p.dealId === dealId);
 
+        const lockKey = `flattenPos_${dealId}`;
+        if (get().executingOperations.has(lockKey)) return;
+
         set((state) => {
           const newSet = new Set(state.closingDealIds);
           newSet.add(dealId);
-          return { isExecuting: true, closingDealIds: newSet };
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops, closingDealIds: newSet };
         });
 
         try {
@@ -161,7 +176,7 @@ export const useTradeStore = create<TradeState>()(
             const priceStore = (await import('./usePriceStore')).usePriceStore;
             const currentPriceObj = priceStore.getState().prices[position.epic];
             const exitPrice = currentPriceObj 
-                ? (position.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                ? (position.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ask) 
                 : position.currentPrice || position.entryPrice;
 
             if (exitPrice) {
@@ -185,10 +200,12 @@ export const useTradeStore = create<TradeState>()(
           set((state) => {
              const newSet = new Set(state.closingDealIds);
              newSet.delete(dealId);
+             const ops = new Set(state.executingOperations);
+             ops.delete(lockKey);
              return { 
                  positions: state.positions.filter(p => p.dealId !== dealId),
                  closingDealIds: newSet,
-                 isExecuting: false
+                 executingOperations: ops
              };
           });
           toast.success('Position closed');
@@ -198,16 +215,18 @@ export const useTradeStore = create<TradeState>()(
             const newSet = new Set(state.closingDealIds);
             newSet.delete(dealId);
             
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
             // If it's a 404, it means the position is already closed (ghost position)
             if (error.message && (error.message.includes('404') || error.message.toLowerCase().includes('not found'))) {
                  return { 
                      positions: state.positions.filter(p => p.dealId !== dealId),
                      closingDealIds: newSet,
-                     isExecuting: false
+                     executingOperations: ops
                  };
             }
             
-            return { closingDealIds: newSet, isExecuting: false };
+            return { closingDealIds: newSet, executingOperations: ops };
           });
           
           if (error.message && (error.message.includes('404') || error.message.toLowerCase().includes('not found'))) {
@@ -223,7 +242,14 @@ export const useTradeStore = create<TradeState>()(
         const symbolPositions = positions.filter(p => p.epic === epic);
         if (symbolPositions.length === 0) return;
 
-        set({ isExecuting: true });
+        const lockKey = `flattenSymbol_${epic}`;
+        if (get().executingOperations.has(lockKey)) return;
+
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           for (const pos of symbolPositions) {
             set((state) => {
@@ -238,7 +264,7 @@ export const useTradeStore = create<TradeState>()(
               const priceStore = (await import('./usePriceStore')).usePriceStore;
               const currentPriceObj = priceStore.getState().prices[pos.epic];
               const exitPrice = currentPriceObj 
-                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ask) 
                   : pos.currentPrice || pos.entryPrice;
 
               if (exitPrice) {
@@ -286,7 +312,7 @@ export const useTradeStore = create<TradeState>()(
             await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
           }
         } finally {
-          set({ isExecuting: false });
+          
         }
       },
 
@@ -315,7 +341,14 @@ export const useTradeStore = create<TradeState>()(
 
         if (halfSize <= 0) return;
 
-        set({ isExecuting: true });
+        const lockKey = `flattenHalf_${epic}`;
+        if (get().executingOperations.has(lockKey)) return;
+
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
             // Find a valid dealId to use if we need to fully close
             const symbolPositions = positions.filter(p => p.epic === epic);
@@ -339,7 +372,7 @@ export const useTradeStore = create<TradeState>()(
                  direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
                  type: 'MARKET',
                  bid: currentPriceObj?.bid,
-                 ofr: currentPriceObj?.ask || currentPriceObj?.ofr
+                 ofr: currentPriceObj?.ask
                });
             } catch (error: any) {
                const msg = error.message?.toLowerCase() || '';
@@ -354,7 +387,11 @@ export const useTradeStore = create<TradeState>()(
                }
             }
         } finally {
-          set({ isExecuting: false });
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(`flattenHalf_${epic}`);
+            return { executingOperations: ops };
+          });
         }
       },
 
@@ -371,7 +408,7 @@ export const useTradeStore = create<TradeState>()(
         let minDistance = Infinity;
 
         for (const pos of symbolPositions) {
-          const currentPrice = pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr;
+          const currentPrice = pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ask;
           if (currentPrice === undefined) continue;
 
           const distance = Math.abs(pos.entryPrice - currentPrice);
@@ -390,7 +427,14 @@ export const useTradeStore = create<TradeState>()(
         const { positions } = get();
         if (positions.length === 0) return;
 
-        set({ isExecuting: true });
+        const lockKey = `flattenAll`;
+        if (get().executingOperations.has(lockKey)) return;
+
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           for (const pos of positions) {
             set((state) => {
@@ -405,7 +449,7 @@ export const useTradeStore = create<TradeState>()(
               const priceStore = (await import('./usePriceStore')).usePriceStore;
               const currentPriceObj = priceStore.getState().prices[pos.epic];
               const exitPrice = currentPriceObj 
-                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                  ? (pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ask) 
                   : pos.currentPrice || pos.entryPrice;
 
               if (exitPrice) {
@@ -453,7 +497,7 @@ export const useTradeStore = create<TradeState>()(
             await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
           }
         } finally {
-          set({ isExecuting: false });
+          
         }
       },
 
@@ -462,7 +506,13 @@ export const useTradeStore = create<TradeState>()(
         const position = positions.find(p => p.dealId === dealId);
         if (!position) return;
 
-        set({ isExecuting: true });
+        const lockKey = `updateSL_${dealId}`;
+        if (get().executingOperations.has(lockKey)) return;
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           // Format stopLevel to prevent API errors. Use null to clear it.
           const formattedStopLevel = stopLevel === 0 ? null : parseFloat(stopLevel.toFixed(5));
@@ -481,17 +531,25 @@ export const useTradeStore = create<TradeState>()(
           await tradeApi.updatePosition(dealId, params);
           
           // Optimistically update the UI
-          set(state => ({
-            positions: state.positions.map(p => 
-              p.dealId === dealId ? { ...p, stopLevel: stopLevel === 0 ? undefined : formattedStopLevel as number } : p
-            ),
-            isExecuting: false
-          }));
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return {
+              positions: state.positions.map(p => 
+                p.dealId === dealId ? { ...p, stopLevel: stopLevel === 0 ? undefined : formattedStopLevel as number } : p
+              ),
+              executingOperations: ops
+            };
+          });
           
           toast.success('Stop Loss updated');
         } catch (error: any) {
           console.error(`Failed to update position SL ${dealId}:`, error);
-          set({ isExecuting: false });
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { executingOperations: ops };
+          });
           toast.error(`Failed: ${error.message || 'Unknown error'}`);
         }
       },
@@ -501,7 +559,13 @@ export const useTradeStore = create<TradeState>()(
         const position = positions.find(p => p.dealId === dealId);
         if (!position) return;
 
-        set({ isExecuting: true });
+        const lockKey = `updateTP_${dealId}`;
+        if (get().executingOperations.has(lockKey)) return;
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           // Format profitLevel to prevent API errors. Use null to clear it.
           const formattedProfitLevel = profitLevel === 0 ? null : parseFloat(profitLevel.toFixed(5));
@@ -519,17 +583,25 @@ export const useTradeStore = create<TradeState>()(
           await tradeApi.updatePosition(dealId, params);
           
           // Optimistically update the UI
-          set(state => ({
-            positions: state.positions.map(p => 
-              p.dealId === dealId ? { ...p, profitLevel: profitLevel === 0 ? undefined : formattedProfitLevel as number } : p
-            ),
-            isExecuting: false
-          }));
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return {
+              positions: state.positions.map(p => 
+                p.dealId === dealId ? { ...p, profitLevel: profitLevel === 0 ? undefined : formattedProfitLevel as number } : p
+              ),
+              executingOperations: ops
+            };
+          });
           
           toast.success('Take Profit updated');
         } catch (error: any) {
           console.error(`Failed to update position TP ${dealId}:`, error);
-          set({ isExecuting: false });
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { executingOperations: ops };
+          });
           toast.error(`Failed: ${error.message || 'Unknown error'}`);
         }
       },
@@ -548,12 +620,19 @@ export const useTradeStore = create<TradeState>()(
             set(state => {
                 const newOrders = { ...state.pendingOrders };
                 delete newOrders[order.dealReference];
-                return { pendingOrders: newOrders, isExecuting: false };
+                return { pendingOrders: newOrders };
             });
             return;
         }
 
-        set({ isExecuting: true });
+        const lockKey = `cancel_${workingOrderId}`;
+        if (get().executingOperations.has(lockKey)) return;
+
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           const apiOrderId = order?.workingOrderId || order?.dealId || workingOrderId;
           await tradeApi.cancelWorkingOrder(apiOrderId);
@@ -566,11 +645,17 @@ export const useTradeStore = create<TradeState>()(
             } else {
                 delete newOrders[workingOrderId];
             }
-            return { pendingOrders: newOrders, isExecuting: false };
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { pendingOrders: newOrders, executingOperations: ops };
           });
         } catch (error) {
           console.error(`Failed to cancel working order ${workingOrderId}:`, error);
-          set({ isExecuting: false });
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { executingOperations: ops };
+          });
           toast.error(`Failed to cancel order`);
         }
       },
@@ -581,7 +666,14 @@ export const useTradeStore = create<TradeState>()(
         
         if (workingOrders.length === 0) return;
 
-        set({ isExecuting: true });
+        const lockKey = `cancelAll`;
+        if (get().executingOperations.has(lockKey)) return;
+
+        set(state => {
+          const ops = new Set(state.executingOperations);
+          ops.add(lockKey);
+          return { executingOperations: ops };
+        });
         try {
           for (const order of workingOrders) {
             const id = order.workingOrderId || order.dealId || order.dealReference;
@@ -593,7 +685,7 @@ export const useTradeStore = create<TradeState>()(
             await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
           }
         } finally {
-          set({ isExecuting: false });
+          
         }
       },
 
@@ -667,7 +759,7 @@ export const useTradeStore = create<TradeState>()(
               if (!execExists) {
                 const currentPriceObj = priceStore.getState().prices[p.epic];
                 const exitPrice = currentPriceObj 
-                    ? (p.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ofr) 
+                    ? (p.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ask) 
                     : p.entryPrice;
 
                 newExecutions.push({
@@ -781,7 +873,7 @@ export const useTradeStore = create<TradeState>()(
             delete newBuffer[dealReference];
 
             return {
-              isExecuting: false,
+              
               pendingOrders: {
                 ...state.pendingOrders,
                 [dealReference]: updatedOrder,
@@ -840,10 +932,10 @@ export const useTradeStore = create<TradeState>()(
       updateOrderStatus: (dealReference, status, details) => 
         set((state) => {
           const order = state.pendingOrders[dealReference];
-          if (!order) return { ...state, isExecuting: false };
+          if (!order) return { ...state, };
 
           return {
-            isExecuting: false,
+            
             pendingOrders: {
               ...state.pendingOrders,
               [dealReference]: {
@@ -900,7 +992,7 @@ export const useTradeStore = create<TradeState>()(
             }, BUFFER_TTL);
 
             return { 
-              isExecuting: false,
+              
               confirmationBuffer: newBuffer,
               watchdogTimers: newTimers
             };
@@ -960,7 +1052,7 @@ export const useTradeStore = create<TradeState>()(
           }
 
           return {
-            isExecuting: false,
+            
             pendingOrders: {
               ...state.pendingOrders,
               [dealReference]: updatedOrder,

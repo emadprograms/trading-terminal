@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 export function TradeLog() {
   const positions = useTradeStore((state) => state.positions);
   const pendingOrders = useTradeStore((state) => state.pendingOrders);
-  const isExecuting = useTradeStore((state) => state.isExecuting);
+  const isExecuting = useTradeStore((state) => (state.executingOperations?.size || 0) > 0);
   const closingDealIds = useTradeStore((state) => state.closingDealIds);
   const flattenPosition = useTradeStore((state) => state.flattenPosition);
   const flattenAll = useTradeStore((state) => state.flattenAll);
