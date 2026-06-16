@@ -1,35 +1,26 @@
-# Project Roadmap
+# Milestone v1.1 Roadmap: Orders Audit & Hardening
 
-## Phase 1: Backend Proxy Hardening & Syncing
+**2 phases** | **5 requirements mapped** | All covered ✓
 
-**Requirements:** PROXY-01, PROXY-02, PROXY-03
-**Focus:** Establish a robust, resilient backend proxy foundation to handle order execution and synchronization reliably.
+| # | Phase | Goal | Requirements | Success Criteria |
+|---|-------|------|--------------|------------------|
+| 4 | Order System Audit & Core Fixes | Fix known bugs and perform a deep code audit to discover and patch any state/event duplication issues. | AUDIT-01, ORDER-01, ORDER-02, ORDER-03 | 3 |
+| 5 | Order Lifecycle Testing & Validation | Build a rigorous test suite to stress-test the order execution under all known and edge-case conditions. | TEST-03 | 3 |
 
-**Success Criteria:**
+### Phase Details
 
-- **Robust Order Execution:** Users can reliably place orders through the Vercel proxy, with strict input validation via Zod preventing malformed requests.
-- **Accurate Syncing:** The user's order history, active orders, and prices are accurately synchronized with Capital.com without data misinterpretation.
-- **Graceful Error Handling:** When Capital.com returns errors (e.g., rate limits or invalid tokens), the UI receives clean error messages and remains fully responsive without crashing.
+**Phase 4: Order System Audit & Core Fixes**
+Goal: Fix known bugs and perform a deep code audit to discover and patch any state/event duplication issues.
+Requirements: AUDIT-01, ORDER-01, ORDER-02, ORDER-03
+Success criteria:
+1. Double Alt properly nets out positions based on 'PENDING' status only.
+2. Limit orders can be reliably placed and cancelled without getting stuck.
+3. No double orders or ghost orders are placed via UI buttons or shortcuts (like alt+q) regardless of chart count.
 
-## Phase 2: Data Integrity & E2E Testing
-
-**Requirements:** TEST-01, TEST-02
-**Status:** COMPLETED
-**Focus:** Implement a comprehensive Playwright testing suite to guarantee state integrity and prevent regressions on the critical path.
-
-**Success Criteria:**
-
-- **Automated Critical Path:** E2E tests successfully simulate the user journey of placing an order, switching charts, and viewing order history without latency regressions.
-- **Verified Data Stitching:** Tests consistently validate that historical REST data and live WebSocket ticks stitch together accurately without gaps or overlaps.
-- **Reliable CI Foundation:** The Playwright suite runs reliably (non-flaky) against the real proxy and UI integrations.
-
-## Phase 3: UI Polishing & Bug Fixes
-
-**Requirements:** UI-01
-**Status:** COMPLETED
-**Focus:** Deliver a premium, bug-free user interface with accurate visual cues and smooth micro-animations.
-
-**Success Criteria:**
-
-- **Accurate Entry Price Indicator:** When the user hovers over the historical order triangle on the chart, an arrow (instead of a dash) immediately displays the exact correct entry price.
-- **Fluid Interactions:** UI elements, including entry indicators and order interactions, feel instantaneous and premium without main-thread blocking.
+**Phase 5: Order Lifecycle Testing & Validation**
+Goal: Build a rigorous test suite to stress-test the order execution under all known and edge-case conditions.
+Requirements: TEST-03
+Success criteria:
+1. Test suite completely covers standard order placement and lifecycle.
+2. Test suite covers edge cases: double alt, multi-chart inputs, limit cancellations.
+3. Tests consistently pass without flakiness against live endpoints or accurate mocks.

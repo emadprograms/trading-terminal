@@ -23,8 +23,8 @@
 - Premium Aesthetic Polish (deferred to prioritize core functional correctness and accurate data stitching)
 
 ## Traceability
-- **AUDIT-01**: 
-- **ORDER-01**: 
-- **ORDER-02**: 
-- **ORDER-03**: 
-- **TEST-03**: 
+- **AUDIT-01**: Phase 4
+- **ORDER-01**: Phase 4
+- **ORDER-02**: Phase 4
+- **ORDER-03**: Phase 4
+- **TEST-03**: Phase 5
