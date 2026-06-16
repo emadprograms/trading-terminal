@@ -366,21 +366,76 @@ export const useTradeStore = create<TradeState>()(
                const priceStore = (await import('./usePriceStore')).usePriceStore;
                const currentPriceObj = priceStore.getState().prices[epic];
                
-               await get().placeOrder({
-                 epic: epic,
-                 size: halfSize,
-                 direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
-                 type: 'MARKET',
-                 bid: currentPriceObj?.bid,
-                 ofr: currentPriceObj?.ask
+               let remainingToClose = halfSize;
+               const promises = [];
+
+               // Smart Worst-Entry First: Sort by worst entry
+               // For BUY, worst is highest entry price. For SELL, worst is lowest entry price.
+               const sortedPositions = [...symbolPositions].sort((a, b) => {
+                   if (netDirection === 'BUY') {
+                       return b.entryPrice - a.entryPrice;
+                   } else {
+                       return a.entryPrice - b.entryPrice;
+                   }
                });
+
+               for (const pos of sortedPositions) {
+                   if (remainingToClose <= 0.0001) break;
+
+                   if (pos.size <= remainingToClose + 0.0001) {
+                       // We can fully close this leg, strictly deleting the bad entry
+                       promises.push(
+                           tradeApi.closePosition(pos.dealId, pos)
+                       );
+                       remainingToClose -= pos.size;
+                   } else {
+                       // We can only partially close this leg, place a counter-order
+                       promises.push(
+                           get().placeOrder({
+                             epic: epic,
+                             size: parseFloat(remainingToClose.toFixed(4)),
+                             direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
+                             type: 'MARKET',
+                             bid: currentPriceObj?.bid,
+                             ofr: currentPriceObj?.ask
+                           }).catch(async (error: any) => {
+                             const msg = error.message?.toLowerCase() || '';
+                             // If size is too small for a partial market order, just delete the full leg
+                             if (msg.includes('size') || msg.includes('min') || msg.includes('step') || msg.includes('amount')) {
+                               toast.info('Remaining size too small to partially close. Closing full leg.');
+                               await tradeApi.closePosition(pos.dealId, pos);
+                             } else {
+                               throw error;
+                             }
+                           })
+                       );
+                       remainingToClose = 0;
+                   }
+               }
+               
+               // If there's still remainder (due to pendingOrders inflating the net size), place a final order
+               if (remainingToClose > 0.0001) {
+                   promises.push(
+                       get().placeOrder({
+                         epic: epic,
+                         size: parseFloat(remainingToClose.toFixed(4)),
+                         direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
+                         type: 'MARKET',
+                         bid: currentPriceObj?.bid,
+                         ofr: currentPriceObj?.ask
+                       })
+                   );
+               }
+
+               await Promise.all(promises);
+
             } catch (error: any) {
                const msg = error.message?.toLowerCase() || '';
                // If the order was rejected by Capital.com for being under the minimum size
                if (msg.includes('size') || msg.includes('min') || msg.includes('step') || msg.includes('amount')) {
                   console.warn(`[TradeStore] Half size ${halfSize} rejected. Closing full positions instead.`);
                   toast.info('Half size rejected by broker. Closed full position instead.');
-                  if (primaryDealId) await get().flattenAll(); // Flatten all legs for this symbol
+                  if (primaryDealId) await get().flattenSymbol(epic); // Flatten all legs for this symbol
                } else {
                   console.error(`Failed to halve position:`, error);
                   toast.error(`Failed to halve position: ${error.message || 'Unknown error'}`);
