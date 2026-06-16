@@ -9,13 +9,11 @@
 ## 2. Technical Approach
 We will systematically resolve the root causes of the order system bugs by introducing execution locks to prevent race conditions, isolating global event listeners to the active chart, and addressing order ID resolution bugs during cancellations.
 
-### 2.1 State Locks (`useTradeStore.ts`)
-- Add an explicit `if (get().isExecuting) return;` guard to `flattenHalfSymbol`, `placeOrder`, `cancelWorkingOrder`, and other transactional functions to prevent overlapping API calls.
+### 2.1 Granular State Locks (`useTradeStore.ts`)
+- Replace the single `isExecuting` boolean with granular locks (e.g., `executingOrders: Set<string>` keyed by epic/ID or separate `isPlacingOrder` / `isCancellingOrder` flags). Add explicit guards to `flattenHalfSymbol`, `placeOrder`, and `cancelWorkingOrder` to prevent overlapping API calls without blocking unrelated actions.
 
-### 2.2 Event Isolation (`useKeyboardShortcuts.ts`)
-- Remove the `window.addEventListener('keydown')` approach.
-- Instead, attach a `keydown` listener directly to the chart container `div` and ensure it has `tabIndex={0}` to receive focus.
-- Alternatively, check explicitly if the chart is the *single* active chart by querying a centralized `useUIStore.getState().activeChartEpic` before proceeding with the shortcut logic.
+### 2.2 Centralized Event Isolation (`useKeyboardShortcuts.ts`)
+- Retain the `window.addEventListener('keydown')` but check explicitly if the chart is the *single* active chart by querying a centralized `useUIStore.getState().activeChartEpic` before proceeding with the shortcut logic. This avoids brittle DOM `tabIndex` focus management and guarantees only one chart handles the event.
 
 ### 2.3 Limit & Stop Order Cancellation (`useTradeStore.ts`)
 - Investigate attached stops vs. standalone working orders.
@@ -23,20 +21,20 @@ We will systematically resolve the root causes of the order system bugs by intro
 
 ## 3. Task Breakdown
 
-### [Task 1] Implement Execution Locks in Trade Store
-- **Description:** Prevent race conditions by returning early if `isExecuting` is true.
+### [Task 1] Implement Granular Execution Locks in Trade Store
+- **Description:** Prevent race conditions using granular locks without blocking unrelated concurrent operations.
 - **Files:** `src/store/useTradeStore.ts`
-- **Actions:** Add guards to `placeOrder`, `flattenHalfSymbol`, `flattenSymbol`, `cancelWorkingOrder`. Ensure `isExecuting` is always cleared in `finally` blocks.
+- **Actions:** Replace `isExecuting` with a more granular tracking mechanism (e.g., `executingOperations: Set<string>`). Add guards to `placeOrder`, `flattenHalfSymbol`, `flattenSymbol`, `cancelWorkingOrder`. Ensure locks are always cleared in `finally` blocks.
 
-### [Task 2] Refactor Keyboard Shortcut Isolation
-- **Description:** Fix the `alt+q` multiple firings bug by scoping the keydown listener to the active chart only.
-- **Files:** `src/hooks/useKeyboardShortcuts.ts`
-- **Actions:** Instead of relying on `window` and fuzzy hover/selected checks, verify that `currentTickerRef.current` strictly matches a newly defined `activeTicker` state, or attach the listener to the container reference directly.
+### [Task 2] Centralize Keyboard Shortcut Isolation
+- **Description:** Fix the `alt+q` multiple firings bug using a centralized active chart state.
+- **Files:** `src/hooks/useKeyboardShortcuts.ts`, `src/store/useUIStore.ts` (if applicable)
+- **Actions:** Implement or utilize a global `activeChartEpic` state. Update `useKeyboardShortcuts` to verify that `currentTickerRef.current` strictly matches the globally active chart before executing trade shortcuts.
 
-### [Task 3] Fix Attached Stop/Limit Order Cancellation
-- **Description:** Handle the Capital.com edge case where attached stops/limits fail to cancel via `cancelWorkingOrder`.
+### [Task 3] Fix Attached Stop/Limit Order Cancellation & State Sync
+- **Description:** Handle the Capital.com edge case for attached stops and ensure local state is perfectly synced.
 - **Files:** `src/store/useTradeStore.ts`, `src/api/tradeApi.ts`
-- **Actions:** Determine if the order to cancel is an attached stop-loss/take-profit by referencing the parent `dealId`. If so, call `tradeApi.updatePosition(parentDealId, { stopLevel: null })` instead of cancelling a working order.
+- **Actions:** Determine if the order is an attached stop-loss/take-profit by referencing the parent `dealId`. If so, call `tradeApi.updatePosition(parentDealId, { stopLevel: null })`. Explicitly trigger a local state refresh or targeted removal of the attached stop from the store to ensure the UI updates correctly.
 
 ## 4. Verification & Testing
 - Attempt to spam "Double Alt" quickly. The UI should block the second press or safely ignore it without causing a double order.
