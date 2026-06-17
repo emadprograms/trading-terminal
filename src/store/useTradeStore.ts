@@ -1143,17 +1143,19 @@ export const useTradeStore = create<TradeState>()(
           }
 
           if (status === 'ACCEPTED' && dealId && entryPrice) {
-            setTimeout(() => {
-              get().addPosition({
-                dealId,
-                epic,
-                size,
-                direction: order.direction,
-                entryPrice,
-                stopLevel: payload.stopLevel || order.stopLevel,
-                timestamp,
-              });
-            }, 0);
+            if (order.type === 'MARKET') {
+              setTimeout(() => {
+                get().addPosition({
+                  dealId,
+                  epic,
+                  size,
+                  direction: order.direction,
+                  entryPrice,
+                  stopLevel: payload.stopLevel || order.stopLevel,
+                  timestamp,
+                });
+              }, 0);
+            }
           }
 
           return {
