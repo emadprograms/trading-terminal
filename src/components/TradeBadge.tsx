@@ -52,11 +52,11 @@ export function TradeBadge({
   let textColor = '#333';
   let closeColor = tvBlue;
 
-  if (isPosition || isPendingMarket) {
+  if (isPosition || marker.type === 'ORDER') {
      borderColor = isBuy ? tvBlue : tvRed;
      sizeBg = isBuy ? tvBlue : tvRed;
      closeColor = isBuy ? tvBlue : tvRed;
-     textColor = isPendingMarket ? (isBuy ? tvBlue : tvRed) : (pnl >= 0 ? tvGreen : tvRed);
+     textColor = isPosition ? (pnl >= 0 ? tvGreen : tvRed) : (isBuy ? tvBlue : tvRed);
   } else if (isSL) {
      borderColor = tvOrange;
      sizeBg = '#f8f9fa';
