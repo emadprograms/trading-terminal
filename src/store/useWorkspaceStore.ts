@@ -8,7 +8,7 @@ interface WorkspaceState {
   groups: Record<string, GroupColor>; // chartId -> group color
   groupTickers: Record<string, string>; // group color -> ticker
   timeframes: Record<string, import('../types').Timeframe>; // chartId -> timeframe
-  globalHighContrast: boolean;
+  theme: 'light' | 'dark' | 'oled';
 
   // Actions
   setSelectedId: (id: string) => void;
@@ -16,7 +16,7 @@ interface WorkspaceState {
   setGroup: (id: string, group: GroupColor) => void;
   setGroupTicker: (group: GroupColor, ticker: string) => void;
   setTimeframe: (id: string, tf: import('../types').Timeframe) => void;
-  toggleGlobalHighContrast: () => void;
+  cycleTheme: () => void;
 }
 
 const validateTicker = (ticker: string): string => {
@@ -38,7 +38,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       groups: {},
       groupTickers: { red: 'SPY', blue: 'SPY', green: 'SPY', yellow: 'SPY' },
       timeframes: {},
-      globalHighContrast: false,
+      theme: 'oled',
 
       setSelectedId: (id) => set({ selectedId: id }),
       
@@ -106,14 +106,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }));
       },
       
-      toggleGlobalHighContrast: () => {
-        set((state) => ({ globalHighContrast: !state.globalHighContrast }));
+      cycleTheme: () => {
+        set((state) => {
+          const nextTheme = state.theme === 'oled' ? 'dark' : state.theme === 'dark' ? 'light' : 'oled';
+          return { theme: nextTheme };
+        });
       },
     }),
     {
       name: 'workspace-storage', // unique name for localStorage key
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ groups: state.groups, groupTickers: state.groupTickers, tickers: state.tickers, timeframes: state.timeframes, globalHighContrast: state.globalHighContrast }),
+      partialize: (state) => ({ groups: state.groups, groupTickers: state.groupTickers, tickers: state.tickers, timeframes: state.timeframes, theme: state.theme }),
     }
   )
 );

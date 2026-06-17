@@ -38,7 +38,7 @@ interface UseChartLifecycleParams {
   timeframe: Timeframe;
   showEth: boolean;
   showVP: boolean;
-  highContrast: boolean;
+  theme: 'light' | 'dark' | 'oled';
   chartData: ChartBar[];
   boundaryTime: string | null;
   localMasterData: RawBar[];
@@ -63,7 +63,7 @@ export function useChartLifecycle({
   timeframe,
   showEth,
   showVP,
-  highContrast,
+  theme,
   chartData,
   boundaryTime,
   localMasterData,
@@ -154,7 +154,7 @@ export function useChartLifecycle({
   useEffect(() => {
     if (!initChartRef.current || !initPriceSeriesRef.current || !initVolumeSeriesRef.current) return;
 
-    if (highContrast) {
+    if (theme === 'light') {
         initChartRef.current.applyOptions({
             layout: { background: { color: '#cccccc' }, textColor: '#000000' },
             grid: { vertLines: { color: 'rgba(0, 0, 0, 0.05)' }, horzLines: { color: 'rgba(0, 0, 0, 0.05)' } },
@@ -197,9 +197,9 @@ export function useChartLifecycle({
             });
         }
     }
-  }, [highContrast, initChartRef.current, initPriceSeriesRef.current, initVolumeSeriesRef.current]);
+  }, [theme, initChartRef.current, initPriceSeriesRef.current, initVolumeSeriesRef.current]);
 
-  // 3c. Update volume series colors when highContrast changes
+  // 3c. Update volume series colors when theme changes
   useEffect(() => {
     if (!initVolumeSeriesRef.current || typeof initVolumeSeriesRef.current.data !== 'function') return;
     const currentData = initVolumeSeriesRef.current.data();
@@ -209,13 +209,13 @@ export function useChartLifecycle({
       let isUp = item.color === '#26a69a' || item.color === 'rgba(0, 0, 0, 0.15)' || item.color === '#999999';
       return {
         ...item,
-        color: isUp ? (highContrast ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (highContrast ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
+        color: isUp ? (theme === 'light' ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (theme === 'light' ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
       };
     });
     if (typeof initVolumeSeriesRef.current.setData === 'function') {
       initVolumeSeriesRef.current.setData(newData);
     }
-  }, [highContrast, initVolumeSeriesRef.current]);
+  }, [theme, initVolumeSeriesRef.current]);
 
   const lastDataCountRef = useRef(0);
   const bidLineRef = useRef<IPriceLine | null>(null);
@@ -324,7 +324,7 @@ export function useChartLifecycle({
           return {
             time, 
             value: volume, 
-            color: isUp ? (highContrast ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (highContrast ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
+            color: isUp ? (theme === 'light' ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') : (theme === 'light' ? 'rgba(0, 0, 0, 0.5)' : '#ef5350')
           };
         }));
       } catch (err) {
@@ -393,7 +393,7 @@ export function useChartLifecycle({
       const showAsk = priceLinesPref === 'both' || priceLinesPref === 'ask';
 
       // Update Bid Line
-      const bidColor = highContrastRef.current ? '#999999' : '#ef5350';
+      const bidColor = themeRef.current === 'light' ? '#999999' : '#ef5350';
       if (bid && showBid) {
         if (!bidLineRef.current) {
           bidLineRef.current = initPriceSeriesRef.current.createPriceLine({
@@ -413,7 +413,7 @@ export function useChartLifecycle({
       }
 
       // Update Ask Line
-      const askColor = highContrastRef.current ? '#555555' : '#26a69a';
+      const askColor = themeRef.current === 'light' ? '#555555' : '#26a69a';
       if (ask && showAsk) {
         if (!askLineRef.current) {
           askLineRef.current = initPriceSeriesRef.current.createPriceLine({
@@ -467,15 +467,15 @@ export function useChartLifecycle({
 
   // 7. Live Tick Updates from WebSocket
   const isHydratedRef = useRef(false);
-  const highContrastRef = useRef(highContrast);
+  const themeRef = useRef(theme);
   
   useEffect(() => {
     isHydratedRef.current = isHydrated;
   }, [isHydrated]);
 
   useEffect(() => {
-    highContrastRef.current = highContrast;
-  }, [highContrast]);
+    themeRef.current = theme;
+  }, [theme]);
 
   useEffect(() => {
     if (!initPriceSeriesRef.current || !initVolumeSeriesRef.current) {
@@ -538,8 +538,8 @@ export function useChartLifecycle({
               time: bucketTime as any,
               value: lastCandle.volume,
               color: lastCandle.close >= lastCandle.open 
-                ? (highContrastRef.current ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') 
-                : (highContrastRef.current ? 'rgba(0, 0, 0, 0.5)' : '#ef5350'),
+                ? (themeRef.current === 'light' ? 'rgba(0, 0, 0, 0.15)' : '#26a69a') 
+                : (themeRef.current === 'light' ? 'rgba(0, 0, 0, 0.5)' : '#ef5350'),
             });
           } else {
             // New candle bucket
@@ -564,7 +564,7 @@ export function useChartLifecycle({
             initVolumeSeriesRef.current.update({
               time: bucketTime as any,
               value: 0,
-              color: highContrastRef.current ? 'rgba(0, 0, 0, 0.15)' : '#26a69a',
+              color: themeRef.current === 'light' ? 'rgba(0, 0, 0, 0.15)' : '#26a69a',
             });
           }
         } catch (err) {

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Activity, Sun, Moon } from 'lucide-react';
+import { Activity, Sun, Moon, Monitor } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 // Hooks
@@ -30,15 +30,12 @@ export default function App() {
     handleFileUpload 
   } = useDatabase();
 
-  const globalHighContrast = useWorkspaceStore((state) => state.globalHighContrast);
+  const theme = useWorkspaceStore((state) => state.theme);
 
   useEffect(() => {
-    if (globalHighContrast) {
-      document.body.classList.add('theme-hc');
-    } else {
-      document.body.classList.remove('theme-hc');
-    }
-  }, [globalHighContrast]);
+    document.body.classList.remove('theme-dark', 'theme-light', 'theme-oled', 'theme-hc');
+    document.body.classList.add(`theme-${theme}`);
+  }, [theme]);
 
   const {
     sessionTicker,
@@ -135,10 +132,12 @@ export default function App() {
             <Clock />
             <button 
               className="btn-icon" 
-              onClick={() => useWorkspaceStore.getState().toggleGlobalHighContrast()}
-              title="Toggle High Contrast Mode"
+              onClick={() => useWorkspaceStore.getState().cycleTheme()}
+              title={`Theme: ${useWorkspaceStore((state) => state.theme)} (Click to toggle)`}
             >
-              {useWorkspaceStore((state) => state.globalHighContrast) ? <Sun size={16} /> : <Moon size={16} />}
+              {useWorkspaceStore((state) => state.theme) === 'light' ? <Sun size={16} /> : 
+               useWorkspaceStore((state) => state.theme) === 'dark' ? <Moon size={16} /> : 
+               <Monitor size={16} />}
             </button>
             <ErrorBoundary fallback={null}>
               <AccountSelector />
@@ -147,7 +146,7 @@ export default function App() {
           </div>
         </header>
       </div>
-      <Toaster theme="dark" position="top-right" richColors />
+      <Toaster theme={theme === 'light' ? 'light' : 'dark'} position="top-right" richColors />
       <WatchlistManager />
     </div>
   );

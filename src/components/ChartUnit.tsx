@@ -42,7 +42,7 @@ export default function ChartUnit({
   const isSelected = selectedId === id.toString();
 
   const [showVP, setShowVP] = React.useState(false);
-  const highContrast = useWorkspaceStore((state) => state.globalHighContrast);
+  const theme = useWorkspaceStore((state) => state.theme);
 
   // 1. Data management
   const data = useChartData({ 
@@ -93,7 +93,7 @@ export default function ChartUnit({
     timeframe: data.timeframe,
     showEth: data.showEth,
     showVP,
-    highContrast,
+    theme,
     chartData: data.chartData,
     boundaryTime: data.boundaryTime,
     localMasterData: data.localMasterData,
@@ -198,7 +198,7 @@ export default function ChartUnit({
             }
           }}
           isHydrated={chart.isHydrated}
-          highContrast={highContrast}
+          theme={theme}
         />
 
         

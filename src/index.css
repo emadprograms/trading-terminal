@@ -10,9 +10,17 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 }
 
-.theme-hc {
+.theme-dark {
   --bg-dark: #1e1e1e;
   --bg-card: #1e1e1e;
+}
+
+.theme-light {
+  --bg-dark: #f8f9fa;
+  --bg-card: #ffffff;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --text-primary: #000000;
+  --text-secondary: #475569;
 }
 
 * {
