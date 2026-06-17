@@ -52,12 +52,7 @@ export function TradeBadge({
   let textColor = '#333';
   let closeColor = tvBlue;
 
-  if (isPosition || marker.type === 'ORDER') {
-     borderColor = isBuy ? tvBlue : tvRed;
-     sizeBg = isBuy ? tvBlue : tvRed;
-     closeColor = isBuy ? tvBlue : tvRed;
-     textColor = isPosition ? (pnl >= 0 ? tvGreen : tvRed) : (isBuy ? tvBlue : tvRed);
-  } else if (isSL) {
+  if (isSL) {
      borderColor = tvOrange;
      sizeBg = '#f8f9fa';
      sizeText = tvOrange;
@@ -69,6 +64,11 @@ export function TradeBadge({
      sizeText = tvGreen;
      closeColor = tvGreen;
      textColor = tvGreen;
+  } else if (isPosition || marker.type === 'ORDER') {
+     borderColor = isBuy ? tvBlue : tvRed;
+     sizeBg = isBuy ? tvBlue : tvRed;
+     closeColor = isBuy ? tvBlue : tvRed;
+     textColor = isPosition ? (pnl >= 0 ? tvGreen : tvRed) : (isBuy ? tvBlue : tvRed);
   } else {
      borderColor = tvOrange;
      sizeBg = '#f8f9fa';

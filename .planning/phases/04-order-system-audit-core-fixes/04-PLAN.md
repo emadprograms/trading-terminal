@@ -21,17 +21,17 @@ We will systematically resolve the root causes of the order system bugs by intro
 
 ## 3. Task Breakdown
 
-### [Task 1] Implement Granular Execution Locks in Trade Store
+### [Task 1] Implement Granular Execution Locks in Trade Store (COMPLETED)
 - **Description:** Prevent race conditions using granular locks without blocking unrelated concurrent operations.
 - **Files:** `src/store/useTradeStore.ts`
 - **Actions:** Replace `isExecuting` with a more granular tracking mechanism (e.g., `executingOperations: Set<string>`). Add guards to `placeOrder`, `flattenHalfSymbol`, `flattenSymbol`, `cancelWorkingOrder`. Ensure locks are always cleared in `finally` blocks.
 
-### [Task 2] Centralize Keyboard Shortcut Isolation
+### [Task 2] Centralize Keyboard Shortcut Isolation (COMPLETED)
 - **Description:** Fix the `alt+q` multiple firings bug using a centralized active chart state.
 - **Files:** `src/hooks/useKeyboardShortcuts.ts`, `src/store/useUIStore.ts` (if applicable)
 - **Actions:** Implement or utilize a global `activeChartEpic` state. Update `useKeyboardShortcuts` to verify that `currentTickerRef.current` strictly matches the globally active chart before executing trade shortcuts.
 
-### [Task 3] Fix Attached Stop/Limit Order Cancellation & State Sync
+### [Task 3] Fix Attached Stop/Limit Order Cancellation & State Sync (COMPLETED)
 - **Description:** Handle the Capital.com edge case for attached stops and ensure local state is perfectly synced.
 - **Files:** `src/store/useTradeStore.ts`, `src/api/tradeApi.ts`
 - **Actions:** Determine if the order is an attached stop-loss/take-profit by referencing the parent `dealId`. If so, call `tradeApi.updatePosition(parentDealId, { stopLevel: null })`. Explicitly trigger a local state refresh or targeted removal of the attached stop from the store to ensure the UI updates correctly.
