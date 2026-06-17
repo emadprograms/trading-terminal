@@ -664,6 +664,18 @@ export const useTradeStore = create<TradeState>()(
       },
 
       cancelWorkingOrder: async (workingOrderId) => {
+        // Handle attached SL/TP pseudo-orders
+        if (workingOrderId.endsWith('_SL')) {
+            const dealId = workingOrderId.replace('_SL', '');
+            await get().updatePositionStopLoss(dealId, 0);
+            return;
+        }
+        if (workingOrderId.endsWith('_TP')) {
+            const dealId = workingOrderId.replace('_TP', '');
+            await get().updatePositionTakeProfit(dealId, 0);
+            return;
+        }
+
         const { pendingOrders } = get();
         // Find the actual order object
         const order = pendingOrders[workingOrderId] || Object.values(pendingOrders).find(o => 
