@@ -788,6 +788,7 @@ export const useTradeStore = create<TradeState>()(
                 ...updatedPending[dealRef],
                 dealId: data.dealId,
                 workingOrderId: data.dealId,
+                size: updatedPending[dealRef].size || data.size || data.orderSize || 0
               };
             } else {
               updatedPending[dealRef] = {
@@ -795,7 +796,7 @@ export const useTradeStore = create<TradeState>()(
                 dealId: data.dealId,
                 workingOrderId: data.dealId,
                 epic: m.epic || data.epic,
-                size: data.size,
+                size: data.size || data.orderSize || 0,
                 level: data.level || data.orderLevel,
                 type: data.type || 'LIMIT',
                 direction: data.direction,
