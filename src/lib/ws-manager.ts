@@ -83,10 +83,7 @@ class WebSocketManager {
     }
 
     this.isExplicitlyDisconnected = false;
-    const isLive = environment === 'LIVE';
-    const url = isLive 
-      ? 'wss://api-streaming-capital.backend-capital.com/connect'
-      : 'wss://demo-api-streaming-capital.backend-capital.com/connect';
+    const url = 'wss://api-streaming-capital.backend-capital.com/connect';
 
     console.log(`[WSManager] Connecting to ${url}...`);
     this.socket = new WebSocket(url);
