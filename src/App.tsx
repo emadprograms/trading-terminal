@@ -137,10 +137,10 @@ export default function App() {
             <button 
               className="btn-icon" 
               onClick={() => useWorkspaceStore.getState().cycleTheme()}
-              title={`Theme: ${useWorkspaceStore((state) => state.theme)} (Click to toggle)`}
+              title={`Theme: ${theme} (Click to toggle)`}
             >
-              {useWorkspaceStore((state) => state.theme) === 'light' ? <Sun size={16} /> : 
-               useWorkspaceStore((state) => state.theme) === 'dark' ? <Moon size={16} /> : 
+              {theme === 'light' ? <Sun size={16} /> : 
+               theme === 'dark' ? <Moon size={16} /> : 
                <Monitor size={16} />}
             </button>
             <ErrorBoundary fallback={null}>
