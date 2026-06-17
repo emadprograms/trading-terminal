@@ -43,7 +43,7 @@ export function ChartHeader({
   const price = usePriceStore((state) => state.prices[ticker]);
   const positions = useTradeStore((state) => state.positions);
   const watchlistSymbols = useWatchlistStore((state) => state.symbols);
-  const chartSettings = useSettingsStore((state) => state.chartSettings[ticker] || { priceLines: 'both' });
+  const priceLinesSetting = useSettingsStore((state) => state.chartSettings[ticker]?.priceLines || 'both');
   const updateChartSettings = useSettingsStore((state) => state.updateChartSettings);
 
   const tickerPositions = positions.filter(p => p.epic === ticker);
@@ -243,7 +243,7 @@ export function ChartHeader({
                 {(['both', 'bid', 'ask', 'none'] as const).map(option => (
                   <div 
                     key={option}
-                    className={`dropdown-item ${chartSettings.priceLines === option ? 'active' : ''}`}
+                    className={`dropdown-item ${priceLinesSetting === option ? 'active' : ''}`}
                     onClick={() => {
                       updateChartSettings(ticker, { priceLines: option });
                       // Don't close settings immediately so user can see it updated, or do close it?
