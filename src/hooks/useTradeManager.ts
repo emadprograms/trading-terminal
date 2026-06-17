@@ -167,6 +167,7 @@ export function useTradeManager({
     });
 
     const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
+      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
       return {
         id: o.dealId || o.dealReference,
         epic: o.epic,
@@ -174,7 +175,7 @@ export function useTradeManager({
         direction: o.direction,
         size: o.size,
         type: 'ORDER',
-        label: o.type
+        label: `✓ ${shortId}`
       };
     });
 
