@@ -18,6 +18,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useSessionStore } from './store/useSessionStore';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { WatchlistManager } from './components/WatchlistManager';
+import { Clock } from './components/Clock';
 
 export default function App() {
   console.log('[StabilityTrace] App Rendering');
@@ -95,25 +96,6 @@ export default function App() {
       />
 
       <div className="main-content" style={{ position: 'relative' }}>
-        <header className="terminal-header">
-          <ErrorBoundary fallback={<div style={{ color: 'var(--accent-red)', fontSize: '10px' }}>Header Error</div>}>
-            <AccountHeader />
-          </ErrorBoundary>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button 
-              className="btn-icon" 
-              onClick={() => useWorkspaceStore.getState().toggleGlobalHighContrast()}
-              title="Toggle High Contrast Mode"
-            >
-              {useWorkspaceStore((state) => state.globalHighContrast) ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-            <ErrorBoundary fallback={null}>
-              <AccountSelector />
-            </ErrorBoundary>
-            <EnvToggle login={login} isLoggingIn={isLoggingIn} />
-          </div>
-        </header>
-
         <ErrorBoundary>
           {isLoggingIn ? (
             <main className="workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
@@ -145,6 +127,25 @@ export default function App() {
           )}
         </ErrorBoundary>
 
+        <header className="terminal-header">
+          <ErrorBoundary fallback={<div style={{ color: 'var(--accent-red)', fontSize: '10px' }}>Header Error</div>}>
+            <AccountHeader />
+          </ErrorBoundary>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock />
+            <button 
+              className="btn-icon" 
+              onClick={() => useWorkspaceStore.getState().toggleGlobalHighContrast()}
+              title="Toggle High Contrast Mode"
+            >
+              {useWorkspaceStore((state) => state.globalHighContrast) ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <ErrorBoundary fallback={null}>
+              <AccountSelector />
+            </ErrorBoundary>
+            <EnvToggle login={login} isLoggingIn={isLoggingIn} />
+          </div>
+        </header>
       </div>
       <Toaster theme="dark" position="top-right" richColors />
       <WatchlistManager />
