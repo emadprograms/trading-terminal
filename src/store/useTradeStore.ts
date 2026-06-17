@@ -455,26 +455,28 @@ export const useTradeStore = create<TradeState>()(
         const symbolPositions = positions.filter(p => p.epic === epic);
         if (symbolPositions.length === 0) return;
 
-        const priceStore = (await import('./usePriceStore')).usePriceStore;
-        const currentPriceObj = priceStore.getState().prices[epic];
-        if (!currentPriceObj) return;
+        let netSize = 0;
+        symbolPositions.forEach(p => {
+            if (p.direction === 'BUY') netSize += p.size;
+            else netSize -= p.size;
+        });
+        
+        // If netSize is 0, just use the direction of the first position
+        const netDirection = netSize !== 0 ? (netSize > 0 ? 'BUY' : 'SELL') : symbolPositions[0].direction;
 
-        let closestPos = symbolPositions[0];
-        let minDistance = Infinity;
+        // Sort by worst entry. For BUY: highest price is worst. For SELL: lowest price is worst.
+        const sortedPositions = [...symbolPositions].sort((a, b) => {
+            if (netDirection === 'BUY') {
+                return b.entryPrice - a.entryPrice;
+            } else {
+                return a.entryPrice - b.entryPrice;
+            }
+        });
 
-        for (const pos of symbolPositions) {
-          const currentPrice = pos.direction === 'BUY' ? currentPriceObj.bid : currentPriceObj.ask;
-          if (currentPrice === undefined) continue;
+        const worstPos = sortedPositions[0];
 
-          const distance = Math.abs(pos.entryPrice - currentPrice);
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestPos = pos;
-          }
-        }
-
-        if (closestPos) {
-          await get().flattenPosition(closestPos.dealId);
+        if (worstPos) {
+          await get().flattenPosition(worstPos.dealId);
         }
       },
 
