@@ -51,7 +51,7 @@ describe('useTradeStore - Logic Hardening', () => {
     await vi.advanceTimersByTimeAsync(100);
     
     await flattenPromise;
-    expect(useTradeStore.getState().isExecuting).toBe(false);
+    expect(useTradeStore.getState().executingOperations.size).toBe(0);
   });
 
   it('flattenAll uses try-finally to ensure state safety on failure', async () => {
@@ -70,7 +70,7 @@ describe('useTradeStore - Logic Hardening', () => {
     await flattenPromise;
 
     // Verify state was reset even on failure
-    expect(useTradeStore.getState().isExecuting).toBe(false);
+    expect(useTradeStore.getState().executingOperations.size).toBe(0);
     expect(useTradeStore.getState().closingDealIds.size).toBe(0);
   });
 
@@ -129,6 +129,6 @@ describe('useTradeStore - Logic Hardening', () => {
 
     await vi.advanceTimersByTimeAsync(100);
     await cancelPromise;
-    expect(useTradeStore.getState().isExecuting).toBe(false);
+    expect(useTradeStore.getState().executingOperations.size).toBe(0);
   });
 });

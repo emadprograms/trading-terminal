@@ -111,8 +111,10 @@ export const useTradeStore = create<TradeState>()(
           console.log(`[Surgical-Verify] Routing order type ${orderType} to ${orderType === 'LIMIT' || orderType === 'STOP' ? 'workingorders' : 'positions'}`);
 
           if (orderType === 'LIMIT' || orderType === 'STOP') {
-            const currentAsk = ofr || get().prices[params.epic]?.ask || 0;
-            const currentBid = bid || get().prices[params.epic]?.bid || 0;
+            const priceStore = (await import('./usePriceStore')).usePriceStore;
+            const currentPriceObj = priceStore.getState().prices[params.epic];
+            const currentAsk = ofr || currentPriceObj?.ask || 0;
+            const currentBid = bid || currentPriceObj?.bid || 0;
             const requestedLevel = (params as LimitOrderParams).level;
 
             // Auto-correct order type based on standard financial rules:
@@ -790,6 +792,7 @@ export const useTradeStore = create<TradeState>()(
             };
           });
 
+          const state = get();
           const updatedPending = { ...state.pendingOrders };
 
           rawOrders.forEach(raw => {
@@ -835,7 +838,6 @@ export const useTradeStore = create<TradeState>()(
             }
           });
           
-          const state = get();
           const newExecutions: Execution[] = [];
           const priceStore = (await import('./usePriceStore')).usePriceStore;
 

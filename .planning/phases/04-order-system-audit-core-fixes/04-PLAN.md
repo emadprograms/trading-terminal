@@ -36,6 +36,16 @@ We will systematically resolve the root causes of the order system bugs by intro
 - **Files:** `src/store/useTradeStore.ts`, `src/api/tradeApi.ts`
 - **Actions:** Determine if the order is an attached stop-loss/take-profit by referencing the parent `dealId`. If so, call `tradeApi.updatePosition(parentDealId, { stopLevel: null })`. Explicitly trigger a local state refresh or targeted removal of the attached stop from the store to ensure the UI updates correctly.
 
+### [Task 4] Fix Order System State Sync Crash (COMPLETED)
+- **Description:** Fix the fatal `ReferenceError` caused by referencing `state.pendingOrders` before `state` is initialized. This bug broke position updates, which cascaded into breaking SL/TP dragging, breaking "double alt" netting, and causing standalone limit orders to ghost.
+- **Files:** `src/store/useTradeStore.ts`
+- **Actions:** Moved `const state = get();` above the line where `state.pendingOrders` is cloned in `syncPositions`.
+
+### [Task 5] Fix Limit/Stop Order Placement Price Bug (COMPLETED)
+- **Description:** Fix the fatal `TypeError` when placing Limit/Stop orders due to `get().prices[params.epic]` being undefined (because prices are actually stored in `usePriceStore`, not `useTradeStore`).
+- **Files:** `src/store/useTradeStore.ts`
+- **Actions:** Dynamically imported `usePriceStore` and accessed prices safely using `priceStore.getState().prices` in `placeOrder`.
+
 ## 4. Verification & Testing
 - Attempt to spam "Double Alt" quickly. The UI should block the second press or safely ignore it without causing a double order.
 - Open 4 charts. Focus on one and press `alt+q`. Verify that exactly one order is placed for the focused chart, and 0 orders for the others.

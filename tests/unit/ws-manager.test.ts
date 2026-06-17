@@ -49,7 +49,7 @@ describe('WebSocketManager', () => {
 
     const connectSpy = vi.spyOn(global, 'WebSocket');
     wsManager.connect();
-    expect(connectSpy).toHaveBeenCalledWith('wss://api-streaming-capital.backend-capital.com/connect');
+    expect(connectSpy).toHaveBeenCalledWith('wss://demo-api-streaming-capital.backend-capital.com/connect');
     vi.unstubAllGlobals();
   });
 

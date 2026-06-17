@@ -24,7 +24,7 @@ describe('TradeLog', () => {
       pendingOrders: {
         'ref1': { dealReference: 'ref1', epic: 'EURUSD', size: 1000, direction: 'SELL', type: 'LIMIT', level: 1.12, status: 'PENDING', timestamp: Date.now() }
       },
-      isExecuting: false,
+      executingOperations: new Set(),
       closingDealIds: new Set(),
       flattenPosition: mockFlatten,
       flattenAll: mockFlattenAll,
@@ -44,7 +44,7 @@ describe('TradeLog', () => {
     (useTradeStore as any).mockImplementation((selector: any) => selector({
       positions: [{ dealId: 'd1', epic: 'AAPL', size: 1, direction: 'BUY', entryPrice: 150, timestamp: Date.now() }],
       pendingOrders: {},
-      isExecuting: false,
+      executingOperations: new Set(),
       closingDealIds: new Set(),
       flattenPosition: mockFlatten,
       flattenAll: mockFlattenAll,
@@ -61,7 +61,7 @@ describe('TradeLog', () => {
     (useTradeStore as any).mockImplementation((selector: any) => selector({
       positions: [{ dealId: 'd1', epic: 'AAPL', size: 1, direction: 'BUY', entryPrice: 150, timestamp: Date.now() }],
       pendingOrders: {},
-      isExecuting: true,
+      executingOperations: new Set(['d1']),
       closingDealIds: new Set(),
       flattenPosition: mockFlatten,
       flattenAll: mockFlattenAll,
@@ -78,7 +78,7 @@ describe('TradeLog', () => {
     (useTradeStore as any).mockImplementation((selector: any) => selector({
       positions: [{ dealId: 'd1', epic: 'AAPL', size: 1, direction: 'BUY', entryPrice: 150, timestamp: Date.now() }],
       pendingOrders: {},
-      isExecuting: true,
+      executingOperations: new Set(['d1']),
       closingDealIds: new Set(['d1']),
       flattenPosition: mockFlatten,
       flattenAll: mockFlattenAll,

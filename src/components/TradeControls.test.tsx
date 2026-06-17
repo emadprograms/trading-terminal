@@ -19,7 +19,7 @@ describe('TradeControls', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useTradeStore as any).mockImplementation((selector: any) => selector({
-      isExecuting: false,
+      executingOperations: new Set(),
       placeOrder: mockPlaceOrder,
     }));
     (usePriceStore as any).mockImplementation((selector: any) => selector({
@@ -52,7 +52,7 @@ describe('TradeControls', () => {
 
   it('disables buttons when isExecuting is true', () => {
     (useTradeStore as any).mockImplementation((selector: any) => selector({
-      isExecuting: true,
+      executingOperations: new Set(['AAPL']),
       placeOrder: mockPlaceOrder,
     }));
 
