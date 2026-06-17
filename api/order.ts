@@ -32,9 +32,9 @@ const limitOrderSchema = z.object({
 
 const updatePositionSchema = z.object({
   guaranteedStop: z.boolean().optional(),
-  stopLevel: z.number().optional(),
-  stopDistance: z.number().optional(),
-  profitLevel: z.number().optional()
+  stopLevel: z.number().nullable().optional(),
+  stopDistance: z.number().nullable().optional(),
+  profitLevel: z.number().nullable().optional()
 });
 
 /**
