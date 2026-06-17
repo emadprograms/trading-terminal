@@ -775,24 +775,50 @@ export const useTradeStore = create<TradeState>()(
             };
           });
 
-          const pendingOrders: Record<string, Order> = {};
+          const updatedPending = { ...state.pendingOrders };
+
           rawOrders.forEach(raw => {
             const data = raw.workingOrderData || raw;
             const m = raw.marketData || raw.market || raw;
-            pendingOrders[data.dealId || data.dealReference] = {
-              dealReference: data.dealId || data.dealReference,
-              dealId: data.dealId,
-              workingOrderId: data.dealId,
-              epic: m.epic || data.epic,
-              size: data.size,
-              level: data.level || data.orderLevel,
-              type: data.type || 'LIMIT',
-              direction: data.direction,
-              status: 'PENDING',
-              timestamp: new Date(data.createdDate || data.timestamp || Date.now()).getTime(),
-            };
+            const dealRef = data.dealReference || data.dealId;
+            
+            if (updatedPending[dealRef]) {
+              // Update optimistic order with real dealId
+              updatedPending[dealRef] = {
+                ...updatedPending[dealRef],
+                dealId: data.dealId,
+                workingOrderId: data.dealId,
+              };
+            } else {
+              updatedPending[dealRef] = {
+                dealReference: dealRef,
+                dealId: data.dealId,
+                workingOrderId: data.dealId,
+                epic: m.epic || data.epic,
+                size: data.size,
+                level: data.level || data.orderLevel,
+                type: data.type || 'LIMIT',
+                direction: data.direction,
+                status: 'PENDING',
+                timestamp: new Date(data.createdDate || data.timestamp || Date.now()).getTime(),
+              };
+            }
           });
 
+          // Cleanup stale pending orders (older than 5s) that are no longer returned by the API
+          const now = Date.now();
+          Object.values(updatedPending).forEach(o => {
+            if (o.status === 'PENDING') {
+              const isStillInApi = rawOrders.some(raw => {
+                 const data = raw.workingOrderData || raw;
+                 return (data.dealReference === o.dealReference) || (data.dealId && data.dealId === o.dealId);
+              });
+              if (!isStillInApi && (now - o.timestamp > 5000)) {
+                 delete updatedPending[o.dealReference];
+              }
+            }
+          });
+          
           const state = get();
           const newExecutions: Execution[] = [];
           const priceStore = (await import('./usePriceStore')).usePriceStore;
@@ -841,14 +867,11 @@ export const useTradeStore = create<TradeState>()(
               }
             }
           });
-          
+
           set(state => ({
             positions: mappedPositions,
             executions: newExecutions.length > 0 ? [...state.executions, ...newExecutions] : state.executions,
-            pendingOrders: {
-              ...state.pendingOrders,
-              ...pendingOrders
-            }
+            pendingOrders: updatedPending
           }));
           
         } catch (error) {
