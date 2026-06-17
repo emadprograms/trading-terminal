@@ -379,55 +379,55 @@ export const useTradeStore = create<TradeState>()(
                    }
                });
 
-               for (const pos of sortedPositions) {
+               let remainingToClose = halfSize;
+               const deletePromises = [];
+
+               // Step 1: Assassinate bad legs completely to bypass Capital.com FIFO netting
+               for (let i = 0; i < sortedPositions.length; i++) {
+                   const pos = sortedPositions[i];
+                   const isBestLeg = i === sortedPositions.length - 1;
+
                    if (remainingToClose <= 0.0001) break;
 
                    if (pos.size <= remainingToClose + 0.0001) {
-                       // We can fully close this leg, strictly deleting the bad entry
-                       promises.push(
-                           tradeApi.closePosition(pos.dealId, pos)
-                       );
+                       // Fits perfectly (or is smaller). Assassinate.
+                       deletePromises.push(tradeApi.closePosition(pos.dealId, pos));
                        remainingToClose -= pos.size;
                    } else {
-                       // We can only partially close this leg, place a counter-order
-                       promises.push(
-                           get().placeOrder({
-                             epic: epic,
-                             size: parseFloat(remainingToClose.toFixed(4)),
-                             direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
-                             type: 'MARKET',
-                             bid: currentPriceObj?.bid,
-                             ofr: currentPriceObj?.ask
-                           }).catch(async (error: any) => {
-                             const msg = error.message?.toLowerCase() || '';
-                             // If size is too small for a partial market order, just delete the full leg
-                             if (msg.includes('size') || msg.includes('min') || msg.includes('step') || msg.includes('amount')) {
-                               toast.info('Remaining size too small to partially close. Closing full leg.');
-                               await tradeApi.closePosition(pos.dealId, pos);
-                             } else {
-                               throw error;
-                             }
-                           })
-                       );
-                       remainingToClose = 0;
+                       // This leg is LARGER than remainingToClose.
+                       if (isBestLeg) {
+                           // This is the absolute best leg. Do NOT assassinate it.
+                           // We will trim it safely using a market order in Step 2.
+                           break;
+                       } else {
+                           // This is a bad/medium leg. Assassinate it completely to protect the better legs!
+                           // This intentionally over-closes slightly to prevent Capital.com from eating the best leg.
+                           deletePromises.push(tradeApi.closePosition(pos.dealId, pos));
+                           remainingToClose -= pos.size; 
+                       }
                    }
                }
-               
-               // If there's still remainder (due to pendingOrders inflating the net size), place a final order
-               if (remainingToClose > 0.0001) {
-                   promises.push(
-                       get().placeOrder({
-                         epic: epic,
-                         size: parseFloat(remainingToClose.toFixed(4)),
-                         direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
-                         type: 'MARKET',
-                         bid: currentPriceObj?.bid,
-                         ofr: currentPriceObj?.ask
-                       })
-                   );
-               }
 
-               await Promise.all(promises);
+               // Wait for all assassinations to finish so they are completely removed from Capital.com's netting engine
+               if (deletePromises.length > 0) {
+                   await Promise.all(deletePromises);
+                   // Small delay to ensure Capital.com backend reflects the deletes before placing a counter-order
+                   await new Promise(r => setTimeout(r, 200)); 
+               }
+               
+               // Step 2: Trim the best leg if needed
+               // We only place a market order if we still need to close more.
+               // Since all worse legs are deleted, this safely trims the best leg without cross-netting.
+               if (remainingToClose > 0.0001) {
+                   await get().placeOrder({
+                     epic: epic,
+                     size: parseFloat(remainingToClose.toFixed(4)),
+                     direction: netDirection === 'BUY' ? 'SELL' : 'BUY',
+                     type: 'MARKET',
+                     bid: currentPriceObj?.bid,
+                     ofr: currentPriceObj?.ask
+                   });
+               }
 
             } catch (error: any) {
                const msg = error.message?.toLowerCase() || '';
