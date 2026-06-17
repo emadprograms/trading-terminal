@@ -34,7 +34,11 @@ export default function App() {
 
   useEffect(() => {
     document.body.classList.remove('theme-dark', 'theme-light', 'theme-oled', 'theme-hc');
-    document.body.classList.add(`theme-${theme}`);
+    if (theme === 'light' || theme === 'dark') {
+      document.body.classList.add('theme-dark');
+    } else {
+      document.body.classList.add('theme-oled');
+    }
   }, [theme]);
 
   const {
@@ -146,7 +150,7 @@ export default function App() {
           </div>
         </header>
       </div>
-      <Toaster theme={theme === 'light' ? 'light' : 'dark'} position="top-right" richColors />
+      <Toaster theme="dark" position="top-right" richColors />
       <WatchlistManager />
     </div>
   );
