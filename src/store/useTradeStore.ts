@@ -366,9 +366,6 @@ export const useTradeStore = create<TradeState>()(
                const priceStore = (await import('./usePriceStore')).usePriceStore;
                const currentPriceObj = priceStore.getState().prices[epic];
                
-               let remainingToClose = halfSize;
-               const promises = [];
-
                // Smart Worst-Entry First: Sort by worst entry
                // For BUY, worst is highest entry price. For SELL, worst is lowest entry price.
                const sortedPositions = [...symbolPositions].sort((a, b) => {
