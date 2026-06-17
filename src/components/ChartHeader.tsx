@@ -4,6 +4,7 @@ import { BORDER_COLORS, DrawType, GroupColor, Timeframe } from '../types';
 import { usePriceStore } from '../store/usePriceStore';
 import { useTradeStore } from '../store/useTradeStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 interface ChartHeaderProps {
   ticker: string;
@@ -42,6 +43,8 @@ export function ChartHeader({
   const price = usePriceStore((state) => state.prices[ticker]);
   const positions = useTradeStore((state) => state.positions);
   const watchlistSymbols = useWatchlistStore((state) => state.symbols);
+  const chartSettings = useSettingsStore((state) => state.chartSettings[ticker] || { priceLines: 'both' });
+  const updateChartSettings = useSettingsStore((state) => state.updateChartSettings);
 
   const tickerPositions = positions.filter(p => p.epic === ticker);
   const unrealizedPnL = React.useMemo(() => {
@@ -231,6 +234,25 @@ export function ChartHeader({
                     <div className="switch-thumb" />
                   </div>
                 </div>
+              </div>
+
+              <div className="dropdown-divider" />
+
+              <div className="dropdown-section">
+                <div className="dropdown-section-label">Price Lines</div>
+                {(['both', 'bid', 'ask', 'none'] as const).map(option => (
+                  <div 
+                    key={option}
+                    className={`dropdown-item ${chartSettings.priceLines === option ? 'active' : ''}`}
+                    onClick={() => {
+                      updateChartSettings(ticker, { priceLines: option });
+                      // Don't close settings immediately so user can see it updated, or do close it?
+                      setIsSettingsOpen(false);
+                    }}
+                  >
+                    <span>{option.charAt(0).toUpperCase() + option.slice(1)}</span>
+                  </div>
+                ))}
               </div>
 
               <div className="dropdown-divider" />

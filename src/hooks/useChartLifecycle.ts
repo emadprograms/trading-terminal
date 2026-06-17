@@ -7,6 +7,7 @@ import { useChartPlugins } from './chart/useChartPlugins';
 import { useChartDrawings } from './chart/useChartDrawings';
 import { useChartViewport } from './chart/useChartViewport';
 import { usePriceStore } from '../store/usePriceStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 const getBucketTime = (timestampMs: number, tf: Timeframe): number => {
   const date = new Date(timestampMs);
@@ -140,6 +141,7 @@ export function useChartLifecycle({
   const [isViewModified, setIsViewModified] = useState(false);
   const [chartUpdateTick, setChartUpdateTick] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
+  const priceLinesPref = useSettingsStore(state => state.chartSettings[ticker]?.priceLines || 'both');
   
   // The AUTO_REVEAL_THRESHOLD is now inside useChartViewport
 
@@ -387,9 +389,12 @@ export function useChartLifecycle({
 
       const { bid, ask } = priceData;
       
+      const showBid = priceLinesPref === 'both' || priceLinesPref === 'bid';
+      const showAsk = priceLinesPref === 'both' || priceLinesPref === 'ask';
+
       // Update Bid Line
       const bidColor = highContrastRef.current ? '#999999' : '#ef5350';
-      if (bid) {
+      if (bid && showBid) {
         if (!bidLineRef.current) {
           bidLineRef.current = initPriceSeriesRef.current.createPriceLine({
             price: bid,
@@ -402,11 +407,14 @@ export function useChartLifecycle({
         } else {
           bidLineRef.current.applyOptions({ price: bid, color: bidColor });
         }
+      } else if (!showBid && bidLineRef.current) {
+        try { initPriceSeriesRef.current.removePriceLine(bidLineRef.current); } catch(_) {}
+        bidLineRef.current = null;
       }
 
       // Update Ask Line
       const askColor = highContrastRef.current ? '#555555' : '#26a69a';
-      if (ask) {
+      if (ask && showAsk) {
         if (!askLineRef.current) {
           askLineRef.current = initPriceSeriesRef.current.createPriceLine({
             price: ask,
@@ -419,8 +427,26 @@ export function useChartLifecycle({
         } else {
           askLineRef.current.applyOptions({ price: ask, color: askColor });
         }
+      } else if (!showAsk && askLineRef.current) {
+        try { initPriceSeriesRef.current.removePriceLine(askLineRef.current); } catch(_) {}
+        askLineRef.current = null;
       }
     });
+
+    // Cleanup logic if toggled off immediately
+    const currentPriceData = usePriceStore.getState().prices[ticker];
+    if (currentPriceData && initPriceSeriesRef.current) {
+      const showBid = priceLinesPref === 'both' || priceLinesPref === 'bid';
+      const showAsk = priceLinesPref === 'both' || priceLinesPref === 'ask';
+      if (!showBid && bidLineRef.current) {
+        try { initPriceSeriesRef.current.removePriceLine(bidLineRef.current); } catch(_) {}
+        bidLineRef.current = null;
+      }
+      if (!showAsk && askLineRef.current) {
+        try { initPriceSeriesRef.current.removePriceLine(askLineRef.current); } catch(_) {}
+        askLineRef.current = null;
+      }
+    }
 
     return () => {
       unsubscribe();
@@ -435,7 +461,7 @@ export function useChartLifecycle({
         }
       }
     };
-  }, [ticker, isHydrated]);
+  }, [ticker, isHydrated, priceLinesPref]);
 
 
 
