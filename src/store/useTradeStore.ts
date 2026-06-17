@@ -111,8 +111,23 @@ export const useTradeStore = create<TradeState>()(
           console.log(`[Surgical-Verify] Routing order type ${orderType} to ${orderType === 'LIMIT' || orderType === 'STOP' ? 'workingorders' : 'positions'}`);
 
           if (orderType === 'LIMIT' || orderType === 'STOP') {
-            finalParams.type = orderType;
-            finalParams.level = (params as LimitOrderParams).level;
+            const currentAsk = ofr || get().prices[params.epic]?.ask || 0;
+            const currentBid = bid || get().prices[params.epic]?.bid || 0;
+            const requestedLevel = (params as LimitOrderParams).level;
+
+            // Auto-correct order type based on standard financial rules:
+            // BUY below price = LIMIT, BUY above price = STOP
+            // SELL above price = LIMIT, SELL below price = STOP
+            let correctedType = orderType;
+            if (params.direction === 'BUY') {
+                correctedType = requestedLevel > currentAsk ? 'STOP' : 'LIMIT';
+            } else {
+                // SELL
+                correctedType = requestedLevel < currentBid ? 'STOP' : 'LIMIT';
+            }
+
+            finalParams.type = correctedType;
+            finalParams.level = requestedLevel;
             dealReference = await tradeApi.placeLimitOrder(finalParams as LimitOrderParams);
           } else {
             console.log('[PlaceOrder-Debug] FINAL market order payload:', JSON.stringify(finalParams));
@@ -123,7 +138,7 @@ export const useTradeStore = create<TradeState>()(
             dealReference,
             epic: params.epic,
             size: params.size,
-            type: orderType,
+            type: finalParams.type || orderType,
             direction: params.direction,
             status: 'PENDING',
             level: orderType === 'MARKET' ? (params.direction === 'BUY' ? ofr : bid) : (params as LimitOrderParams).level,
