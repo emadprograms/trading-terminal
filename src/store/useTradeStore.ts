@@ -329,7 +329,11 @@ export const useTradeStore = create<TradeState>()(
             await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
           }
         } finally {
-          
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { executingOperations: ops };
+          });
         }
       },
 
@@ -568,7 +572,11 @@ export const useTradeStore = create<TradeState>()(
             await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
           }
         } finally {
-          
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { executingOperations: ops };
+          });
         }
       },
 
@@ -768,7 +776,11 @@ export const useTradeStore = create<TradeState>()(
             await new Promise(resolve => setTimeout(resolve, BATCH_THROTTLE));
           }
         } finally {
-          
+          set(state => {
+            const ops = new Set(state.executingOperations);
+            ops.delete(lockKey);
+            return { executingOperations: ops };
+          });
         }
       },
 

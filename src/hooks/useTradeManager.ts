@@ -152,7 +152,7 @@ export function useTradeManager({
     const marketOrderMarkers: ChartMarker[] = debouncedNettedItems.filter(i => i.isPending).map(o => {
       let price = o.level || 0;
       let label = 'MARKET';
-      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
+      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
       label = `✓ ${shortId}`;
 
       return {
@@ -167,7 +167,7 @@ export function useTradeManager({
     });
 
     const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
-      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').substring(0, 6).toUpperCase();
+      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
       const prefix = o.type === 'STOP' ? 'STP' : 'LMT';
       return {
         id: o.dealId || o.dealReference,
