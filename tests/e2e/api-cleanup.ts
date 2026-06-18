@@ -11,8 +11,8 @@ export async function cleanupTestState(page: Page, request: APIRequestContext) {
       return { cst: store.cst, securityToken: store.securityToken };
     }
     return {
-      cst: localStorage.getItem('CST'),
-      securityToken: localStorage.getItem('X-SECURITY-TOKEN')
+      cst: null,
+      securityToken: null
     };
   });
 
