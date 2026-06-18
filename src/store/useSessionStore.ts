@@ -20,16 +20,14 @@ interface SessionState {
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
-  cst: typeof window !== 'undefined' ? localStorage.getItem('CST') : null,
-  securityToken: typeof window !== 'undefined' ? localStorage.getItem('X-SECURITY-TOKEN') : null,
+  cst: null,
+  securityToken: null,
   environment: 'DEMO',
   selectedAccountId: null,
-  isAuthenticated: typeof window !== 'undefined' ? (!!localStorage.getItem('CST') && !!localStorage.getItem('X-SECURITY-TOKEN')) : false,
+  isAuthenticated: false,
   isWsConnected: false,
 
   setTokens: (cst, securityToken) => {
-    localStorage.setItem('CST', cst);
-    localStorage.setItem('X-SECURITY-TOKEN', securityToken);
     set({ 
       cst, 
       securityToken, 
@@ -38,8 +36,6 @@ export const useSessionStore = create<SessionState>((set) => ({
   },
 
   clearTokens: () => {
-    localStorage.removeItem('CST');
-    localStorage.removeItem('X-SECURITY-TOKEN');
     set({ 
       cst: null, 
       securityToken: null, 

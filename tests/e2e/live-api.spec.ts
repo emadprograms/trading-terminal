@@ -9,9 +9,10 @@ test.describe('Live API E2E Validation', () => {
       const apiKey = process.env.CAPITAL_API_KEY;
       
       const localTokens = await page.evaluate(() => {
+        const store = (window as any).__sessionStore?.getState();
         return {
-          cst: localStorage.getItem('CST'),
-          securityToken: localStorage.getItem('X-SECURITY-TOKEN')
+          cst: store?.cst || null,
+          securityToken: store?.securityToken || null
         };
       });
 
