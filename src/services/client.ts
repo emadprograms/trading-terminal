@@ -24,32 +24,19 @@ export const api = ky.create({
         }
 
         const { cst, securityToken, environment } = useSessionStore.getState()
-        const newHeaders = new Headers(request.headers)
         
         // Pass through session tokens (obtained via /session login)
-        if (cst) newHeaders.set('CST', cst)
-        if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
+        if (cst) request.headers.set('CST', cst)
+        if (securityToken) request.headers.set('X-SECURITY-TOKEN', securityToken)
         
         // Pass through environment selection (LIVE vs DEMO)
-        if (environment) newHeaders.set('X-Environment', environment)
-
-        const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
-        const requestOptions: RequestInit = {
-          method: request.method,
-          headers: newHeaders,
-          body: isMutation ? request.body : undefined,
-          // @ts-ignore - duplex is not in standard RequestInit yet
-          duplex: isMutation && request.body ? 'half' : undefined,
-        };
-
-        return new Request(request.url, requestOptions);
+        if (environment) request.headers.set('X-Environment', environment)
       }
     ],
     afterResponse: [
       async (requestOrWrapper: any, _optionsOrUndefined?: any, responseOrUndefined?: any) => {
+        let response = responseOrUndefined || requestOrWrapper.response;
         try {
-          const response = responseOrUndefined || requestOrWrapper.response;
-          
           if (!response) return;
 
           const url = response.url || ''
@@ -66,6 +53,7 @@ export const api = ky.create({
         } catch (e) {
           console.error('[API] Token capture failed:', e)
         }
+        return response;
       }
     ]
   }

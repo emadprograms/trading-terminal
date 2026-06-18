@@ -42,6 +42,7 @@ export function useSession(tickers: string[]) {
       }
 
       try {
+        console.log('[StabilityTrace] Awaiting api.post session...');
         const response = await api.post('session', { 
           json: params?.credentials || { 
             identifier: import.meta.env.VITE_CAPITAL_USER, 
@@ -51,7 +52,10 @@ export function useSession(tickers: string[]) {
             'X-Environment': targetEnv
           }
         });
-        return response.json();
+        console.log('[StabilityTrace] api.post session returned! Awaiting response.json()...');
+        const data = await response.json();
+        console.log('[StabilityTrace] response.json() returned!');
+        return data;
       } catch (e) {
         if (params?.environment) {
           // Revert environment if login failed

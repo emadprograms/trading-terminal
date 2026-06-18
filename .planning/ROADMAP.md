@@ -19,7 +19,7 @@
 2. Limit orders can be reliably placed and cancelled without getting stuck.
 3. No double orders or ghost orders are placed via UI buttons or shortcuts (like alt+q) regardless of chart count.
 
-### Phase 5: Order Lifecycle Testing & Validation
+✅ ### Phase 5: Order Lifecycle Testing & Validation
 **Goal**: Build a rigorous test suite to stress-test the order execution under all known and edge-case conditions.
 **Requirements**: TEST-03
 **Success criteria**:

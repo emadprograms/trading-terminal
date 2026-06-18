@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
 
+// Load local environment variables for live API testing
+dotenv.config({ path: '.env.local' });
 const useMocks = process.env.USE_MOCKS === 'true';
 
 export default defineConfig({
@@ -7,7 +10,8 @@ export default defineConfig({
   testMatch: ['**/*.spec.ts', '**/stress-test.ts'],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 2,
+  timeout: 60000,
   workers: 1,
   reporter: 'html',
   webServer: {

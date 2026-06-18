@@ -100,7 +100,7 @@ export default function App() {
 
       <div className="main-content" style={{ position: 'relative' }}>
         <ErrorBoundary>
-          {isLoggingIn ? (
+          {isLoggingIn && !isAuthenticated ? (
             <main className="workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                <Activity className="animate-pulse" size={48} />
             </main>
