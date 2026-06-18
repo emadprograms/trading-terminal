@@ -18,6 +18,10 @@ test.describe('Market Data Stitching & Lifecycle E2E', () => {
     await page.route('**/api/order/v1/positions**', route => route.fulfill({ status: 200, json: { positions: [] } }));
     await page.route('**/api/order/v1/workingorders**', route => route.fulfill({ status: 200, json: { workingOrders: [] } }));
     await page.route('**/api/market/v1/activity**', route => route.fulfill({ status: 200, json: { activityHistory: [] } }));
+    await page.route('**/api/market/v1/prices/*', route => route.fulfill({ status: 200, json: { prices: [] } }));
+    await page.route('**/api/market/v1/markets*', route => route.fulfill({ status: 200, json: { markets: [] } }));
+    await page.route('**/api/market/v1/charts/BTCUSD*', route => route.fulfill({ status: 200, json: { bars: [] } })); // Catch legacy ticker
+
 
     // Navigate and capture auth if needed for cleanup
     await page.goto('/');
@@ -45,6 +49,11 @@ test.describe('Market Data Stitching & Lifecycle E2E', () => {
 
     // We can also route the WebSocket to push a fake tick, but for now 
     // we assert the chart or UI updates without throwing errors.
+    
+    // Open the ticker dropdown first (Phase 3 UI change)
+    await page.locator('.chart-header .custom-select').first().click();
+
+    // Now fill the search box
     await page.getByRole('textbox', { name: /Search|Ticker/i }).first().fill('NVDA');
     await page.keyboard.press('Enter');
 
