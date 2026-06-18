@@ -1,12 +1,13 @@
 # Milestone v1.1 Roadmap: Orders Audit & Hardening
 
-**3 phases** | **6 requirements mapped** | All covered ✓
+**4 phases** | **7 requirements mapped** | All covered ✓
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 4 | Order System Audit & Core Fixes | Fix known bugs and perform a deep code audit to discover and patch any state/event duplication issues. | AUDIT-01, ORDER-01, ORDER-02, ORDER-03 | 3 |
 | 5 | Order Lifecycle Testing & Validation | Build a rigorous test suite to stress-test the order execution under all known and edge-case conditions. | TEST-03 | 3 |
 | 5.1 | Advanced Edge Case Testing | Expand test suite to cover complex trading actions, half-flatten logic, and API error recovery. | TEST-04 | 3 |
+| 5.2 | Data Stitching & Market Engine Validation | Provide a rigorous E2E test suite to validate the Market Data Engine. | TEST-05 | 3 |
 
 ### Phase Details
 
@@ -33,3 +34,11 @@
 1. Attached SL/TP orders can be cancelled without ghosting.
 2. Half-flatten logic correctly closes bad legs first.
 3. API failures do not permanently lock the execution state.
+
+### Phase 5.2: Data Stitching & Market Engine Validation
+**Goal**: Provide a rigorous E2E test suite to validate the Market Data Engine, ensuring historical REST data and live WebSocket streams stitch seamlessly.
+**Requirements**: TEST-05
+**Success criteria**:
+1. Seamless data stitching is verified without gaps or duplications.
+2. WebSocket auto-reconnect logic successfully recovers connections.
+3. Subscription leaks are prevented when navigating between assets.

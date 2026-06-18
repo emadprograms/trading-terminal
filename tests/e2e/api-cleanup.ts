@@ -4,8 +4,12 @@ export async function cleanupTestState(page: Page, request: APIRequestContext) {
   let cst: string | null = null;
   let securityToken: string | null = null;
 
-  // 1. Try to get from localStorage (client application state)
+  // 1. Try to get from client application state via exposed window object or localStorage
   const localTokens = await page.evaluate(() => {
+    const store = (window as any).__sessionStore?.getState();
+    if (store && store.cst && store.securityToken) {
+      return { cst: store.cst, securityToken: store.securityToken };
+    }
     return {
       cst: localStorage.getItem('CST'),
       securityToken: localStorage.getItem('X-SECURITY-TOKEN')

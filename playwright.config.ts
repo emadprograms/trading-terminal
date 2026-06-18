@@ -10,8 +10,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: 'html',
+  webServer: {
+    command: 'npm run dev',
+    port: 3001,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://trading-terminal-demo.vercel.app',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // D-01, D-02, D-04: Bypass MSW usage and interact with real Capital.com demo via proxy

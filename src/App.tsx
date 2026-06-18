@@ -21,9 +21,9 @@ import { WatchlistManager } from './components/WatchlistManager';
 import { Clock } from './components/Clock';
 
 export default function App() {
-  console.log('[StabilityTrace] App Rendering');
   const { 
     tickers, 
+
     isLoading, 
     dbStatus, 
     isDbLoaded, 
@@ -51,6 +51,8 @@ export default function App() {
     loginError,
     resetLogin
   } = useSession(tickers);
+
+  console.log('[StabilityTrace] App Rendering, isLoggingIn:', isLoggingIn, 'isAuthenticated:', isAuthenticated);
 
   const autoLoginAttempted = React.useRef(false);
 

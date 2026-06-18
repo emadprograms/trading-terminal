@@ -20,27 +20,33 @@ interface SessionState {
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
-  cst: null,
-  securityToken: null,
+  cst: typeof window !== 'undefined' ? localStorage.getItem('CST') : null,
+  securityToken: typeof window !== 'undefined' ? localStorage.getItem('X-SECURITY-TOKEN') : null,
   environment: 'DEMO',
   selectedAccountId: null,
-  isAuthenticated: false,
+  isAuthenticated: typeof window !== 'undefined' ? (!!localStorage.getItem('CST') && !!localStorage.getItem('X-SECURITY-TOKEN')) : false,
   isWsConnected: false,
 
-  setTokens: (cst, securityToken) => 
+  setTokens: (cst, securityToken) => {
+    localStorage.setItem('CST', cst);
+    localStorage.setItem('X-SECURITY-TOKEN', securityToken);
     set({ 
       cst, 
       securityToken, 
       isAuthenticated: true 
-    }),
+    });
+  },
 
-  clearTokens: () => 
+  clearTokens: () => {
+    localStorage.removeItem('CST');
+    localStorage.removeItem('X-SECURITY-TOKEN');
     set({ 
       cst: null, 
       securityToken: null, 
       isAuthenticated: false,
       selectedAccountId: null
-    }),
+    });
+  },
 
   setEnvironment: (environment) => set({ environment, selectedAccountId: null }),
 
@@ -48,3 +54,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   
   setIsWsConnected: (status) => set({ isWsConnected: status }),
 }))
+
+// Expose store to window for E2E tests to extract tokens for cleanup utilities
+if (typeof window !== 'undefined') {
+  (window as any).__sessionStore = useSessionStore;
+}
