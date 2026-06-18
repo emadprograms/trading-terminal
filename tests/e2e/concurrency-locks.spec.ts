@@ -59,11 +59,7 @@ test.describe('Concurrency and Locks E2E', () => {
       ] } });
     });
 
-    // Inject the mock session into localStorage BEFORE the app boots
-    await page.addInitScript(() => {
-      window.localStorage.setItem('CST', 'mock-cst-token');
-      window.localStorage.setItem('X-SECURITY-TOKEN', 'mock-security-token');
-    });
+
 
     // Navigate to the app
     await page.goto('/');

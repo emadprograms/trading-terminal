@@ -3,16 +3,25 @@ import { cleanupTestState } from './api-cleanup';
 
 test.describe('Market Data Stitching & Lifecycle E2E', () => {
   test.beforeEach(async ({ page, request }) => {
+    // Mock the session endpoint so the app can "login"
+    await page.route('**/api/session', async route => {
+      await route.fulfill({
+        status: 200,
+        headers: { 'cst': 'mock', 'x-security-token': 'mock' },
+        json: { accountType: 'CFD', clientId: 'mock' }
+      });
+    });
+
+    // Mock all basic read endpoints
+    await page.route('**/api/ping*', route => route.fulfill({ status: 200, json: { status: 'OK' } }));
+    await page.route('**/api/accounts', route => route.fulfill({ status: 200, json: { accounts: [{ accountId: 'mock', balance: { balance: 10000, deposit: 10000, profit: 0 }, currency: 'USD' }] } }));
+    await page.route('**/api/order/v1/positions**', route => route.fulfill({ status: 200, json: { positions: [] } }));
+    await page.route('**/api/order/v1/workingorders**', route => route.fulfill({ status: 200, json: { workingOrders: [] } }));
+    await page.route('**/api/market/v1/activity**', route => route.fulfill({ status: 200, json: { activityHistory: [] } }));
+
     // Navigate and capture auth if needed for cleanup
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    
-    // Attempt cleanup if possible, though we primarily test data flows here
-    try {
-      await cleanupTestState(page, request);
-    } catch (e) {
-      // Ignore cleanup errors if auth not yet established
-    }
   });
 
   test('Test 1: Seamless Data Stitching', async ({ page }) => {

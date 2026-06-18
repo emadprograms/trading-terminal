@@ -1,6 +1,23 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('State Resilience & Self-Healing', () => {
+  test.beforeEach(async ({ page }) => {
+    // Inject fake session so it doesn't get stuck on login
+    await page.route('**/api/session', async route => {
+      await route.fulfill({
+        status: 200,
+        headers: {
+          'cst': 'mock-cst-token',
+          'x-security-token': 'mock-security-token',
+        },
+        json: { accountType: 'CFD', clientId: 'mock' }
+      });
+    });
+
+    // We also need to mock ping
+    await page.route('**/api/ping*', route => route.fulfill({ status: 200, json: { status: 'OK' } }));
+  });
+
   test('ignores legacy selectedDate in localStorage and loads current live data', async ({ page }) => {
     page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
     page.on('pageerror', err => console.log('BROWSER ERROR:', err.message));

@@ -73,11 +73,7 @@ test.describe('Order Lifecycle E2E', () => {
       return route.fulfill({ status: 200, json: { workingOrders: mockWorkingOrders } });
     });
 
-    // Inject the mock session into localStorage BEFORE the app boots
-    await page.addInitScript(() => {
-      window.localStorage.setItem('CST', 'mock-cst-token');
-      window.localStorage.setItem('X-SECURITY-TOKEN', 'mock-security-token');
-    });
+
 
     // Navigate to the app after setting up mocks and init scripts
     await page.goto('/');
