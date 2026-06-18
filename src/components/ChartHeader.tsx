@@ -109,6 +109,13 @@ export function ChartHeader({
                   placeholder="Search symbols..." 
                   value={tickerSearch} 
                   onChange={(e) => setTickerSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && filteredTickers.length > 0) {
+                      onTickerChange(filteredTickers[0]);
+                      setIsTickerOpen(false);
+                      setTickerSearch('');
+                    }
+                  }}
                 />
               </div>
               <div className="dropdown-items">
