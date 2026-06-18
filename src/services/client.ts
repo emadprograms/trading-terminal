@@ -42,6 +42,11 @@ export const api = ky.create({
           const url = response.url || ''
           const isSession = url.includes('/session')
           
+          if (response.status === 401 && !isSession) {
+            console.warn('[API] Token expired (401). Clearing session to trigger re-login.');
+            useSessionStore.getState().clearTokens();
+          }
+
           if (isSession && response.ok) {
             const cst = response.headers.get('CST')
             const securityToken = response.headers.get('X-SECURITY-TOKEN')
