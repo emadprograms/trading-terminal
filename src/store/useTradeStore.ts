@@ -92,8 +92,8 @@ export const useTradeStore = create<TradeState>()(
                      : basePrice + params.stopDistance;
                  finalParams.stopLevel = parseFloat(rawStop.toFixed(5));
                  delete finalParams.stopDistance;
-                 if (type === 'MARKET' || !type) {
-                     finalParams.guaranteedStop = params.guaranteedStop || false;
+                 if ((type === 'MARKET' || !type) && params.guaranteedStop) {
+                     finalParams.guaranteedStop = true;
                  }
              }
           }
