@@ -42,20 +42,34 @@ skipped: 1
 
 ## Gaps
 
-- truth: "Clicking the 'Sync' button in the Watchlist sidebar shows a spinning loading icon. When complete, a success toast notification appears, and the local watchlist is synced with the remote API."
-  status: failed
-  reason: "User reported: after the test failed, I think I can say that everything has failed. clicking on the sync button gives. Request failed with status code 405: PUT https://trading-terminal-psi-ashen.vercel.app/api/watchlist"
-  severity: blocker
-  test: 2
-  artifacts: []
-  missing: []
-
-
 - truth: "On app load, the Watchlist is populated with the user's remote Capital.com watchlist state."
-  status: failed
+  status: diagnosed
   reason: "User reported: Request failed with status code 405: PUT https://trading-terminal-psi-ashen.vercel.app/api/watchlist"
   severity: blocker
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "vercel.json is missing the rewrite rule for /api/watchlist, causing requests to fall through to index.html and return 405 Method Not Allowed."
+  artifacts:
+    - path: "vercel.json"
+      issue: "Missing rewrite rule for /api/watchlist"
+  missing:
+    - "Add rewrite rule to vercel.json before the catch-all rule"
+  debug_session: .planning/debug/watchlist-initialization-on-startup.md
 
+- truth: "Clicking the 'Sync' button in the Watchlist sidebar shows a spinning loading icon. When complete, a success toast notification appears, and the local watchlist is synced with the remote API."
+  status: diagnosed
+  reason: "User reported: after the test failed, I think I can say that everything has failed. clicking on the sync button gives. Request failed with status code 405: PUT https://trading-terminal-psi-ashen.vercel.app/api/watchlist"
+  severity: blocker
+  test: 2
+  root_cause: "Frontend sends PUT to generic /api/watchlist instead of specific watchlist ID, and backend proxy forwards it to /api/v1/watchlists which doesn't support PUT."
+  artifacts:
+    - path: "src/store/useWatchlistStore.ts"
+      issue: "Doesn't store remote watchlist ID"
+    - path: "src/services/watchlist.ts"
+      issue: "Sends PUT to generic endpoint without ID"
+    - path: "api/watchlist.ts"
+      issue: "Needs to forward PUT to /api/v1/watchlists/{id}"
+  missing:
+    - "Store watchlist ID in fetchWatchlist"
+    - "Append ID to PUT request in updateWatchlist"
+    - "Forward ID correctly in api/watchlist.ts"
+  debug_session: .planning/debug/manual-watchlist-sync.md
