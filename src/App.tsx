@@ -33,6 +33,12 @@ export default function App() {
   const theme = useWorkspaceStore((state) => state.theme);
 
   useEffect(() => {
+    import('./store/useWatchlistStore').then(({ useWatchlistStore }) => {
+      useWatchlistStore.getState().initializeWatchlist();
+    });
+  }, []);
+
+  useEffect(() => {
     document.body.classList.remove('theme-dark', 'theme-light', 'theme-oled', 'theme-hc');
     if (theme === 'light' || theme === 'dark') {
       document.body.classList.add('theme-dark');
