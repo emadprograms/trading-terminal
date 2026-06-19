@@ -71,7 +71,7 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
     res.statusCode = 200;
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Environment, CST, X-SECURITY-TOKEN, x-env');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Environment, CST, X-SECURITY-TOKEN, x-env, x-inject-error');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.end();
     return;
@@ -79,6 +79,21 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
 
   // Resolve Capital.com target directly (no intermediate proxy)
   const { baseUrl, apiKey } = getCapitalTarget(req);
+
+  // Error Injection for Testing
+  const injectError = req.headers['x-inject-error'];
+  if (injectError) {
+    const statusCode = parseInt(injectError as string, 10) || 500;
+    console.log(`[StabilityTrace] Injecting mock error: ${statusCode}`);
+    res.statusCode = statusCode;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(JSON.stringify({
+      errorCode: 'mock_error_injected',
+      developerMessage: `Mocked error injected by x-inject-error header: ${statusCode}`
+    }));
+    return;
+  }
 
   if (!apiKey) {
     console.error('[StabilityTrace] FATAL: CAPITAL_API_KEY is not defined in environment');
