@@ -18,9 +18,9 @@ progress:
 ## Current Position
 
 Phase: 06 (sync-watchlist-with-capital-com) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Executing Phase 06
-Last activity: 2026-06-19 -- Phase 06 Plan 1 completed
+Last activity: 2026-06-19 -- Phase 06 Plan 2 completed
 
 ## Accumulated Context
 
@@ -115,5 +115,21 @@ Implemented backend proxy handlers and frontend service methods for Capital.com 
 
 ## Deviations from Plan
 None - plan executed exactly as written.
+
+## Self-Check: PASSED
+
+---
+
+# Phase 06 Plan 02: Frontend Sync Logic & Startup Summary
+
+Implemented the frontend logic for startup watchlist overrides and manual two-way sync.
+
+## Metrics
+- **Duration**: 15 min
+- **Tasks completed**: 3
+- **Files modified**: 2
+
+## Deviations from Plan
+Combined Task 1 and 2 commits as they were deeply intertwined within `useWatchlistStore.ts` refactoring.
 
 ## Self-Check: PASSED
