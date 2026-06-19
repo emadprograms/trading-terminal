@@ -12,9 +12,10 @@ export const watchlistApi = {
     }
   },
 
-  updateWatchlist: async (symbols: string[]) => {
+  updateWatchlist: async (symbols: string[], id?: string | null) => {
     try {
-      const response = await api.put('watchlist', {
+      const endpoint = id ? `watchlist/${id}` : 'watchlist';
+      const response = await api.put(endpoint, {
         json: { epics: symbols }
       });
       return await response.json();
