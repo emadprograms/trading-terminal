@@ -4,6 +4,25 @@ test.describe('Watchlist Synchronization', () => {
   let initialSymbols: string[] = [];
 
   test.beforeEach(async ({ page }) => {
+    // Mock watchlist endpoints to prevent 401s
+    await page.route('**/api/watchlist*', async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ watchlists: [{ id: 'mock-123', epics: ['SPY', 'QQQ'] }] })
+        });
+      } else if (route.request().method() === 'PUT') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true })
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
@@ -13,7 +32,10 @@ test.describe('Watchlist Synchronization', () => {
         const res = await fetch('/api/watchlist');
         if (res.ok) {
           const data = await res.json();
-          return data.symbols || [];
+          if (data.watchlists && data.watchlists.length > 0) {
+            return data.watchlists[0].epics || [];
+          }
+          return data.epics || [];
         }
       } catch (e) {
         console.error('Failed to fetch initial watchlist', e);
@@ -26,10 +48,10 @@ test.describe('Watchlist Synchronization', () => {
     // Restore initial state to avoid polluting test account
     await page.evaluate(async (symbols) => {
       try {
-        await fetch('/api/watchlist', {
+        await fetch('/api/watchlist/mock-123', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ symbols })
+          body: JSON.stringify({ epics: symbols })
         });
       } catch (e) {
         console.error('Failed to restore watchlist', e);
