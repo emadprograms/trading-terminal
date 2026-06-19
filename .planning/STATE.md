@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Planned
-last_updated: "2026-06-19T13:36:00.000Z"
-last_activity: 2026-06-19 — Phase 5.1 planning complete
+status: executing
+last_updated: "2026-06-19T10:38:01.549Z"
+last_activity: 2026-06-19 -- Phase 05.1 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -17,11 +17,11 @@ progress:
 
 ## Current Position
 
-Phase: 06 (sync-watchlist-with-capital-com) — EXECUTING
+Phase: 05.1 (advanced-edge-case-testing) — EXECUTING
 Phase: 5.1
-Plan: —
-Status: Planned
-Last activity: 2026-06-19 — Phase 5.1 planning complete
+Plan: 1 of 1
+Status: Executing Phase 05.1
+Last activity: 2026-06-19 -- Phase 05.1 execution started
 
 ## Accumulated Context
 
@@ -137,5 +137,40 @@ Implemented the frontend logic for startup watchlist overrides and manual two-wa
 ## Deviations from Plan
 
 Combined Task 1 and 2 commits as they were deeply intertwined within `useWatchlistStore.ts` refactoring.
+
+## Self-Check: PASSED
+
+---
+
+# Phase 06 Plan 03: UI Implementation Summary
+
+Implemented the "Sync" button in the Watchlist sidebar with loading states and toast notifications.
+
+## Metrics
+
+- **Duration**: 10 min
+- **Tasks completed**: 2
+- **Files modified**: 1
+
+## Deviations from Plan
+- Switched to `sonner` for toast notifications instead of creating a new `use-toast.ts` hook.
+
+## Self-Check: PASSED
+
+---
+
+# Phase 06 Plan 04: Testing & Verification Summary
+
+Implemented Watchlist Sync E2E tests covering happy path and failure scenarios.
+
+## Metrics
+
+- **Duration**: 15 min
+- **Tasks completed**: 2
+- **Files modified**: 2
+
+## Deviations from Plan
+- Task 1 and Task 2 were committed together as they were implemented in a single cohesive test file structure.
+- Modified `src/store/useWatchlistStore.ts` to throw errors in `syncWithRemote` so that the failure test scenario passes and UI behaves as expected.
 
 ## Self-Check: PASSED
