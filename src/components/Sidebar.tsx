@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List } from 'lucide-react';
+import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List, RefreshCw, Loader2 } from 'lucide-react';
 import { TradeLog } from './TradeLog';
 import { Watchlist } from './Watchlist';
+import { useWatchlistStore } from '../store/useWatchlistStore';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   dbStatus: string;
@@ -32,6 +34,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setLayoutMode
 }) => {
   const [activePanel, setActivePanel] = useState<'tradeLog' | 'watchlist' | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncWithRemote = useWatchlistStore((state) => state.syncWithRemote);
+
+  const handleSyncWatchlist = async () => {
+    setIsSyncing(true);
+    try {
+      await syncWithRemote();
+      toast.success('Watchlist synced successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Sync Failed');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <>
@@ -129,9 +145,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             justifyContent: 'space-between'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Watchlist</h3>
-            <button className="btn-icon" onClick={() => setActivePanel(null)}>
-              <ChevronLeft size={18} />
-            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button 
+                className="btn-icon" 
+                onClick={handleSyncWatchlist}
+                disabled={isSyncing}
+                title="Sync Watchlist"
+                style={{ opacity: isSyncing ? 0.5 : 1 }}
+              >
+                {isSyncing ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+              </button>
+              <button className="btn-icon" onClick={() => setActivePanel(null)}>
+                <ChevronLeft size={18} />
+              </button>
+            </div>
           </div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <Watchlist />
