@@ -21,6 +21,10 @@
       "destination": "/api/debug"
     },
     {
+      "source": "/api/watchlist/:path*",
+      "destination": "/api/watchlist"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
