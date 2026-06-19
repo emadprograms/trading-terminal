@@ -3,25 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-19T10:38:01.549Z"
-last_activity: 2026-06-19 -- Phase 05.1 execution started
+last_updated: "2026-06-19T17:29:47.923Z"
+last_activity: 2026-06-19 -- Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 9
-  completed_plans: 5
-  percent: 20
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 9
+  percent: 70
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 05.1 (advanced-edge-case-testing) — EXECUTING
-Phase: 5.1
-Plan: 1 of 1
-Status: Executing Phase 05.1
-Last activity: 2026-06-19 -- Phase 05.1 execution started
+Phase: 06 (sync-watchlist-with-capital-com)
+Plan: 05 of 05
+Status: Ready to execute
+Last activity: 2026-06-19 -- Completed 06-05-PLAN.md
 
 ## Accumulated Context
 
@@ -33,6 +32,8 @@ Last activity: 2026-06-19 -- Phase 05.1 execution started
 
 - Configured Playwright to target live URL with x-bypass-mocks header
 - Strict gap validation isolated to SyncCoordinator, throwing DataStitchingError
+- Store remoteWatchlistId in Zustand state to properly address the Capital.com watchlist API when performing updates.
+- Isolate E2E watchlist UI tests by mocking all /api/watchlist* requests, preventing 401 Unauthorized errors from the backend proxy.
 - [Phase 02-data-integrity-e2e-testing]: ---
 
 phase: 02-data-integrity-e2e-testing
@@ -82,6 +83,7 @@ None - plan executed exactly as written.
 | Phase 02-data-integrity-e2e-testing P02 | 5 min | 2 tasks | 3 files |
 | Phase 02-data-integrity-e2e-testing P03 | 10 min | 3 tasks | 5 files |
 | Phase 06-sync-watchlist-with-capital-com P01 | 10 min | 2 tasks | 2 files |
+| Phase 06-sync-watchlist-with-capital-com P05 | 2 min | 4 tasks | 4 files |
 
 ---
 
@@ -153,6 +155,7 @@ Implemented the "Sync" button in the Watchlist sidebar with loading states and t
 - **Files modified**: 1
 
 ## Deviations from Plan
+
 - Switched to `sonner` for toast notifications instead of creating a new `use-toast.ts` hook.
 
 ## Self-Check: PASSED
@@ -170,6 +173,7 @@ Implemented Watchlist Sync E2E tests covering happy path and failure scenarios.
 - **Files modified**: 2
 
 ## Deviations from Plan
+
 - Task 1 and Task 2 were committed together as they were implemented in a single cohesive test file structure.
 - Modified `src/store/useWatchlistStore.ts` to throw errors in `syncWithRemote` so that the failure test scenario passes and UI behaves as expected.
 
