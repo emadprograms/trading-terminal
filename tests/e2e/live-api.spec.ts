@@ -184,8 +184,12 @@ test.describe('Live API E2E Validation', () => {
     const buyButton = page.locator('.trade-controls button').filter({ hasText: /buy|long/i }).first();
     await buyButton.click();
 
-    // 3. Assert that the confirmation toast appears
-    console.log("Waiting for Order Confirmed toast...");
-    await expect(page.getByText(/Order Confirmed:/i)).toBeVisible({ timeout: 15000 });
+    // 3. Assert that the confirmation toast or a market closed rejection appears
+    console.log("Waiting for Order Confirmed toast or Market Closed rejection...");
+    const successToast = page.getByText(/Order Confirmed:/i);
+    const closedToast = page.getByText(/currently closed|market is closed/i);
+    
+    // Wait for either one to be visible
+    await expect(successToast.or(closedToast)).toBeVisible({ timeout: 15000 });
   });
 });

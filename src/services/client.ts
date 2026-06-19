@@ -25,25 +25,14 @@ export const api = ky.create({
 
         const { cst, securityToken, environment } = useSessionStore.getState()
         
-        const newHeaders = new Headers(request.headers)
-        
         // Pass through session tokens (obtained via /session login)
-        if (cst) newHeaders.set('CST', cst)
-        if (securityToken) newHeaders.set('X-SECURITY-TOKEN', securityToken)
+        if (cst) request.headers.set('CST', cst)
+        if (securityToken) request.headers.set('X-SECURITY-TOKEN', securityToken)
         
         // Pass through environment selection (LIVE vs DEMO)
-        if (environment) newHeaders.set('X-Environment', environment)
+        if (environment) request.headers.set('X-Environment', environment)
 
-        const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
-        const requestOptions: RequestInit = {
-          method: request.method,
-          headers: newHeaders,
-          body: isMutation ? (request as any).body : undefined,
-          // @ts-ignore
-          duplex: isMutation && (request as any).body ? 'half' : undefined,
-        };
-
-        return new Request(request.url, requestOptions);
+        return request;
       }
     ],
     afterResponse: [

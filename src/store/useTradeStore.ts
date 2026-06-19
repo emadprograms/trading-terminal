@@ -132,7 +132,6 @@ export const useTradeStore = create<TradeState>()(
             finalParams.level = requestedLevel;
             dealReference = await tradeApi.placeLimitOrder(finalParams as LimitOrderParams);
           } else {
-            finalParams.guaranteedStop = params.guaranteedStop ?? false;
             console.log('[PlaceOrder-Debug] FINAL market order payload:', JSON.stringify(finalParams));
             dealReference = await tradeApi.placeMarketOrder(finalParams as MarketOrderParams);
           }

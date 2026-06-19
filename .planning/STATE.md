@@ -22,6 +22,11 @@ Plan: —
 Status: Context gathered
 Last activity: 2026-06-16 — Phase 4 context gathered
 
+## Accumulated Context
+
+### Roadmap Evolution
+- Phase 6 added: Sync watchlist with capital.com
+
 ## Decisions
 
 - Configured Playwright to target live URL with x-bypass-mocks header
