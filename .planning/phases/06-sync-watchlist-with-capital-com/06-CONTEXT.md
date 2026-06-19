@@ -51,7 +51,7 @@ No external specs — requirements fully captured in decisions above.
 <specifics>
 ## Specific Ideas
 
-- The "Sync" button must be prominently placed at the top of the application UI.
+- **Sync Button Placement:** The "Sync" button should be placed at the top of the watchlist sidebar. Specifically, when the user opens the watchlist, there is a header that says "Watchlist"; the sync button should be located on the right side of this header.
 
 </specifics>
 
