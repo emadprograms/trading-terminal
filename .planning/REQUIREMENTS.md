@@ -10,6 +10,7 @@
 
 ## Order Lifecycle Testing
 - [ ] **TEST-03**: A rigorous order lifecycle test suite covers extreme latency edge cases, limit order cancellations, multi-chart event handling, and double alt logic.
+- [ ] **TEST-04**: Advanced edge case testing covering attached SL/TP cancellations, half-flatten worst leg verification, and API error recovery.
 
 ## Future Requirements
 - Advanced UI Micro-animations (framer-motion)
@@ -28,3 +29,4 @@
 - **ORDER-02**: Phase 4
 - **ORDER-03**: Phase 4
 - **TEST-03**: Phase 5
+- **TEST-04**: Phase 5.1
