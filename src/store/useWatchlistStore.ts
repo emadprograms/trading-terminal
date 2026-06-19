@@ -122,6 +122,7 @@ export const useWatchlistStore = create<WatchlistState>()(
           });
         } catch (error) {
           console.error('[useWatchlistStore] syncWithRemote error:', error);
+          throw error;
         }
       },
     }),
