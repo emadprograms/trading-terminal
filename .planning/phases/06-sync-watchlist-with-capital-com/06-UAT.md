@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-sync-watchlist-with-capital-com
 source: [06-VERIFICATION.md]
 started: 2026-06-19T17:35:00Z
@@ -47,9 +47,18 @@ skipped: 0
   missing: []
 
 - truth: "Clicking the 'Sync' button in the Watchlist sidebar shows a spinning loading icon. When complete, a success toast notification appears, and the local watchlist is synced with the remote API."
-  status: failed
+  status: diagnosed
   reason: "User reported: yes but again, I don't which watchlist is it syncing with and second I should be able to maintain multiple watchlists."
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "useWatchlistStore hardcodes syncing to watchlists[0], lacks state for all available watchlists, and UI lacks a selector dropdown."
+  artifacts:
+    - path: "src/store/useWatchlistStore.ts"
+      issue: "Hardcodes remoteWatchlistId to first index and missing available watchlists state."
+    - path: "src/components/Sidebar.tsx"
+      issue: "Missing UI dropdown to select active watchlist."
+  missing:
+    - "Update store to fetch and track all available remote watchlists."
+    - "Add UI dropdown in the header to select the active watchlist."
+    - "Update sync logic to use the selected remoteWatchlistId."
+  debug_session: .planning/debug/multiple-watchlists-dropdown.md
