@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List, RefreshCw, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List, RefreshCw, Loader2, Check } from 'lucide-react';
 import { TradeLog } from './TradeLog';
 import { Watchlist } from './Watchlist';
 import { useWatchlistStore } from '../store/useWatchlistStore';
@@ -35,18 +35,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [activePanel, setActivePanel] = useState<'tradeLog' | 'watchlist' | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showSyncedLabel, setShowSyncedLabel] = useState(false);
   const syncWithRemote = useWatchlistStore((state) => state.syncWithRemote);
   const availableWatchlists = useWatchlistStore((state) => state.availableWatchlists);
   const remoteWatchlistId = useWatchlistStore((state) => state.remoteWatchlistId);
   const setActiveWatchlist = useWatchlistStore((state) => state.setActiveWatchlist);
 
-  const handleSyncWatchlist = async () => {
+  const handleSyncWatchlist = async (showToast = false) => {
     setIsSyncing(true);
+    setShowSyncedLabel(false);
     try {
       await syncWithRemote();
-      toast.success('Watchlist synced successfully');
+      setShowSyncedLabel(true);
+      setTimeout(() => setShowSyncedLabel(false), 3000);
+      if (showToast) {
+        toast.success('Watchlist synced successfully');
+      }
     } catch (error: any) {
-      toast.error(error.message || 'Sync Failed');
+      if (showToast) {
+        toast.error(error.message || 'Sync Failed');
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -77,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const nextPanel = activePanel === 'watchlist' ? null : 'watchlist';
             setActivePanel(nextPanel);
             if (nextPanel === 'watchlist') {
-              handleSyncWatchlist();
+              handleSyncWatchlist(false);
             }
           }} 
           title="Watchlist"
@@ -177,10 +185,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </select>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              {!isSyncing && showSyncedLabel && (
+                <span style={{ fontSize: '10px', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
+                  <Check size={12} /> Synced
+                </span>
+              )}
               <button 
                 className="btn-icon" 
-                onClick={handleSyncWatchlist}
+                onClick={() => handleSyncWatchlist(true)}
                 disabled={isSyncing}
                 title="Sync Watchlist"
                 style={{ opacity: isSyncing ? 0.5 : 1 }}
