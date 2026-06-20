@@ -4,6 +4,18 @@ test.describe('Watchlist Synchronization', () => {
   let initialSymbols: string[] = [];
 
   test.beforeEach(async ({ page }) => {
+    // Inject fake session so it doesn't get stuck on login
+    await page.route('**/api/session', async route => {
+      await route.fulfill({
+        status: 200,
+        headers: {
+          'cst': 'mock-cst-token',
+          'x-security-token': 'mock-security-token',
+        },
+        json: { accountType: 'CFD', clientId: 'mock' }
+      });
+    });
+
     // Mock watchlist endpoints to prevent 401s
     await page.route(/\/api\/watchlist/, async route => {
       if (route.request().method() === 'GET') {
@@ -25,6 +37,9 @@ test.describe('Watchlist Synchronization', () => {
         await route.continue();
       }
     });
+
+    page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
+    page.on('pageerror', err => console.log('BROWSER ERROR:', err.message));
 
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');

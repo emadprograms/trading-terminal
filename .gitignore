@@ -44,3 +44,4 @@ code
 scratch/
 playwright-report/
 test-results/
+trace_output/
