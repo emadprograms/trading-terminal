@@ -38,9 +38,11 @@ created: 2026-06-19
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
+| 06-01 to 06-03 | 01-03 | 1 | Watchlist Sync Core | | | e2e | `npx playwright test tests/e2e/watchlist-sync.spec.ts` | Yes | ✅ |
+| 06-05 | 05 | 2 | Watchlist Fixes | | | e2e | `npx playwright test tests/e2e/watchlist-sync.spec.ts` | Yes | ✅ |
+| 06-06 | 06 | 3 | SYNC-01 (Multi-watchlist) | | | e2e | `npx playwright test tests/e2e/watchlist-sync.spec.ts` | Yes | ✅ |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
-*(No formal requirements mapped for this phase)*
 
 ---
 
@@ -55,7 +57,7 @@ created: 2026-06-19
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 
-*All phase behaviors have automated verification.*
+*All phase behaviors have automated verification via mocked e2e Playwright tests.*
 
 ---
 
@@ -68,4 +70,11 @@ created: 2026-06-19
 - [x] Feedback latency < 15s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved 2026-06-19
+## Validation Audit 2026-06-20
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+**Approval:** approved 2026-06-20
