@@ -36,6 +36,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [activePanel, setActivePanel] = useState<'tradeLog' | 'watchlist' | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const syncWithRemote = useWatchlistStore((state) => state.syncWithRemote);
+  const availableWatchlists = useWatchlistStore((state) => state.availableWatchlists);
+  const remoteWatchlistId = useWatchlistStore((state) => state.remoteWatchlistId);
+  const setActiveWatchlist = useWatchlistStore((state) => state.setActiveWatchlist);
 
   const handleSyncWatchlist = async () => {
     setIsSyncing(true);
@@ -144,7 +147,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Watchlist</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Watchlist</h3>
+              {availableWatchlists && availableWatchlists.length > 0 && (
+                <select 
+                  value={remoteWatchlistId || ''}
+                  onChange={(e) => setActiveWatchlist(e.target.value)}
+                  style={{
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '4px',
+                    padding: '2px 4px',
+                    fontSize: '12px',
+                    maxWidth: '160px',
+                    outline: 'none'
+                  }}
+                  title="Select Watchlist"
+                >
+                  {availableWatchlists.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: '4px' }}>
               <button 
                 className="btn-icon" 

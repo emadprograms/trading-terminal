@@ -10,7 +10,10 @@ test.describe('Watchlist Synchronization', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ watchlists: [{ id: 'mock-123', epics: ['SPY', 'QQQ'] }] })
+          body: JSON.stringify({ watchlists: [
+            { id: 'mock-123', name: 'Main List', epics: ['SPY', 'QQQ'] },
+            { id: 'mock-456', name: 'Tech List', epics: ['AAPL', 'MSFT'] }
+          ] })
         });
       } else if (route.request().method() === 'PUT' || route.request().method() === 'DELETE') {
         await route.fulfill({
@@ -69,13 +72,20 @@ test.describe('Watchlist Synchronization', () => {
     await expect(watchlistBtn).toBeVisible();
     await watchlistBtn.click();
 
+    // Select the second watchlist
+    const select = page.getByTitle('Select Watchlist');
+    await select.selectOption('mock-456');
+
+    // Wait for symbols to update
+    await expect(page.getByText('AAPL').first()).toBeVisible();
+
     // Add a test symbol
     const searchInput = page.getByPlaceholder('Search markets...');
-    await searchInput.fill('AAPL');
+    await searchInput.fill('GOOGL');
     await searchInput.press('Enter');
 
     // Wait for it to appear
-    await expect(page.getByText('AAPL').first()).toBeVisible();
+    await expect(page.getByText('GOOGL').first()).toBeVisible();
 
     // Set up network wait
     const syncPromise = page.waitForResponse(response => 
@@ -97,7 +107,7 @@ test.describe('Watchlist Synchronization', () => {
     await watchlistBtn.click();
 
     // Mock the network request to fail
-    await page.route('**/api/watchlist', async route => {
+    await page.route('**/api/watchlist*', async route => {
       if (route.request().method() === 'PUT') {
         await route.fulfill({
           status: 500,
@@ -108,6 +118,12 @@ test.describe('Watchlist Synchronization', () => {
         await route.continue();
       }
     });
+
+    // Add a test symbol so there's actually a PUT request to fail
+    const searchInput = page.getByPlaceholder('Search markets...');
+    await searchInput.fill('GOOGL');
+    await searchInput.press('Enter');
+    await expect(page.getByText('GOOGL').first()).toBeVisible();
 
     const syncBtn = page.getByTitle('Sync Watchlist');
     await syncBtn.click();
