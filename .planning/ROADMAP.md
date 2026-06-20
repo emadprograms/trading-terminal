@@ -55,7 +55,7 @@
 **Goal:** [To be planned]
 **Requirements**: TBD
 **Depends on:** Phase 5
-**Plans:** 4/4 plans complete
+**Plans:** 5/5 plans complete
 
 Plans:
 

@@ -12,16 +12,25 @@ export const watchlistApi = {
     }
   },
 
-  updateWatchlist: async (symbols: string[], id?: string | null) => {
+  addEpicToWatchlist: async (epic: string, id: string) => {
     try {
-      const endpoint = id ? `watchlist/${id}` : 'watchlist';
-      const response = await api.put(endpoint, {
-        json: { epics: symbols }
+      const response = await api.put(`watchlist/${id}`, {
+        json: { epic }
       });
       return await response.json();
     } catch (error: any) {
-      console.error('[watchlistApi] updateWatchlist error:', error);
-      throw new Error(error.message || 'Failed to update watchlist');
+      console.error('[watchlistApi] addEpicToWatchlist error:', error);
+      throw new Error(error.message || 'Failed to add epic to watchlist');
+    }
+  },
+
+  removeEpicFromWatchlist: async (epic: string, id: string) => {
+    try {
+      const response = await api.delete(`watchlist/${id}/${epic}`);
+      return await response.json();
+    } catch (error: any) {
+      console.error('[watchlistApi] removeEpicFromWatchlist error:', error);
+      throw new Error(error.message || 'Failed to remove epic from watchlist');
     }
   }
 };

@@ -117,6 +117,24 @@ export const useWatchlistStore = create<WatchlistState>()(
             throw new Error('Watchlist ID is missing');
           }
 
+          // Process deletions
+          for (const epic of state.pendingDeletions) {
+            try {
+              await watchlistApi.removeEpicFromWatchlist(epic, remoteId);
+            } catch (error) {
+              console.warn(`[useWatchlistStore] Failed to remove ${epic}:`, error);
+            }
+          }
+
+          // Process additions
+          for (const epic of state.pendingAdditions) {
+            try {
+              await watchlistApi.addEpicToWatchlist(epic, remoteId);
+            } catch (error) {
+              console.warn(`[useWatchlistStore] Failed to add ${epic}:`, error);
+            }
+          }
+
           let finalSymbols = remoteSymbols.filter(s => !state.pendingDeletions.includes(s));
           for (const add of state.pendingAdditions) {
             if (!finalSymbols.includes(add)) {
@@ -125,8 +143,6 @@ export const useWatchlistStore = create<WatchlistState>()(
           }
           finalSymbols = finalSymbols.slice(0, MAX_SYMBOLS);
 
-          await watchlistApi.updateWatchlist(finalSymbols, remoteId);
-          
           set({
             symbols: finalSymbols,
             pendingAdditions: [],

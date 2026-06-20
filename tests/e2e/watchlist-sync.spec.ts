@@ -12,7 +12,7 @@ test.describe('Watchlist Synchronization', () => {
           contentType: 'application/json',
           body: JSON.stringify({ watchlists: [{ id: 'mock-123', epics: ['SPY', 'QQQ'] }] })
         });
-      } else if (route.request().method() === 'PUT') {
+      } else if (route.request().method() === 'PUT' || route.request().method() === 'DELETE') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -48,11 +48,15 @@ test.describe('Watchlist Synchronization', () => {
     // Restore initial state to avoid polluting test account
     await page.evaluate(async (symbols) => {
       try {
-        await fetch('/api/watchlist/mock-123', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ epics: symbols })
-        });
+        // Just send dummy requests for the mock, since we're using page.route anyway
+        // In a real live test, we'd delete all and add all, but this test is mocked.
+        for (const epic of symbols) {
+          await fetch(`/api/watchlist/mock-123`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ epic })
+          });
+        }
       } catch (e) {
         console.error('Failed to restore watchlist', e);
       }
