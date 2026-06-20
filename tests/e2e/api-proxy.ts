@@ -62,7 +62,6 @@ export async function setupLiveApiProxy(page: Page) {
         method: req.method(),
         headers,
         data: postData,
-        ignoreHTTPSErrors: true,
       });
 
       const status = response.status();
@@ -90,7 +89,7 @@ export async function setupLiveApiProxy(page: Page) {
       }
     } catch (error: any) {
       console.error(`[Proxy] Fetch failed for ${targetUrl}:`, error.message);
-      route.abort();
+      await route.abort().catch(() => {});
     }
   });
 }
