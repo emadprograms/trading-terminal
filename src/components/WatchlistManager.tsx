@@ -14,8 +14,9 @@ export function WatchlistManager() {
   // 1. WebSocket Subscriptions for Watchlist
   useEffect(() => {
     const prevSymbols = prevSymbolsRef.current;
-    const added = symbols.filter(s => !prevSymbols.includes(s));
-    const removed = prevSymbols.filter(s => !symbols.includes(s));
+    const safeSymbols = symbols || [];
+    const added = safeSymbols.filter(s => !prevSymbols.includes(s));
+    const removed = prevSymbols.filter(s => !safeSymbols.includes(s));
 
     added.forEach(s => wsManager.subscribe(s));
     removed.forEach(s => wsManager.unsubscribe(s));
@@ -33,7 +34,7 @@ export function WatchlistManager() {
 
   // 1b. Background Prefetching of historical data for instant loads
   useEffect(() => {
-    if (isAuthenticated && symbols.length > 0) {
+    if (isAuthenticated && (symbols || []).length > 0) {
       // Always pre-load 5min and 1D, plus whatever timeframes the user currently has open
       const tfs = new Set<Timeframe>(['5min', '1D']);
       Object.values(timeframesMap || {}).forEach(tf => {

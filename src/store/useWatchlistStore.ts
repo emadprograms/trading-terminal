@@ -140,7 +140,7 @@ export const useWatchlistStore = create<WatchlistState>()(
           
           let remoteSymbols: string[] = [];
           let remoteId: string | null = state.remoteWatchlistId;
-          let available: { id: string; name: string }[] = state.availableWatchlists;
+          let available: { id: string; name: string }[] = state.availableWatchlists || [];
 
           if (data && Array.isArray(data.watchlists) && data.watchlists.length > 0) {
             available = data.watchlists.map((w: any) => ({ id: w.id, name: w.name || w.id }));
@@ -175,7 +175,7 @@ export const useWatchlistStore = create<WatchlistState>()(
           }
 
           // Process deletions
-          for (const epic of state.pendingDeletions) {
+          for (const epic of (state.pendingDeletions || [])) {
             try {
               await watchlistApi.removeEpicFromWatchlist(epic, remoteId);
             } catch (error) {
@@ -185,7 +185,7 @@ export const useWatchlistStore = create<WatchlistState>()(
           }
 
           // Process additions
-          for (const epic of state.pendingAdditions) {
+          for (const epic of (state.pendingAdditions || [])) {
             try {
               await watchlistApi.addEpicToWatchlist(epic, remoteId);
             } catch (error) {
@@ -194,8 +194,8 @@ export const useWatchlistStore = create<WatchlistState>()(
             }
           }
 
-          let finalSymbols = remoteSymbols.filter(s => !state.pendingDeletions.includes(s));
-          for (const add of state.pendingAdditions) {
+          let finalSymbols = remoteSymbols.filter(s => !(state.pendingDeletions || []).includes(s));
+          for (const add of (state.pendingAdditions || [])) {
             if (!finalSymbols.includes(add)) {
               finalSymbols.push(add);
             }
