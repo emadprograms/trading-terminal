@@ -26,6 +26,16 @@ export const watchlistApi = {
     }
   },
 
+  getWatchlist: async (id: string) => {
+    try {
+      const response = await api.get(`watchlist/${id}`);
+      return await response.json();
+    } catch (error: any) {
+      console.error('[watchlistApi] getWatchlist error:', error);
+      throw new Error(error.message || 'Failed to fetch watchlist details');
+    }
+  },
+
   addEpicToWatchlist: async (epic: string, id: string) => {
     try {
       const response = await api.put(`watchlist/${id}`, {

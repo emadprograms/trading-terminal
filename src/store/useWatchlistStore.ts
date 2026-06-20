@@ -98,9 +98,12 @@ export const useWatchlistStore = create<WatchlistState>()(
             if (!remoteId || !available.find(w => w.id === remoteId)) {
               remoteId = data.watchlists[0].id;
             }
-            const activeList = data.watchlists.find((w: any) => w.id === remoteId) || data.watchlists[0];
-            remoteSymbols = activeList.epics || [];
-            remoteId = activeList.id || null;
+            if (remoteId) {
+              const listData: any = await watchlistApi.getWatchlist(remoteId);
+              // Fallback to activeList if getWatchlist doesn't return epics directly
+              const activeList = listData.watchlists ? listData.watchlists.find((w: any) => w.id === remoteId) : listData;
+              remoteSymbols = activeList?.epics || activeList?.markets?.map((m: any) => m.epic) || [];
+            }
           } else if (data && Array.isArray(data.epics)) {
             available = [{ id: data.id || 'default', name: data.name || 'My Watchlist' }];
             remoteSymbols = data.epics;
@@ -133,9 +136,11 @@ export const useWatchlistStore = create<WatchlistState>()(
             if (!remoteId || !available.find(w => w.id === remoteId)) {
               remoteId = data.watchlists[0].id;
             }
-            const activeList = data.watchlists.find((w: any) => w.id === remoteId) || data.watchlists[0];
-            remoteSymbols = activeList.epics || [];
-            remoteId = activeList.id || null;
+            if (remoteId) {
+              const listData: any = await watchlistApi.getWatchlist(remoteId);
+              const activeList = listData.watchlists ? listData.watchlists.find((w: any) => w.id === remoteId) : listData;
+              remoteSymbols = activeList?.epics || activeList?.markets?.map((m: any) => m.epic) || [];
+            }
           } else if (data && Array.isArray(data.epics)) {
             available = [{ id: data.id || 'default', name: data.name || 'My Watchlist' }];
             remoteSymbols = data.epics;
@@ -152,6 +157,7 @@ export const useWatchlistStore = create<WatchlistState>()(
               await watchlistApi.removeEpicFromWatchlist(epic, remoteId);
             } catch (error) {
               console.warn(`[useWatchlistStore] Failed to remove ${epic}:`, error);
+              throw error;
             }
           }
 
@@ -161,6 +167,7 @@ export const useWatchlistStore = create<WatchlistState>()(
               await watchlistApi.addEpicToWatchlist(epic, remoteId);
             } catch (error) {
               console.warn(`[useWatchlistStore] Failed to add ${epic}:`, error);
+              throw error;
             }
           }
 
