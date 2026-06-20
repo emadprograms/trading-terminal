@@ -13,6 +13,8 @@ interface WatchlistState {
   pendingDeletions: string[];
   isInitialized: boolean;
   remoteWatchlistId: string | null;
+  availableWatchlists: { id: string; name: string }[];
+  setActiveWatchlist: (id: string) => void;
   initializeWatchlist: () => Promise<void>;
   syncWithRemote: () => Promise<void>;
 }
@@ -28,6 +30,12 @@ export const useWatchlistStore = create<WatchlistState>()(
       pendingDeletions: [],
       isInitialized: false,
       remoteWatchlistId: null,
+      availableWatchlists: [],
+
+      setActiveWatchlist: (id: string) => {
+        set({ remoteWatchlistId: id, symbols: [], isInitialized: false });
+        get().initializeWatchlist();
+      },
 
       addSymbol: (symbol) => {
         const sanitized = symbol.trim().toUpperCase();
@@ -79,19 +87,32 @@ export const useWatchlistStore = create<WatchlistState>()(
 
         try {
           const { watchlistApi } = await import('../services/watchlist');
-          const data = await watchlistApi.fetchWatchlist();
+          const data: any = await watchlistApi.fetchWatchlist();
           
           let remoteSymbols: string[] = [];
-          let remoteId: string | null = null;
+          let remoteId: string | null = state.remoteWatchlistId;
+          let available: { id: string; name: string }[] = [];
+
           if (data && Array.isArray(data.watchlists) && data.watchlists.length > 0) {
-            remoteSymbols = data.watchlists[0].epics || [];
-            remoteId = data.watchlists[0].id || null;
+            available = data.watchlists.map((w: any) => ({ id: w.id, name: w.name || w.id }));
+            if (!remoteId || !available.find(w => w.id === remoteId)) {
+              remoteId = data.watchlists[0].id;
+            }
+            const activeList = data.watchlists.find((w: any) => w.id === remoteId) || data.watchlists[0];
+            remoteSymbols = activeList.epics || [];
+            remoteId = activeList.id || null;
           } else if (data && Array.isArray(data.epics)) {
+            available = [{ id: data.id || 'default', name: data.name || 'My Watchlist' }];
             remoteSymbols = data.epics;
             remoteId = data.id || null;
           }
 
-          set({ symbols: remoteSymbols.slice(0, MAX_SYMBOLS), isInitialized: true, remoteWatchlistId: remoteId });
+          set({ 
+            symbols: remoteSymbols.slice(0, MAX_SYMBOLS), 
+            isInitialized: true, 
+            remoteWatchlistId: remoteId,
+            availableWatchlists: available
+          });
         } catch (error) {
           console.error('[useWatchlistStore] initializeWatchlist error:', error);
         }
@@ -101,14 +122,22 @@ export const useWatchlistStore = create<WatchlistState>()(
         const state = get();
         try {
           const { watchlistApi } = await import('../services/watchlist');
-          const data = await watchlistApi.fetchWatchlist();
+          const data: any = await watchlistApi.fetchWatchlist();
           
           let remoteSymbols: string[] = [];
           let remoteId: string | null = state.remoteWatchlistId;
+          let available: { id: string; name: string }[] = state.availableWatchlists;
+
           if (data && Array.isArray(data.watchlists) && data.watchlists.length > 0) {
-            remoteSymbols = data.watchlists[0].epics || [];
-            remoteId = data.watchlists[0].id || null;
+            available = data.watchlists.map((w: any) => ({ id: w.id, name: w.name || w.id }));
+            if (!remoteId || !available.find(w => w.id === remoteId)) {
+              remoteId = data.watchlists[0].id;
+            }
+            const activeList = data.watchlists.find((w: any) => w.id === remoteId) || data.watchlists[0];
+            remoteSymbols = activeList.epics || [];
+            remoteId = activeList.id || null;
           } else if (data && Array.isArray(data.epics)) {
+            available = [{ id: data.id || 'default', name: data.name || 'My Watchlist' }];
             remoteSymbols = data.epics;
             remoteId = data.id || null;
           }
@@ -147,7 +176,8 @@ export const useWatchlistStore = create<WatchlistState>()(
             symbols: finalSymbols,
             pendingAdditions: [],
             pendingDeletions: [],
-            remoteWatchlistId: remoteId
+            remoteWatchlistId: remoteId,
+            availableWatchlists: available
           });
         } catch (error) {
           console.error('[useWatchlistStore] syncWithRemote error:', error);
