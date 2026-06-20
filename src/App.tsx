@@ -34,7 +34,7 @@ export default function App() {
 
   useEffect(() => {
     import('./store/useWatchlistStore').then(({ useWatchlistStore }) => {
-      useWatchlistStore.getState().initializeWatchlist();
+      useWatchlistStore.getState().syncWithRemote().catch(console.error);
     });
   }, []);
 

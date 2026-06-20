@@ -11,7 +11,7 @@ const DEFAULT_PREFIX = '/api'
 const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
 export const api = ky.create({
-  prefix: DEFAULT_PREFIX,
+  prefixUrl: DEFAULT_PREFIX,
   retry: 0,
   hooks: {
     beforeRequest: [

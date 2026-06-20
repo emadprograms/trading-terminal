@@ -34,7 +34,7 @@ export const useWatchlistStore = create<WatchlistState>()(
 
       setActiveWatchlist: (id: string) => {
         set({ remoteWatchlistId: id, symbols: [], isInitialized: false });
-        get().initializeWatchlist();
+        get().syncWithRemote().catch(console.error);
       },
 
       addSymbol: (symbol) => {
@@ -100,9 +100,20 @@ export const useWatchlistStore = create<WatchlistState>()(
             }
             if (remoteId) {
               const listData: any = await watchlistApi.getWatchlist(remoteId);
-              // Fallback to activeList if getWatchlist doesn't return epics directly
-              const activeList = listData.watchlists ? listData.watchlists.find((w: any) => w.id === remoteId) : listData;
-              remoteSymbols = activeList?.epics || activeList?.markets?.map((m: any) => m.epic) || [];
+              
+              let extractedSymbols: string[] = [];
+              if (Array.isArray(listData)) {
+                extractedSymbols = typeof listData[0] === 'string' ? listData : listData.map((m: any) => m.epic || m).filter(Boolean);
+              } else {
+                const activeList = listData.watchlists ? listData.watchlists.find((w: any) => w.id === remoteId) : listData;
+                if (activeList) {
+                  if (Array.isArray(activeList.epics)) extractedSymbols = activeList.epics;
+                  else if (Array.isArray(activeList.markets)) extractedSymbols = activeList.markets.map((m: any) => m.epic).filter(Boolean);
+                  else if (Array.isArray(activeList.instruments)) extractedSymbols = activeList.instruments.map((m: any) => m.epic).filter(Boolean);
+                  else if (activeList.epic) extractedSymbols = [activeList.epic];
+                }
+              }
+              remoteSymbols = extractedSymbols;
             }
           } else if (data && Array.isArray(data.epics)) {
             available = [{ id: data.id || 'default', name: data.name || 'My Watchlist' }];
@@ -138,8 +149,20 @@ export const useWatchlistStore = create<WatchlistState>()(
             }
             if (remoteId) {
               const listData: any = await watchlistApi.getWatchlist(remoteId);
-              const activeList = listData.watchlists ? listData.watchlists.find((w: any) => w.id === remoteId) : listData;
-              remoteSymbols = activeList?.epics || activeList?.markets?.map((m: any) => m.epic) || [];
+              
+              let extractedSymbols: string[] = [];
+              if (Array.isArray(listData)) {
+                extractedSymbols = typeof listData[0] === 'string' ? listData : listData.map((m: any) => m.epic || m).filter(Boolean);
+              } else {
+                const activeList = listData.watchlists ? listData.watchlists.find((w: any) => w.id === remoteId) : listData;
+                if (activeList) {
+                  if (Array.isArray(activeList.epics)) extractedSymbols = activeList.epics;
+                  else if (Array.isArray(activeList.markets)) extractedSymbols = activeList.markets.map((m: any) => m.epic).filter(Boolean);
+                  else if (Array.isArray(activeList.instruments)) extractedSymbols = activeList.instruments.map((m: any) => m.epic).filter(Boolean);
+                  else if (activeList.epic) extractedSymbols = [activeList.epic];
+                }
+              }
+              remoteSymbols = extractedSymbols;
             }
           } else if (data && Array.isArray(data.epics)) {
             available = [{ id: data.id || 'default', name: data.name || 'My Watchlist' }];
@@ -195,6 +218,9 @@ export const useWatchlistStore = create<WatchlistState>()(
     {
       name: 'watchlist-storage',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => Object.fromEntries(
+        Object.entries(state).filter(([key]) => !['isInitialized'].includes(key))
+      )
     }
   )
 );

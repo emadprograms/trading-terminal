@@ -73,7 +73,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button 
           className={`btn-icon ${activePanel === 'watchlist' ? 'active' : ''}`} 
-          onClick={() => setActivePanel(activePanel === 'watchlist' ? null : 'watchlist')} 
+          onClick={() => {
+            const nextPanel = activePanel === 'watchlist' ? null : 'watchlist';
+            setActivePanel(nextPanel);
+            if (nextPanel === 'watchlist') {
+              handleSyncWatchlist();
+            }
+          }} 
           title="Watchlist"
           style={{ 
             color: activePanel === 'watchlist' ? 'var(--accent-green)' : 'var(--text-secondary)',

@@ -6,7 +6,7 @@
 |---|-------|------|--------------|------------------|
 | 4 | Order System Audit & Core Fixes | Fix known bugs and perform a deep code audit to discover and patch any state/event duplication issues. | AUDIT-01, ORDER-01, ORDER-02, ORDER-03 | 3 |
 | 5 | Order Lifecycle Testing & Validation | Build a rigorous test suite to stress-test the order execution under all known and edge-case conditions. | TEST-03 | 3 |
-| 5.1 | Advanced Edge Case Testing | Expand test suite to cover complex trading actions, half-flatten logic, and API error recovery. | TEST-04 | 3 |
+| 5.1 | Advanced Edge Case Testing | 1/1 | Complete    | 2026-06-20 |
 | 5.2 | Data Stitching & Market Engine Validation | 1/1 | Complete    | 2026-06-20 |
 
 ### Phase Details
