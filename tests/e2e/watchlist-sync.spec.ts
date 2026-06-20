@@ -113,7 +113,7 @@ test.describe('Watchlist Synchronization', () => {
     await syncPromise;
 
     // Verify success toast appears
-    await expect(page.getByText('Watchlist synced successfully')).toBeVisible();
+    await expect(page.getByText('Watchlist synced successfully').first()).toBeVisible();
   });
 
   test('failure scenario: shows error toast on 500 response', async ({ page }) => {
