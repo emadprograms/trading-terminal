@@ -9,15 +9,15 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 - **Robust Local State:** High-performance, play-by-play market data caching using a Web Worker-based SQLite (sql.js) database to prevent main thread blocking.
 - **Premium Aesthetics:** A sleek, modern, and highly polished user interface with fluid micro-animations and exact interaction states.
 
-## Current Milestone: v1.1 Orders Audit & Hardening
+## Current State
 
-**Goal:** Rigorously audit, harden, and comprehensively test the entire order placement and lifecycle logic to ensure bulletproof execution and discover/fix hidden bugs (including unknown edge cases like event duplication across multiple charts).
+Shipped v1.1 Orders Audit & Hardening.
+- **Order Execution:** Hardened with local execution locks to prevent double/ghost orders and fixed limits.
+- **E2E Testing:** Comprehensive suite in Playwright for live Capital.com demo API validation, stitching, and advanced edge cases.
+- **Watchlist:** Synchronized live with Capital.com endpoints.
 
-**Target features:**
-- **Comprehensive Code & Event Audit:** Deep dive into the codebase to find undiscovered bugs, race conditions, event listener duplications, and state mismanagement in order execution.
-- **Double Alt Fix:** Fix the known `flattenHalfSymbol` bug caused by summing unfiltered historical pending orders (`FLATTEN_HALF_DIAGNOSIS.md`).
-- **Double/Ghost Orders & Stuck Limit Orders Fix:** Identify and resolve root causes of known issues (double orders, ghost orders, non-cancellable limit orders).
-- **Rigorous Order Testing Suite:** Implement a comprehensive, edge-case-heavy test suite designed to stress-test the entire order lifecycle under extreme conditions.
+## Next Milestone Goals
+[To be defined in next planning phase]
 
 ## Future Milestones
 - Advanced Order Types & Strategies
@@ -50,3 +50,6 @@ This document evolves at phase transitions and milestone boundaries.
 2. Core Value check — still the right priority?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
+
+---
+*Last updated: 2026-06-21 after v1.1 milestone*
