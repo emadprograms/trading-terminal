@@ -1067,12 +1067,17 @@ export const useTradeStore = create<TradeState>()(
         }),
 
       handleConfirmation: (rawPayload: any) => {
-        console.log('[DEBUG-PAYLOAD] Raw confirmation payload received:', JSON.stringify(rawPayload, null, 2));
+        if (rawPayload.dealStatus === 'REJECTED' || rawPayload.status === 'REJECTED') {
+          console.warn('[DEBUG-PAYLOAD] Rejected confirmation payload:', JSON.stringify(rawPayload, null, 2));
+        } else {
+          console.log('[DEBUG-PAYLOAD] Raw confirmation payload received:', JSON.stringify(rawPayload, null, 2));
+        }
 
         // Normalize Capital.com payload which might use dealStatus and level
         const payload: TradeConfirmation = {
           ...rawPayload,
           status: rawPayload.dealStatus || rawPayload.status,
+          reason: rawPayload.reason || rawPayload.rejectReason || rawPayload.errorCode || rawPayload.developerMessage || rawPayload.message || rawPayload.error,
           entryPrice: rawPayload.level || rawPayload.entryPrice || rawPayload.price,
           stopLevel: rawPayload.stopLevel,
           // Sometimes Capital.com hides the dealId in affectedDeals
