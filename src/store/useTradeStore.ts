@@ -1073,11 +1073,20 @@ export const useTradeStore = create<TradeState>()(
           console.log('[DEBUG-PAYLOAD] Raw confirmation payload received:', JSON.stringify(rawPayload, null, 2));
         }
 
+        let extractedReason = rawPayload.reason || rawPayload.rejectReason || rawPayload.errorCode || rawPayload.developerMessage || rawPayload.message || rawPayload.error;
+        
+        // Map common Capital.com backend rejection errors to user-friendly messages
+        if (extractedReason === 'INVALID_ORDER_QTY') {
+          extractedReason = 'Invalid Quantity (instrument limits or fractional sizes not allowed on Demo)';
+        } else if (extractedReason === 'RC_INSTRUMENT_CLIENT_MOP') {
+          extractedReason = 'Instrument restricted for this account type';
+        }
+
         // Normalize Capital.com payload which might use dealStatus and level
         const payload: TradeConfirmation = {
           ...rawPayload,
           status: rawPayload.dealStatus || rawPayload.status,
-          reason: rawPayload.reason || rawPayload.rejectReason || rawPayload.errorCode || rawPayload.developerMessage || rawPayload.message || rawPayload.error,
+          reason: extractedReason,
           entryPrice: rawPayload.level || rawPayload.entryPrice || rawPayload.price,
           stopLevel: rawPayload.stopLevel,
           // Sometimes Capital.com hides the dealId in affectedDeals
