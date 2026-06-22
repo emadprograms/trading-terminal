@@ -1,6 +1,6 @@
----
 status: complete
 phase: 04-order-system-audit-core-fixes
+---
 source: [04-SUMMARY.md]
 started: 2026-06-17T15:34:35Z
 updated: 2026-06-17T15:34:35Z
