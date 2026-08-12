@@ -260,6 +260,7 @@ export function useTradeManager({
   // Expose markers for E2E tests
   if (typeof window !== 'undefined') {
     (window as any).__TEST_MARKERS__ = markers;
+    (window as any).__MARKERS__ = markers;
     (window as any).__TEST_CHART_API__ = chartRef?.current;
     (window as any).__TEST_PRICE_SERIES__ = priceSeriesRef?.current;
   }
@@ -302,8 +303,8 @@ export function useTradeManager({
           let minDistance = Infinity;
 
           let scale = 1;
-          if (chartRef.current) {
-            const timeScale = chartRef.current.timeScale();
+          const timeScale = chartRef.current?.timeScale();
+          if (timeScale) {
             const logicalRange = timeScale.getVisibleLogicalRange();
             if (logicalRange) {
               const width = timeScale.width();
@@ -312,6 +313,15 @@ export function useTradeManager({
               if (barSpacing < 8) {
                 scale = Math.max(0.3, barSpacing / 8);
               }
+            }
+          }
+
+          // Compute the candle's X coordinate from the time axis (not the mouse)
+          let candleX = param.point.x; // fallback to mouse if timeToCoordinate fails
+          if (timeScale && exactTime !== undefined) {
+            const computed = timeScale.timeToCoordinate(exactTime as any);
+            if (computed !== null) {
+              candleX = computed;
             }
           }
 
@@ -358,7 +368,7 @@ export function useTradeManager({
             if (dist < minDistance && dist <= 15) {
               minDistance = dist;
               closestExec = {
-                x: param.point.x,
+                x: candleX,
                 y,
                 renderY: markerCenterY,
                 price: execData.price,
@@ -397,7 +407,7 @@ export function useTradeManager({
         } catch(e) {}
       };
     }
-  }, [tickerExecutions, markers, priceSeriesRef, chartRef, tradePluginRef]);
+  }, [tickerExecutions, markers, priceSeriesRef, chartRef, tradePluginRef, pluginVersion]);
 
   // Register badge refs
   const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {

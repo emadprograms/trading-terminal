@@ -395,6 +395,9 @@ test.describe('Stacked Execution Markers — Hover Hit-Zone Regression', () => {
     // Verify renderY is set and matches the calculated marker center
     expect(hovered[0].renderY).toBeDefined();
     expect(Math.abs(hovered[0].renderY - markerCoords.chartRelMarkerCenterY)).toBeLessThan(2);
+    // Verify x is anchored to the candle's X coordinate, not the mouse cursor
+    expect(hovered[0].x).toBeDefined();
+    expect(Math.abs(hovered[0].x - markerCoords.chartRelX)).toBeLessThan(2);
   });
 
   // --------------------------------------------------------------------------

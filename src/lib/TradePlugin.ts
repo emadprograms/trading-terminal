@@ -216,9 +216,10 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                     
                     ctx.save();
                     ctx.beginPath();
-                    ctx.moveTo(x - size - 2, renderY - size); // Top left
-                    ctx.lineTo(x - 2, renderY);               // Middle tip (slightly offset from crosshair)
-                    ctx.lineTo(x - size - 2, renderY + size); // Bottom left
+                    // Arrow points left toward the marker triangle, anchored at candle X
+                    ctx.moveTo(x + size + 2, renderY - size); // Top right
+                    ctx.lineTo(x + 2, renderY);               // Middle tip (at the marker)
+                    ctx.lineTo(x + size + 2, renderY + size); // Bottom right
                     
                     ctx.lineJoin = 'round';
                     ctx.lineCap = 'round';
