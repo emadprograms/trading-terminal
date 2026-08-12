@@ -152,7 +152,13 @@ export function useChartData({
         }
         dataTimeframeRef.current = timeframe;
         dataTickerRef.current = ticker;
-        setLocalMasterData(data as RawBar[]);
+        setLocalMasterData((prev: RawBar[]) => {
+          if (prev === data) return prev;
+          if (prev.length === data?.length && prev[prev.length - 1]?.time === data[data.length - 1]?.time && prev[0]?.time === data[0]?.time) {
+            return prev;
+          }
+          return data as RawBar[];
+        });
         setStitchingError(null);
       } catch (err: any) {
         if (cancelled) return;

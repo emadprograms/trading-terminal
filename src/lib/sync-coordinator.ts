@@ -309,7 +309,7 @@ export class SyncCoordinator {
         });
       }
 
-      return [...history];
+      return history;
     } finally {
       this.activeSyncs--;
     }
