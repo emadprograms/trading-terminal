@@ -128,7 +128,7 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         const isBuy = direction === 'BUY';
                         
                         // Stack offset calculation
-                        const stackOffset = count * 4 * scale;
+                        const stackOffset = count * 8 * scale;
                         if (isBuy) {
                             yPos += stackOffset;
                         } else {
@@ -210,14 +210,15 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                 // Draw Hovered Execution Sideways Arrows
                 this._hoveredExecutions.forEach(exec => {
-                    const { x, y, direction } = exec;
+                    const { x, direction } = exec;
+                    const renderY = (exec as any).renderY ?? exec.y;
                     const size = 5;
                     
                     ctx.save();
                     ctx.beginPath();
-                    ctx.moveTo(x - size - 2, y - size); // Top left
-                    ctx.lineTo(x - 2, y);               // Middle tip (slightly offset from crosshair)
-                    ctx.lineTo(x - size - 2, y + size); // Bottom left
+                    ctx.moveTo(x - size - 2, renderY - size); // Top left
+                    ctx.lineTo(x - 2, renderY);               // Middle tip (slightly offset from crosshair)
+                    ctx.lineTo(x - size - 2, renderY + size); // Bottom left
                     
                     ctx.lineJoin = 'round';
                     ctx.lineCap = 'round';

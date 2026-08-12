@@ -190,7 +190,13 @@ export function useTradeManager({
          if (typeof bar.time === 'number') {
            barTimeMs = bar.time * 1000;
          } else if (typeof bar.time === 'string') {
-           barTimeMs = new Date(bar.time.includes('T') ? bar.time : bar.time.replace(' ', 'T') + 'Z').getTime();
+            if (bar.time.includes(' ')) {
+              barTimeMs = new Date(bar.time.replace(' ', 'T') + 'Z').getTime();
+            } else if (bar.time.includes('T')) {
+              barTimeMs = new Date(bar.time).getTime();
+            } else {
+              barTimeMs = new Date(bar.time + 'T00:00:00Z').getTime();
+            }
          } else if (bar.time && typeof bar.time === 'object' && 'year' in bar.time) {
            barTimeMs = new Date(Date.UTC(bar.time.year, bar.time.month - 1, bar.time.day)).getTime();
          }
@@ -254,6 +260,8 @@ export function useTradeManager({
   // Expose markers for E2E tests
   if (typeof window !== 'undefined') {
     (window as any).__TEST_MARKERS__ = markers;
+    (window as any).__TEST_CHART_API__ = chartRef?.current;
+    (window as any).__TEST_PRICE_SERIES__ = priceSeriesRef?.current;
   }
 
   // Update TradePlugin
@@ -275,12 +283,39 @@ export function useTradeManager({
           return;
         }
 
-        const exactTime = param.time as number;
+        if (typeof window !== 'undefined') (window as any).__MARKERS__ = markers;
+        let exactTime: number | undefined;
+        if (typeof param.time === 'string') {
+          exactTime = new Date(param.time).getTime() / 1000;
+        } else if (param.time && typeof param.time === 'object' && 'year' in param.time) {
+          exactTime = new Date(Date.UTC(param.time.year, param.time.month - 1, param.time.day)).getTime() / 1000;
+        } else if (typeof param.time === 'number') {
+          exactTime = param.time;
+        }
+        
         // Find executions that match this exact candle
         const hovered = markers.filter(m => m.type === 'EXECUTION' && m.time === exactTime);
+        if (typeof window !== 'undefined') (window as any).__LAST_HOVERED_RAW__ = hovered;
+
         if (hovered.length > 0) {
           let closestExec = null;
           let minDistance = Infinity;
+
+          let scale = 1;
+          if (chartRef.current) {
+            const timeScale = chartRef.current.timeScale();
+            const logicalRange = timeScale.getVisibleLogicalRange();
+            if (logicalRange) {
+              const width = timeScale.width();
+              const barsVisible = logicalRange.to - logicalRange.from;
+              const barSpacing = width / barsVisible;
+              if (barSpacing < 8) {
+                scale = Math.max(0.3, barSpacing / 8);
+              }
+            }
+          }
+
+          const executionCounts = new Map<string, number>();
 
           for (const hMarker of hovered) {
             const execData = tickerExecutions.find(e => e.id === hMarker.id);
@@ -296,17 +331,36 @@ export function useTradeManager({
               arrowY = priceSeriesRef.current!.priceToCoordinate(hMarker.candleHigh) ?? y;
             }
 
-            // Distance can be to the triangle (arrowY) or to the price level (y)
-            const dist = Math.min(
-              Math.abs(param.point.y - arrowY),
-              Math.abs(param.point.y - y)
-            );
+            const directionKey = hMarker.direction;
+            const count = executionCounts.get(directionKey) || 0;
+            executionCounts.set(directionKey, count + 1);
 
-            if (dist < minDistance) {
+            const stackOffset = count * 8 * scale;
+            if (hMarker.direction === 'BUY') {
+              arrowY += stackOffset;
+            } else {
+              arrowY -= stackOffset;
+            }
+
+            const offset = 6 * scale;
+            const h = 8 * scale;
+            let markerCenterY = arrowY;
+            if (hMarker.direction === 'BUY') {
+              markerCenterY += offset + h / 2;
+            } else {
+              markerCenterY -= offset + h / 2;
+            }
+
+            // Distance ONLY to the actual drawn triangle center
+            const dist = Math.abs(param.point.y - markerCenterY);
+
+            // Use a strict threshold
+            if (dist < minDistance && dist <= 15) {
               minDistance = dist;
               closestExec = {
                 x: param.point.x,
                 y,
+                renderY: markerCenterY,
                 price: execData.price,
                 direction: execData.direction,
                 action: execData.action
@@ -318,17 +372,20 @@ export function useTradeManager({
             chartRef.current.applyOptions({ crosshair: { horzLine: { visible: false, labelVisible: false } } });
             if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
               tradePluginRef.current.setHoveredExecutions([closestExec]);
+              if (typeof window !== 'undefined') (window as any).__TEST_HOVERED_EXECUTIONS__ = [closestExec];
             }
           } else {
             chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
             if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
               tradePluginRef.current.setHoveredExecutions([]);
+              if (typeof window !== 'undefined') (window as any).__TEST_HOVERED_EXECUTIONS__ = [];
             }
           }
         } else {
           chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
           if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
             tradePluginRef.current.setHoveredExecutions([]);
+            if (typeof window !== 'undefined') (window as any).__TEST_HOVERED_EXECUTIONS__ = [];
           }
         }
       };
