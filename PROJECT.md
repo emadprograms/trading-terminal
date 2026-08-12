@@ -17,7 +17,8 @@ Shipped v1.1 Orders Audit & Hardening.
 - **Watchlist:** Synchronized live with Capital.com endpoints.
 
 ## Next Milestone Goals
-[To be defined in next planning phase]
+- Fix order marker placement on charts.
+- Build evident-proof test suite for visual markers.
 
 ## Future Milestones
 - Advanced Order Types & Strategies

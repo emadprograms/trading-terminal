@@ -38,7 +38,7 @@ code
 .vscode/
 
 # GSD Agent settings
-.agent/
+.agents/
 
 # Scratch files
 scratch/

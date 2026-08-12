@@ -184,7 +184,16 @@ export function useTradeManager({
        // Find the closest bar timestamp <= execution timestamp
        let matchBar = chartData[0];
        for (const bar of chartData) {
-         if (new Date(bar.time + 'Z').getTime() <= e.timestamp) {
+         let barTimeMs = 0;
+         if (typeof bar.time === 'number') {
+           barTimeMs = bar.time * 1000;
+         } else if (typeof bar.time === 'string') {
+           barTimeMs = new Date(bar.time.includes('T') ? bar.time : bar.time + 'Z').getTime();
+         } else if (bar.time && typeof bar.time === 'object' && 'year' in bar.time) {
+           barTimeMs = new Date(Date.UTC(bar.time.year, bar.time.month - 1, bar.time.day)).getTime();
+         }
+         
+         if (barTimeMs <= e.timestamp) {
            matchBar = bar;
          } else {
            break;
@@ -200,7 +209,7 @@ export function useTradeManager({
          direction: e.direction,
          size: e.size,
          type: 'EXECUTION',
-         time: Math.floor(new Date(matchBar ? matchBar.time + 'Z' : 0).getTime() / 1000) as Time,
+         time: matchBar ? matchBar.time : undefined,
         };
     });
 
