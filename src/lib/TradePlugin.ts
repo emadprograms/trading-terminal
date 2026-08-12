@@ -74,6 +74,8 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                 ctx.save();
                 ctx.globalAlpha = 0.8;
 
+                const executionCounts = new Map<string, number>();
+
                 this._items.forEach(item => {
                     const { y, direction, id } = item;
                     if (y === null) return;
@@ -104,7 +106,11 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         // Draw sleek modern chevron arrow for executions
                         ctx.save();
                         const { x, direction } = item;
-                        const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
+                        let yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
+                        
+                        const key = `${Math.round(x)}_${direction}`;
+                        const count = executionCounts.get(key) || 0;
+                        executionCounts.set(key, count + 1);
                         
                         let scale = 1;
                         if (this._chart) {
@@ -120,6 +126,15 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         }
                         
                         const isBuy = direction === 'BUY';
+                        
+                        // Stack offset calculation
+                        const stackOffset = count * 15 * scale;
+                        if (isBuy) {
+                            yPos += stackOffset;
+                        } else {
+                            yPos -= stackOffset;
+                        }
+
                         ctx.fillStyle = isBuy ? '#007aff' : '#ff3b30';
                         ctx.beginPath();
                         
