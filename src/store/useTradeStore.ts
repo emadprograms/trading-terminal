@@ -911,33 +911,23 @@ export const useTradeStore = create<TradeState>()(
 
       syncExecutions: async (days = 1) => {
         try {
-          const allActivities: any[] = [];
-          const now = new Date();
-
-          for (let i = 0; i < days; i++) {
-            const to = new Date(now.getTime() - i * 24 * 3600000);
-            const from = new Date(now.getTime() - (i + 1) * 24 * 3600000);
-
-            // Format to YYYY-MM-DDTHH:MM:SS
-            const toStr = to.toISOString().split('.')[0];
-            const fromStr = from.toISOString().split('.')[0];
-
-            // Fetch detailed activity range
-            const rawDateActivities = await tradeApi.fetchActivityHistoryRange(fromStr, toStr);
-            allActivities.push(...rawDateActivities);
-
-            if (days > 1 && i < days - 1) {
-              // Throttle to respect rate limits
-              await new Promise(resolve => setTimeout(resolve, 150));
-            }
-          }
+          const lastPeriodSeconds = days * 24 * 3600;
+          const allActivities = await tradeApi.fetchActivityHistory(lastPeriodSeconds);
 
           const mapped: Execution[] = allActivities
-            .filter(a => a.type === 'POSITION' && a.status === 'ACCEPTED' && a.details)
+            .filter(a => {
+              return (a.type === 'POSITION' || a.type === 'WORKING_ORDER') && 
+                     (a.status === 'ACCEPTED' || a.status === 'EXECUTED' || a.status === 'FILLED' || a.status === 'OPENED') && 
+                     a.details && (a.details.level || a.details.openPrice);
+            })
             .map(a => {
               const d = a.details;
               const rawDate = a.dateUTC || a.date;
-              const timestamp = rawDate ? new Date(rawDate).getTime() : Date.now();
+              let timestamp = Date.now();
+              if (rawDate) {
+                const dateStr = rawDate.endsWith('Z') ? rawDate : `${rawDate}Z`;
+                timestamp = new Date(dateStr).getTime();
+              }
               return {
                 id: `${a.dealId}_${d.direction}_${timestamp}`,
                 dealId: a.dealId,
