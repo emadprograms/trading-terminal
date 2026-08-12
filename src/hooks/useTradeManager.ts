@@ -247,6 +247,11 @@ export function useTradeManager({
     return baseMarkers;
   }, [baseMarkers, dragPreview]);
 
+  // Expose markers for E2E tests
+  if (typeof window !== 'undefined') {
+    (window as any).__TEST_MARKERS__ = markers;
+  }
+
   // Update TradePlugin
   useEffect(() => {
     if (tradePluginRef.current && typeof tradePluginRef.current.setItems === 'function') {
