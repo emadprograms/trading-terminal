@@ -165,6 +165,7 @@ export class SyncCoordinator {
       // 2. Subscribe with buffering enabled
       wsManager.subscribe(ticker, true);
 
+      let wasFreshlyFetched = false;
       // 3. Fetch initial history if cache was empty — INDEPENDENT fetch, never shared
       if (!history || history.length === 0) {
         if (abortSignal) {
@@ -176,6 +177,7 @@ export class SyncCoordinator {
           }
         }
         history = await this.fetchWithRetry(ticker, toIso, targetCandles, timeframe);
+        wasFreshlyFetched = true;
 
         if (!history || history.length === 0) {
           wsManager.setBuffering(ticker, false);
@@ -216,11 +218,15 @@ export class SyncCoordinator {
       const thresholdMs = intervalMs * 1.5; // 1.5x grace tolerance
 
       if (firstWsTimeMs - lastRestTimeMs > thresholdMs) {
-        console.log(`[SyncCoordinator] Gap detected for ${ticker} (${Math.round((firstWsTimeMs - lastRestTimeMs) / 60000)} mins). Fetching bridge...`);
+        let bridgeData: RawBar[] | undefined = undefined;
         
-        // Attempt to bridge the gap
-        const bridgeTo = new Date(firstWsTimeMs).toISOString();
-        const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
+        if (!wasFreshlyFetched) {
+          console.log(`[SyncCoordinator] Gap detected for ${ticker} (${Math.round((firstWsTimeMs - lastRestTimeMs) / 60000)} mins). Fetching bridge...`);
+          const bridgeTo = new Date(firstWsTimeMs).toISOString();
+          bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
+        } else {
+          console.log(`[SyncCoordinator] Gap detected for ${ticker} but data was freshly fetched. Skipping redundant bridge fetch.`);
+        }
         
         if (bridgeData && bridgeData.length > 0) {
           const merged = [...history, ...bridgeData];
