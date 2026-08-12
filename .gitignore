@@ -42,6 +42,5 @@ code
 
 # Scratch files
 scratch/
-playwright-report/
-test-results/
+.playwright/
 trace_output/

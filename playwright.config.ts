@@ -13,7 +13,8 @@ export default defineConfig({
   retries: 2,
   timeout: 60000,
   workers: 1,
-  reporter: 'html',
+  reporter: [['html', { outputFolder: '.playwright/report' }]],
+  outputDir: '.playwright/test-results',
   webServer: {
     command: 'npm run dev',
     port: 3001,
