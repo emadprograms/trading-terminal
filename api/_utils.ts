@@ -112,6 +112,12 @@ export async function proxyRequest(req: IncomingMessage, res: ServerResponse, pa
       'Content-Type': 'application/json',
       'X-CAP-API-KEY': apiKey,
     };
+    if (process.env.VITE_CF_ACCESS_CLIENT_ID) {
+      requestHeaders['CF-Access-Client-Id'] = process.env.VITE_CF_ACCESS_CLIENT_ID;
+    }
+    if (process.env.VITE_CF_ACCESS_CLIENT_SECRET) {
+      requestHeaders['CF-Access-Client-Secret'] = process.env.VITE_CF_ACCESS_CLIENT_SECRET;
+    }
 
     // Forward auth tokens from the browser
     const cst = req.headers['cst'] as string;

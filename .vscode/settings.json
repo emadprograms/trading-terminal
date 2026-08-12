@@ -4,5 +4,10 @@
     },
     "terminal.integrated.env.windows": {
         "PATH": "${env:PATH};C:\\Program Files\\nodejs;C:\\Users\\Administrator\\AppData\\Roaming\\npm"
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "package.json": "package-lock.json, *.config.ts, *.config.js, tsconfig*.json, .eslintrc*, .prettierrc*, .gitignore, vercel.json, .env*"
     }
 }

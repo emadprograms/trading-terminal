@@ -183,18 +183,21 @@ export function useTradeManager({
     const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
        // Find the closest bar timestamp <= execution timestamp
        let matchBar = chartData[0];
+       let matchBarTimeMs = 0;
+       
        for (const bar of chartData) {
          let barTimeMs = 0;
          if (typeof bar.time === 'number') {
            barTimeMs = bar.time * 1000;
          } else if (typeof bar.time === 'string') {
-           barTimeMs = new Date(bar.time.includes('T') ? bar.time : bar.time + 'Z').getTime();
+           barTimeMs = new Date(bar.time.includes('T') ? bar.time : bar.time.replace(' ', 'T') + 'Z').getTime();
          } else if (bar.time && typeof bar.time === 'object' && 'year' in bar.time) {
            barTimeMs = new Date(Date.UTC(bar.time.year, bar.time.month - 1, bar.time.day)).getTime();
          }
          
          if (barTimeMs <= e.timestamp) {
            matchBar = bar;
+           matchBarTimeMs = barTimeMs;
          } else {
            break;
          }
@@ -209,7 +212,7 @@ export function useTradeManager({
          direction: e.direction,
          size: e.size,
          type: 'EXECUTION',
-         time: matchBar ? matchBar.time : undefined,
+         time: matchBar ? (Math.floor(matchBarTimeMs / 1000) as any) : undefined,
         };
     });
 

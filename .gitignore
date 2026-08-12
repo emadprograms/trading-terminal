@@ -44,3 +44,4 @@ code
 scratch/
 .playwright/
 trace_output/
+.vercel
