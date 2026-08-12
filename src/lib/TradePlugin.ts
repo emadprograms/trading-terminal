@@ -210,16 +210,14 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
 
                 // Draw Hovered Execution Sideways Arrows
                 this._hoveredExecutions.forEach(exec => {
-                    const { x, direction } = exec;
-                    const renderY = (exec as any).renderY ?? exec.y;
+                    const { x, y, direction } = exec;
                     const size = 5;
                     
                     ctx.save();
                     ctx.beginPath();
-                    // Arrow points left toward the marker triangle, anchored at candle X
-                    ctx.moveTo(x + size + 2, renderY - size); // Top right
-                    ctx.lineTo(x + 2, renderY);               // Middle tip (at the marker)
-                    ctx.lineTo(x + size + 2, renderY + size); // Bottom right
+                    ctx.moveTo(x - size - 2, y - size); // Top left
+                    ctx.lineTo(x - 2, y);               // Middle tip (slightly offset from crosshair)
+                    ctx.lineTo(x - size - 2, y + size); // Bottom left
                     
                     ctx.lineJoin = 'round';
                     ctx.lineCap = 'round';

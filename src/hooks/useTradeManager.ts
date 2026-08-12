@@ -303,8 +303,8 @@ export function useTradeManager({
           let minDistance = Infinity;
 
           let scale = 1;
-          const timeScale = chartRef.current?.timeScale();
-          if (timeScale) {
+          if (chartRef.current) {
+            const timeScale = chartRef.current.timeScale();
             const logicalRange = timeScale.getVisibleLogicalRange();
             if (logicalRange) {
               const width = timeScale.width();
@@ -313,15 +313,6 @@ export function useTradeManager({
               if (barSpacing < 8) {
                 scale = Math.max(0.3, barSpacing / 8);
               }
-            }
-          }
-
-          // Compute the candle's X coordinate from the time axis (not the mouse)
-          let candleX = param.point.x; // fallback to mouse if timeToCoordinate fails
-          if (timeScale && exactTime !== undefined) {
-            const computed = timeScale.timeToCoordinate(exactTime as any);
-            if (computed !== null) {
-              candleX = computed;
             }
           }
 
@@ -368,7 +359,7 @@ export function useTradeManager({
             if (dist < minDistance && dist <= 15) {
               minDistance = dist;
               closestExec = {
-                x: candleX,
+                x: param.point.x,
                 y,
                 renderY: markerCenterY,
                 price: execData.price,
