@@ -128,7 +128,7 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         const isBuy = direction === 'BUY';
                         
                         // Stack offset calculation
-                        const stackOffset = count * 15 * scale;
+                        const stackOffset = count * 4 * scale;
                         if (isBuy) {
                             yPos += stackOffset;
                         } else {

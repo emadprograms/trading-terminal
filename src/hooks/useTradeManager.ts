@@ -202,6 +202,7 @@ export function useTradeManager({
            break;
          }
        }
+       console.log("MARKER EVALUATED:", { eTimestamp: e.timestamp, matchBarTimeMs, barTime: matchBar ? matchBar.time : null });
        
        return {
          id: e.id,
