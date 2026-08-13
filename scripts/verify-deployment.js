@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 
-const VERCEL_URL = 'https://trading-terminal-emadprograms-projects.vercel.app';
+const VERCEL_URL = 'https://trading-terminal-psi-ashen.vercel.app';
 
 async function verify() {
   console.log('Fetching local git commit hash...');
