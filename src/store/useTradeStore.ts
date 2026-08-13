@@ -909,8 +909,23 @@ export const useTradeStore = create<TradeState>()(
 
       syncExecutions: async (days = 7) => {
         try {
-          const lastPeriodSeconds = days * 24 * 3600;
-          const allActivities = await tradeApi.fetchActivityHistory(lastPeriodSeconds);
+          const allActivities: any[] = [];
+          
+          // Capital.com API restricts the maximum date range for activity history.
+          // To safely fetch multiple days without throwing 'error.invalid.daterange' or 'error.invalid.lastPeriod',
+          // we fetch it in 1-day chunks using the from/to parameters.
+          
+          const formatIso = (date: Date) => date.toISOString().split('.')[0];
+          
+          for (let i = 0; i < days; i++) {
+            const toDate = new Date(Date.now() - i * 24 * 3600 * 1000);
+            const fromDate = new Date(Date.now() - (i + 1) * 24 * 3600 * 1000);
+            
+            const chunk = await tradeApi.fetchActivityHistoryRange(formatIso(fromDate), formatIso(toDate));
+            if (Array.isArray(chunk)) {
+              allActivities.push(...chunk);
+            }
+          }
 
           const mapped: Execution[] = allActivities
             .filter(a => {
