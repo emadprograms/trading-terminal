@@ -105,125 +105,135 @@ export function useTradeManager({
   const [dragPreview, setDragPreview] = React.useState<{ id: string, price: number } | null>(null);
 
   // Map to ChartMarkers
-  const baseMarkers = useMemo((): ChartMarker[] => {
-    const posMarkers: ChartMarker[] = debouncedNettedItems.filter(i => !i.isPending).flatMap(p => {
-      const markers: ChartMarker[] = [{
-        id: p.dealId,
-        epic: p.epic,
-        price: p.entryPrice,
-        direction: p.direction,
-        size: p.size,
-        type: 'POSITION',
-        hasSL: !!p.stopLevel,
-        hasTP: !!p.profitLevel
-      }];
+  const [baseMarkers, setBaseMarkers] = React.useState<ChartMarker[]>([]);
 
-      if (p.stopLevel) {
-        markers.push({
-          id: `${p.dealId}_SL`,
+  useEffect(() => {
+    // Run asynchronously to not block the main thread and chart render
+    const timeoutId = setTimeout(() => {
+      const posMarkers: ChartMarker[] = debouncedNettedItems.filter(i => !i.isPending).flatMap(p => {
+        const markers: ChartMarker[] = [{
+          id: p.dealId,
           epic: p.epic,
-          price: p.stopLevel,
-          direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
+          price: p.entryPrice,
+          direction: p.direction,
           size: p.size,
+          type: 'POSITION',
+          hasSL: !!p.stopLevel,
+          hasTP: !!p.profitLevel
+        }];
+
+        if (p.stopLevel) {
+          markers.push({
+            id: `${p.dealId}_SL`,
+            epic: p.epic,
+            price: p.stopLevel,
+            direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
+            size: p.size,
+            type: 'ORDER',
+            label: 'SL',
+            isDashed: true,
+            parentPrice: p.entryPrice
+          });
+        }
+
+        if (p.profitLevel) {
+          markers.push({
+            id: `${p.dealId}_TP`,
+            epic: p.epic,
+            price: p.profitLevel,
+            direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
+            size: p.size,
+            type: 'ORDER',
+            label: 'TP',
+            isDashed: true,
+            parentPrice: p.entryPrice
+          });
+        }
+
+        return markers;
+      });
+
+      const marketOrderMarkers: ChartMarker[] = debouncedNettedItems.filter(i => i.isPending).map(o => {
+        let price = o.level || 0;
+        let label = 'MARKET';
+        const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
+        label = `✓ ${shortId}`;
+
+        return {
+          id: o.dealId || o.dealReference,
+          epic: o.epic,
+          price,
+          direction: o.direction,
+          size: o.size,
           type: 'ORDER',
-          label: 'SL',
-          isDashed: true,
-          parentPrice: p.entryPrice
-        });
-      }
+          label
+        };
+      });
 
-      if (p.profitLevel) {
-        markers.push({
-          id: `${p.dealId}_TP`,
-          epic: p.epic,
-          price: p.profitLevel,
-          direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
-          size: p.size,
+      const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
+        const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
+        const prefix = o.type === 'STOP' ? 'STP' : 'LMT';
+        return {
+          id: o.dealId || o.dealReference,
+          epic: o.epic,
+          price: o.level || 0,
+          direction: o.direction,
+          size: o.size,
           type: 'ORDER',
-          label: 'TP',
-          isDashed: true,
-          parentPrice: p.entryPrice
-        });
-      }
+          label: `${prefix} ${shortId}`
+        };
+      });
 
-      return markers;
-    });
-
-    const marketOrderMarkers: ChartMarker[] = debouncedNettedItems.filter(i => i.isPending).map(o => {
-      let price = o.level || 0;
-      let label = 'MARKET';
-      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
-      label = `✓ ${shortId}`;
-
-      return {
-        id: o.dealId || o.dealReference,
-        epic: o.epic,
-        price,
-        direction: o.direction,
-        size: o.size,
-        type: 'ORDER',
-        label
+      const parseTime = (time: any) => {
+        if (typeof time === 'number') return time * 1000;
+        if (typeof time === 'string') {
+          if (time.includes(' ')) return new Date(time.replace(' ', 'T') + 'Z').getTime();
+          if (time.includes('T')) return new Date(time).getTime();
+          return new Date(time + 'T00:00:00Z').getTime();
+        }
+        if (time && typeof time === 'object' && 'year' in time) {
+          return new Date(Date.UTC(time.year, time.month - 1, time.day)).getTime();
+        }
+        return 0;
       };
-    });
 
-    const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
-      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
-      const prefix = o.type === 'STOP' ? 'STP' : 'LMT';
-      return {
-        id: o.dealId || o.dealReference,
-        epic: o.epic,
-        price: o.level || 0,
-        direction: o.direction,
-        size: o.size,
-        type: 'ORDER',
-        label: `${prefix} ${shortId}`
-      };
-    });
+      const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
+         // Binary search for closest bar <= execution timestamp
+         let left = 0;
+         let right = chartData.length - 1;
+         let matchBar = chartData[0];
+         let matchBarTimeMs = 0;
 
-    const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
-       // Find the closest bar timestamp <= execution timestamp
-       let matchBar = chartData[0];
-       let matchBarTimeMs = 0;
-       
-       for (const bar of chartData) {
-         let barTimeMs = 0;
-         if (typeof bar.time === 'number') {
-           barTimeMs = bar.time * 1000;
-         } else if (typeof bar.time === 'string') {
-            if (bar.time.includes(' ')) {
-              barTimeMs = new Date(bar.time.replace(' ', 'T') + 'Z').getTime();
-            } else if (bar.time.includes('T')) {
-              barTimeMs = new Date(bar.time).getTime();
-            } else {
-              barTimeMs = new Date(bar.time + 'T00:00:00Z').getTime();
-            }
-         } else if (bar.time && typeof bar.time === 'object' && 'year' in bar.time) {
-           barTimeMs = new Date(Date.UTC(bar.time.year, bar.time.month - 1, bar.time.day)).getTime();
+         while (left <= right) {
+           const mid = Math.floor((left + right) / 2);
+           const barTimeMs = parseTime(chartData[mid].time);
+           
+           if (barTimeMs <= e.timestamp) {
+             matchBar = chartData[mid];
+             matchBarTimeMs = barTimeMs;
+             left = mid + 1; // Try to find a closer one on the right
+           } else {
+             right = mid - 1;
+           }
          }
          
-         if (barTimeMs <= e.timestamp) {
-           matchBar = bar;
-           matchBarTimeMs = barTimeMs;
-         } else {
-           break;
-         }
-       }
-       console.log("MARKER EVALUATED:", { eTimestamp: e.timestamp, matchBarTimeMs, barTime: matchBar ? matchBar.time : null });
-       
-       return {
-         id: e.id,
-         epic: e.epic,
-         price: e.price,
-         candleLow: matchBar ? matchBar.low : undefined,
-         candleHigh: matchBar ? matchBar.high : undefined,
-         direction: e.direction,
-         size: e.size,
-         type: 'EXECUTION',
-         time: matchBar ? (Math.floor(matchBarTimeMs / 1000) as any) : undefined,
-        };
-    });
+         return {
+           id: e.id,
+           epic: e.epic,
+           price: e.price,
+           candleLow: matchBar ? matchBar.low : undefined,
+           candleHigh: matchBar ? matchBar.high : undefined,
+           direction: e.direction,
+           size: e.size,
+           type: 'EXECUTION',
+           time: matchBar ? (Math.floor(matchBarTimeMs / 1000) as any) : undefined,
+          };
+      });
 
-    return [...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers];
+      setBaseMarkers([...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers]);
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
   }, [debouncedNettedItems, nonMarketOrders, tickerExecutions, chartData]);
 
   const markers = useMemo(() => {
