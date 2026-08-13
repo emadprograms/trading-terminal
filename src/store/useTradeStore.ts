@@ -12,8 +12,10 @@ interface TradeState {
   executingOperations: Set<string>;
   closingDealIds: Set<string>;
   executions: Execution[];
+  historyLookbackDays: number;
   
   // Actions
+  setHistoryLookbackDays: (days: number) => void;
   addExecution: (execution: Execution) => void;
   addPendingOrder: (dealReference: string, order: Order) => void;
   updateOrderStatus: (dealReference: string, status: OrderStatus, details?: Partial<Order>) => void;
@@ -54,6 +56,9 @@ export const useTradeStore = create<TradeState>()(
       executingOperations: new Set<string>(),
       closingDealIds: new Set<string>(),
       executions: [],
+      historyLookbackDays: 7,
+
+      setHistoryLookbackDays: (days) => set({ historyLookbackDays: days }),
 
       addExecution: (execution) => {
         set((state) => ({
@@ -907,7 +912,8 @@ export const useTradeStore = create<TradeState>()(
         }
       },
 
-      syncExecutions: async (days = 7) => {
+      syncExecutions: async (days) => {
+        const effectiveDays = days ?? get().historyLookbackDays;
         try {
           const allActivities: any[] = [];
           
@@ -917,7 +923,7 @@ export const useTradeStore = create<TradeState>()(
           
           const formatIso = (date: Date) => date.toISOString().split('.')[0];
           
-          for (let i = 0; i < days; i++) {
+          for (let i = 0; i < effectiveDays; i++) {
             const toDate = new Date(Date.now() - i * 24 * 3600 * 1000);
             const fromDate = new Date(Date.now() - (i + 1) * 24 * 3600 * 1000);
             

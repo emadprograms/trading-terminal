@@ -377,7 +377,9 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
                 if (item.time !== undefined && item.time !== null) {
                     try {
                         x = this._chart!.timeScale().timeToCoordinate(item.time as Time);
+                        console.log('MARKER X:', x, 'TIME:', item.time);
                     } catch (e) {
+                        console.log('MARKER X ERROR:', e);
                         x = null;
                     }
                 }

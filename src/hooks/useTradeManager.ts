@@ -238,7 +238,7 @@ export function useTradeManager({
            direction: e.direction,
            size: e.size,
            type: 'EXECUTION',
-           time: matchBar ? (Math.floor(parseTime(matchBar.time) / 1000) as Time) : undefined,
+           time: matchBar ? (Math.floor(parseTime(matchBar.time) / 1000) as Time) : (Math.floor(e.timestamp / 1000) as Time),
           };
       });
 

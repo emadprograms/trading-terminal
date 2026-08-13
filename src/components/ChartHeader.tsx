@@ -41,6 +41,8 @@ export function ChartHeader({
   const [tickerSearch, setTickerSearch] = useState('');
   const price = usePriceStore((state) => state.prices[ticker]);
   const positions = useTradeStore((state) => state.positions);
+  const historyLookbackDays = useTradeStore((state) => state.historyLookbackDays);
+  const setHistoryLookbackDays = useTradeStore((state) => state.setHistoryLookbackDays);
   const watchlistSymbols = useWatchlistStore((state) => state.symbols);
   const priceLinesSetting = useSettingsStore((state) => state.chartSettings[ticker]?.priceLines || 'both');
   const updateChartSettings = useSettingsStore((state) => state.updateChartSettings);
@@ -259,6 +261,35 @@ export function ChartHeader({
                     <span>{option.charAt(0).toUpperCase() + option.slice(1)}</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="dropdown-divider" />
+
+              <div className="dropdown-section">
+                <div className="dropdown-section-label">History Lookback</div>
+                <div style={{ padding: '4px 12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                   <select 
+                     value={historyLookbackDays} 
+                     onChange={(e) => {
+                       setHistoryLookbackDays(Number(e.target.value));
+                       setIsSettingsOpen(false);
+                     }}
+                     style={{
+                       background: 'var(--bg-primary)',
+                       color: 'var(--text-primary)',
+                       border: '1px solid var(--border-color)',
+                       borderRadius: '4px',
+                       padding: '4px 8px',
+                       fontSize: '12px',
+                       width: '100%',
+                       outline: 'none'
+                     }}
+                   >
+                     <option value={7}>7 Days</option>
+                     <option value={14}>14 Days</option>
+                     <option value={30}>30 Days</option>
+                   </select>
+                </div>
               </div>
 
               <div className="dropdown-divider" />
