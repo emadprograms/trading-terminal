@@ -17,7 +17,6 @@ import { StitchingErrorBanner } from './StitchingErrorBanner';
 
 export default function ChartUnit({ 
   id, 
-  tickers, 
   initialTicker, 
   initialTf,
   initialEth,
@@ -51,7 +50,6 @@ export default function ChartUnit({
     initialEth, 
     groupColor, 
     groupTicker, 
-    tickers, 
     chartRef, 
     priceSeriesRef, 
     onTimeframeChange, 
@@ -163,7 +161,6 @@ export default function ChartUnit({
         setIsDrawingMode={keyboard.setIsDrawingMode}
         drawType={keyboard.drawType}
         setDrawType={keyboard.setDrawType}
-        tickers={tickers}
         groupColor={groupColor}
         onGroupChange={onGroupChange}
         onTickerChange={handleTickerUpdate}

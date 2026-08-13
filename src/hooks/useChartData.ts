@@ -15,7 +15,6 @@ interface UseChartDataParams {
   initialEth: boolean;
   groupColor: GroupColor;
   groupTicker?: string;
-  tickers: string[];
   chartRef: React.MutableRefObject<IChartApi | null>;
   priceSeriesRef: React.MutableRefObject<ISeriesApi<'Candlestick'> | null>;
   onTimeframeChange?: (id: number, tf: Timeframe) => void;
@@ -29,7 +28,6 @@ export function useChartData({
   initialEth,
   groupColor,
   groupTicker,
-  tickers,
   chartRef,
   priceSeriesRef,
   onTimeframeChange,

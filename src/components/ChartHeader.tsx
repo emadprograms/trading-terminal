@@ -19,7 +19,6 @@ interface ChartHeaderProps {
   setIsDrawingMode: (v: boolean) => void;
   drawType: DrawType;
   setDrawType: (t: DrawType) => void;
-  tickers: string[];
   groupColor: GroupColor;
   onGroupChange?: (color: GroupColor) => void;
   onTickerChange?: (ticker: string) => void;
@@ -31,7 +30,7 @@ interface ChartHeaderProps {
 
 export function ChartHeader({
   ticker, setTicker, timeframe, setTimeframe, showEth, setShowEth, showVP, setShowVP,
-  isDrawingMode, setIsDrawingMode, drawType, setDrawType, tickers, groupColor,
+  isDrawingMode, setIsDrawingMode, drawType, setDrawType, groupColor,
   onGroupChange, onTickerChange, onUpdateDrawings, isMaximized, onToggleMaximize,
   onSelect
 }: ChartHeaderProps) {
@@ -111,7 +110,7 @@ export function ChartHeader({
                   onChange={(e) => setTickerSearch(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && filteredTickers.length > 0) {
-                      onTickerChange(filteredTickers[0]);
+                      if (onTickerChange) onTickerChange(filteredTickers[0]);
                       setIsTickerOpen(false);
                       setTickerSearch('');
                     }
