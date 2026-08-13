@@ -75,7 +75,7 @@ describe('useTradeStore - syncExecutions', () => {
         details: {
           direction: 'SELL',
           size: 10,
-          level: 255.0,
+          openPrice: 255.0, // openPrice marks this as an EXIT action
         }
       }
     ];
@@ -86,7 +86,8 @@ describe('useTradeStore - syncExecutions', () => {
 
     const executions = useTradeStore.getState().executions;
 
-    // Only 'deal-1' (OPENED), 'deal-2' (FILLED), and 'deal-1' (CLOSED) should be parsed
+    // 'deal-1' (OPENED → ENTRY), 'deal-2' (FILLED → ENTRY), 'deal-1' (CLOSED → EXIT)
+    // With dedup by dealId+action: deal-1 has ENTRY + EXIT = 2, deal-2 has ENTRY = 1. Total = 3.
     expect(executions).toHaveLength(3);
     
     expect(executions.map(e => e.dealId)).toContain('deal-1');
@@ -94,6 +95,12 @@ describe('useTradeStore - syncExecutions', () => {
     
     // The phantom pending order (deal-3) should be completely ignored
     expect(executions.map(e => e.dealId)).not.toContain('deal-3');
+    
+    // Check that deal-1 has both ENTRY and EXIT
+    const deal1Execs = executions.filter(e => e.dealId === 'deal-1');
+    expect(deal1Execs).toHaveLength(2);
+    expect(deal1Execs.map(e => e.action)).toContain('ENTRY');
+    expect(deal1Execs.map(e => e.action)).toContain('EXIT');
     
     // Check fields of one real trade
     const deal2Exec = executions.find(e => e.dealId === 'deal-2');

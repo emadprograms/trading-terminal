@@ -792,6 +792,13 @@ export const useTradeStore = create<TradeState>()(
           const mappedPositions: Position[] = rawPositions.map(raw => {
             const p = raw.position || raw;
             const m = raw.market || raw;
+              const rawDate = p.createdDate || p.timestamp;
+              let timestamp = Date.now();
+              if (rawDate) {
+                const dateStr = String(rawDate);
+                timestamp = new Date(dateStr.includes('T') && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr).getTime();
+              }
+              
             return {
               dealId: p.dealId,
               epic: m.epic || p.epic,
@@ -800,7 +807,7 @@ export const useTradeStore = create<TradeState>()(
               entryPrice: p.level || p.entryPrice || 0,
               stopLevel: p.stopLevel,
               profitLevel: p.profitLevel,
-              timestamp: new Date(p.createdDate || p.timestamp || Date.now()).getTime(),
+              timestamp,
             };
           });
 
@@ -821,6 +828,13 @@ export const useTradeStore = create<TradeState>()(
                 size: updatedPending[dealRef].size || data.size || data.orderSize || 0
               };
             } else {
+              const rawDate = data.createdDate || data.timestamp;
+              let timestamp = Date.now();
+              if (rawDate) {
+                const dateStr = String(rawDate);
+                timestamp = new Date(dateStr.includes('T') && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr).getTime();
+              }
+
               updatedPending[dealRef] = {
                 dealReference: dealRef,
                 dealId: data.dealId,
@@ -831,7 +845,7 @@ export const useTradeStore = create<TradeState>()(
                 type: data.type || 'LIMIT',
                 direction: data.direction,
                 status: 'PENDING',
-                timestamp: new Date(data.createdDate || data.timestamp || Date.now()).getTime(),
+                timestamp,
               };
             }
           });
@@ -853,27 +867,11 @@ export const useTradeStore = create<TradeState>()(
           const newExecutions: Execution[] = [];
           const priceStore = (await import('./usePriceStore')).usePriceStore;
 
-          // 1. Detect new positions (ENTRY)
-          mappedPositions.forEach(p => {
-            const exists = state.positions.some(old => old.dealId === p.dealId);
-            if (!exists) {
-              const execExists = state.executions.some(e => e.dealId === p.dealId && e.action === 'ENTRY');
-              if (!execExists) {
-                newExecutions.push({
-                  id: `${p.dealId}_ENTRY_${p.timestamp || Date.now()}`,
-                  dealId: p.dealId,
-                  epic: p.epic,
-                  size: p.size,
-                  price: p.entryPrice,
-                  direction: p.direction,
-                  timestamp: p.timestamp || Date.now(),
-                  action: 'ENTRY'
-                });
-              }
-            }
-          });
+          // NOTE: ENTRY execution creation has been intentionally removed from syncPositions.
+          // syncExecutions() is the SINGLE source of truth for historical execution markers.
+          // This prevents duplicate markers caused by different ID formats between the two paths.
 
-          // 2. Detect closed positions (EXIT)
+          // Detect closed positions (EXIT) — real-time signal, kept here for immediate feedback
           state.positions.forEach(p => {
             const stillExists = mappedPositions.some(newPos => newPos.dealId === p.dealId);
             if (!stillExists) {
@@ -941,9 +939,20 @@ export const useTradeStore = create<TradeState>()(
             });
 
           set(state => {
-            const currentExecMap = new Map(state.executions.map(e => [e.id, e]));
-            mapped.forEach(e => currentExecMap.set(e.id, e));
-            return { executions: Array.from(currentExecMap.values()) };
+            // Dedup by dealId+action (not by id) to collapse entries from different code paths
+            // that may have different ID formats. syncExecutions data wins over stale entries.
+            const dedupMap = new Map<string, Execution>();
+            // First, add existing executions (from localStorage or other paths)
+            state.executions.forEach(e => {
+              const key = `${e.dealId}_${e.action}`;
+              dedupMap.set(key, e);
+            });
+            // Then overwrite with syncExecutions data (authoritative source)
+            mapped.forEach(e => {
+              const key = `${e.dealId}_${e.action}`;
+              dedupMap.set(key, e);
+            });
+            return { executions: Array.from(dedupMap.values()) };
           });
         } catch (error) {
           console.error('[TradeStore] Failed to sync executions:', error);
@@ -1191,21 +1200,8 @@ export const useTradeStore = create<TradeState>()(
         set((state) => ({
           positions: [...state.positions.filter((p) => p.dealId !== position.dealId), position],
         }));
-        
-        const timestamp = position.timestamp || Date.now();
-        const execExists = get().executions.some(e => e.dealId === position.dealId && e.action === 'ENTRY');
-        if (!execExists) {
-          get().addExecution({
-            id: `${position.dealId}_ENTRY_${timestamp}`,
-            dealId: position.dealId,
-            epic: position.epic,
-            size: position.size,
-            price: position.entryPrice,
-            direction: position.direction,
-            timestamp,
-            action: 'ENTRY'
-          });
-        }
+        // NOTE: ENTRY execution creation removed. syncExecutions() is the single source of truth
+        // for execution markers, preventing duplicates from different ID formats.
       },
 
       removePosition: (dealId) => 
@@ -1227,6 +1223,26 @@ export const useTradeStore = create<TradeState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
+          // Purge duplicate executions from localStorage cache.
+          // Previous code paths created executions with different ID formats for the same trade,
+          // causing phantom/duplicate markers. Dedup by dealId+action, keeping the latest.
+          if (state.executions && state.executions.length > 0) {
+            const dedupMap = new Map<string, any>();
+            state.executions.forEach((e: any) => {
+              const key = `${e.dealId}_${e.action}`;
+              const existing = dedupMap.get(key);
+              // Keep the entry with the later timestamp (more likely correct)
+              if (!existing || e.timestamp > existing.timestamp) {
+                dedupMap.set(key, e);
+              }
+            });
+            const deduped = Array.from(dedupMap.values());
+            if (deduped.length !== state.executions.length) {
+              console.log(`[TradeStore] Purged ${state.executions.length - deduped.length} duplicate execution(s) from cache`);
+              useTradeStore.setState({ executions: deduped });
+            }
+          }
+
           Object.keys(state.pendingOrders).forEach(dealReference => {
             if (state.pendingOrders[dealReference].status === 'PENDING') {
               state.startWatchdog(dealReference);
