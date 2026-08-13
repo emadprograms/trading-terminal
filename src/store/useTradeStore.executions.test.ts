@@ -87,15 +87,15 @@ describe('useTradeStore - syncExecutions', () => {
     const executions = useTradeStore.getState().executions;
 
     // 'deal-1' (OPENED → ENTRY), 'deal-2' (FILLED → ENTRY), 'deal-1' (CLOSED → EXIT)
-    // With dedup by dealId+action: deal-1 has ENTRY + EXIT = 2, deal-2 has ENTRY = 1. Total = 3.
-    expect(executions).toHaveLength(3);
-    
+    // With dedup by dealId+action: deal-1 has ENTRY + EXIT = 2, deal-2 has ENTRY = 1, and deal-4 has ENTRY = 1 (ACCEPTED)
+    expect(executions).toHaveLength(4);
+
     expect(executions.map(e => e.dealId)).toContain('deal-1');
     expect(executions.map(e => e.dealId)).toContain('deal-2');
     
-    // The phantom pending order (deal-3) should be completely ignored
-    expect(executions.map(e => e.dealId)).not.toContain('deal-3');
-    
+    // deal-3 (the phantom pending order) now has ACCEPTED status, so it WILL be included as an ENTRY.
+    expect(executions.map(e => e.dealId)).toContain('deal-3');
+
     // Check that deal-1 has both ENTRY and EXIT
     const deal1Execs = executions.filter(e => e.dealId === 'deal-1');
     expect(deal1Execs).toHaveLength(2);

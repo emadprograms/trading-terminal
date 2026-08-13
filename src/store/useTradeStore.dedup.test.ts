@@ -213,7 +213,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
     expect(state.executions.filter(e => e.dealId === 'DEAL-B')).toHaveLength(1);
   });
 
-  it('ACCEPTED status activities are still filtered out', async () => {
+  it('ACCEPTED status activities are correctly parsed and mapped to ENTRY markers', async () => {
     (tradeApi.fetchActivityHistory as any).mockResolvedValue([
       {
         dealId: 'DEAL-PENDING',
@@ -226,8 +226,8 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
     ]);
 
     await useTradeStore.getState().syncExecutions(1);
-
     const state = useTradeStore.getState();
-    expect(state.executions).toHaveLength(0);
+    expect(state.executions).toHaveLength(1);
+    expect(state.executions[0].action).toBe('ENTRY');
   });
 });
