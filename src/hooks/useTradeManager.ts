@@ -208,22 +208,25 @@ export function useTradeManager({
            };
          }
 
-         let left = 0;
-         let right = chartData.length - 1;
-         let matchBar = chartData[0];
-         let matchBarTimeMs = 0;
+         let matchBar: ChartBar | undefined = undefined;
+         
+         // Only search if the execution is not older than our oldest chart data
+         if (e.timestamp >= parseTime(chartData[0].time)) {
+             matchBar = chartData[0];
+             let left = 0;
+             let right = chartData.length - 1;
 
-         while (left <= right) {
-           const mid = Math.floor((left + right) / 2);
-           const barTimeMs = parseTime(chartData[mid].time);
-           
-           if (barTimeMs <= e.timestamp) {
-             matchBar = chartData[mid];
-             matchBarTimeMs = barTimeMs;
-             left = mid + 1; // Try to find a closer one on the right
-           } else {
-             right = mid - 1;
-           }
+             while (left <= right) {
+               const mid = Math.floor((left + right) / 2);
+               const barTimeMs = parseTime(chartData[mid].time);
+               
+               if (barTimeMs <= e.timestamp) {
+                 matchBar = chartData[mid];
+                 left = mid + 1; // Try to find a closer one on the right
+               } else {
+                 right = mid - 1;
+               }
+             }
          }
          
          return {

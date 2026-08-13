@@ -907,7 +907,7 @@ export const useTradeStore = create<TradeState>()(
         }
       },
 
-      syncExecutions: async (days = 1) => {
+      syncExecutions: async (days = 7) => {
         try {
           const lastPeriodSeconds = days * 24 * 3600;
           const allActivities = await tradeApi.fetchActivityHistory(lastPeriodSeconds);
