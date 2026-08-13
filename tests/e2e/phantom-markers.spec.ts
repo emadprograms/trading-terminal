@@ -168,16 +168,30 @@ test.describe('Phantom Markers E2E - Dual Sync Dedup', () => {
     }
   });
 
-  test('stale localStorage duplicates are purged on boot', async ({ page }) => {
-    // Mock APIs to return empty data (so no new executions are created)
+  test('stale localStorage duplicate executions are completely replaced by Capital.com API data', async ({ page }) => {
+    // Mock APIs to return ONE real execution
     await page.route('**/api/order/v1/positions**', route =>
       route.fulfill({ status: 200, json: { positions: [] } }),
     );
     await page.route('**/api/order/v1/history/activity**', route =>
-      route.fulfill({ status: 200, json: { activities: [] } }),
+      route.fulfill({
+        status: 200,
+        json: {
+          activities: [
+            {
+              dealId: 'REAL-DEAL',
+              epic: 'SPY',
+              type: 'POSITION',
+              status: 'OPENED',
+              dateUTC: '2024-08-12T13:30:00',
+              details: { direction: 'BUY', size: 10, level: 200 },
+            },
+          ],
+        },
+      }),
     );
 
-    // Seed localStorage with DUPLICATE executions for the same dealId+action but different IDs
+    // Seed localStorage with a STALE phantom execution that does NOT exist in the API
     await page.addInitScript(() => {
       window.localStorage.setItem('CST', 'mock-cst-token');
       window.localStorage.setItem('X-SECURITY-TOKEN', 'mock-security-token');
@@ -187,23 +201,13 @@ test.describe('Phantom Markers E2E - Dual Sync Dedup', () => {
           state: {
             executions: [
               {
-                id: 'DEAL-X_ENTRY_111',
-                dealId: 'DEAL-X',
+                id: 'STALE-PHANTOM_ENTRY_999',
+                dealId: 'STALE-PHANTOM',
                 epic: 'SPY',
-                size: 1,
-                price: 100,
+                size: 999,
+                price: 999,
                 direction: 'BUY',
-                timestamp: 111,
-                action: 'ENTRY',
-              },
-              {
-                id: 'DEAL-X_BUY_222',
-                dealId: 'DEAL-X',
-                epic: 'SPY',
-                size: 1,
-                price: 100,
-                direction: 'BUY',
-                timestamp: 222,
+                timestamp: 999999999,
                 action: 'ENTRY',
               },
             ],
@@ -218,16 +222,16 @@ test.describe('Phantom Markers E2E - Dual Sync Dedup', () => {
     await page.goto('/');
     await page.waitForTimeout(3000);
 
-    // After boot, the rehydration purge should have collapsed duplicates
-    const tradeState = await page.evaluate(() => window.localStorage.getItem('trade-storage'));
-    expect(tradeState).not.toBeNull();
-    const parsed = JSON.parse(tradeState!);
-    const storedExecs = parsed.state?.executions || [];
-    const dealXExecs = storedExecs.filter((e: any) => e.dealId === 'DEAL-X' && e.action === 'ENTRY');
+    // After boot and syncExecutions, the stale execution must be GONE.
+    // We check the actual rendered markers in memory since executions are no longer saved to localStorage
+    const markers: any[] = await page.evaluate(() => (window as any).__TEST_MARKERS__ || []);
+    const executionMarkers = markers.filter(m => m.type === 'EXECUTION');
 
-    // Must be exactly 1 (the duplicate was purged)
-    expect(dealXExecs).toHaveLength(1);
-    // The surviving one should have the later timestamp (222)
-    expect(dealXExecs[0].timestamp).toBe(222);
+    // We should ONLY have the REAL-DEAL execution
+    const staleExecs = executionMarkers.filter(m => m.id && m.id.includes('STALE-PHANTOM'));
+    expect(staleExecs).toHaveLength(0); // This will FAIL before the fix
+
+    const realExecs = executionMarkers.filter(m => m.id && m.id.includes('REAL-DEAL'));
+    expect(realExecs).toHaveLength(1);
   });
 });

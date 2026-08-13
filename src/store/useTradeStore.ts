@@ -1218,31 +1218,18 @@ export const useTradeStore = create<TradeState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         pendingOrders: state.pendingOrders,
-        executions: state.executions,
         positions: state.positions
       }),
+      merge: (persistedState: any, currentState) => {
+        return {
+          ...currentState,
+          ...persistedState,
+          // Explicitly ignore executions from localStorage to prevent stale/phantom markers
+          executions: currentState.executions,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Purge duplicate executions from localStorage cache.
-          // Previous code paths created executions with different ID formats for the same trade,
-          // causing phantom/duplicate markers. Dedup by dealId+action, keeping the latest.
-          if (state.executions && state.executions.length > 0) {
-            const dedupMap = new Map<string, any>();
-            state.executions.forEach((e: any) => {
-              const key = `${e.dealId}_${e.action}`;
-              const existing = dedupMap.get(key);
-              // Keep the entry with the later timestamp (more likely correct)
-              if (!existing || e.timestamp > existing.timestamp) {
-                dedupMap.set(key, e);
-              }
-            });
-            const deduped = Array.from(dedupMap.values());
-            if (deduped.length !== state.executions.length) {
-              console.log(`[TradeStore] Purged ${state.executions.length - deduped.length} duplicate execution(s) from cache`);
-              useTradeStore.setState({ executions: deduped });
-            }
-          }
-
           Object.keys(state.pendingOrders).forEach(dealReference => {
             if (state.pendingOrders[dealReference].status === 'PENDING') {
               state.startWatchdog(dealReference);
