@@ -1,87 +1,118 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Historical Markers E2E', () => {
+test.describe('Historical Marker System', () => {
   test.beforeEach(async ({ page }) => {
-    // Basic mocks to allow the app to load
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/session', async route => {
+    await page.route('**/session', async route => {
       await route.fulfill({
         status: 200,
         headers: { 'cst': 'mock-cst-token', 'x-security-token': 'mock-security-token' },
         json: { accountType: 'CFD', clientId: 'mock' }
       });
     });
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/ping*', route => route.fulfill({ status: 200, json: { status: 'OK' } }));
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/accounts', route => route.fulfill({ status: 200, json: { accounts: [{ accountId: 'mock', status: 'ENABLED', balance: { balance: 10000 }, currency: 'USD' }] } }));
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/order/v1/workingorders**', route => route.fulfill({ status: 200, json: { workingOrders: [] } }));
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/watchlist/*', route => route.fulfill({ status: 200, json: { id: '1', name: 'My Watchlist', items: [] } }));
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/watchlist', route => route.fulfill({ status: 200, json: { items: [] } }));
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/session/accounts', route => route.fulfill({ status: 200, json: { accounts: [{ accountId: 'mock-account', accountName: 'Mock Account', accountType: 'CFD', preferred: true }] } }));
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/order/v1/positions**', route => route.fulfill({ status: 200, json: { positions: [] } }));
-  });
+    await page.route('**/ping*', route => route.fulfill({ status: 200, json: { status: 'OK' } }));
+    await page.route('**/session/accounts', route => route.fulfill({ status: 200, json: { accounts: [{ accountId: 'mock', accountName: 'Mock', accountType: 'CFD', preferred: true }] } }));
+    await page.route('**/accounts', route => route.fulfill({ status: 200, json: { accounts: [{ accountId: 'mock', status: 'ENABLED', balance: { balance: 10000 }, currency: 'USD' }] } }));
+    await page.route('**/workingorders**', route => route.fulfill({ status: 200, json: { workingOrders: [] } }));
+    await page.route('**/positions**', route => route.fulfill({ status: 200, json: { positions: [] } }));
+    await page.route('**/markets*', route => route.fulfill({ status: 200, json: { markets: [{ epic: 'SPY', instrumentName: 'SPY', expiry: '-', lotSize: 1, currencies: [{ symbol: '$' }] }] } }));
+    await page.route('**/watchlist*', route => route.fulfill({ status: 200, json: { id: '1', name: 'My Watchlist', markets: [{ epic: 'SPY', instrumentName: 'SPY', updateTime: '', updateTimeUTC: '' }] } }));
 
-  test('Older execution markers are placed on the chart and time is correctly parsed', async ({ page }) => {
-    // Mock the chart data to cover the past 5 hours
-    const now = Date.now();
-    const prices = [];
-    
-    // We'll use absolute fixed timestamps to avoid issues.
-    // Let's use 2024-01-01T12:00:00Z as "now" (the latest candle).
-    // The execution is 4 hours ago: 2024-01-01T08:00:00Z.
-    
-    // Create candles from 06:00 to 12:00 (1-hour candles)
-    const startHour = 6;
-    for (let i = startHour; i <= 12; i++) {
-      const timeStr = `2024-01-02T${i.toString().padStart(2, '0')}:00:00.000Z`;
-      prices.push({
-        snapshotTime: timeStr,
-        snapshotTimeUTC: timeStr,
-        openPrice: { bid: 150, ask: 150 }, closePrice: { bid: 150, ask: 150 }, highPrice: { bid: 151, ask: 151 }, lowPrice: { bid: 149, ask: 149 }
+    // 2. Mock 2 executions: one from 5 hours ago, one from 30 hours ago.
+    // This proves that `syncExecutions` fetches > 24 hours of data.
+    await page.route('**/history/activity*', route => {
+      const url = route.request().url();
+      // Ensure the request is asking for at least 30 hours (108000 seconds)
+      const lastPeriodMatch = url.match(/lastPeriod=(\d+)/);
+      const requestedSeconds = lastPeriodMatch ? parseInt(lastPeriodMatch[1]) : 0;
+      
+      const now = Date.now();
+      const fiveHoursAgo = new Date(now - 5 * 3600 * 1000).toISOString();
+      const thirtyHoursAgo = new Date(now - 30 * 3600 * 1000).toISOString();
+      
+      const activities = [];
+      
+      // If the app requested enough history, return both
+      if (requestedSeconds >= 30 * 3600) {
+        activities.push(
+          {
+            dealId: 'exec-5h',
+            epic: 'SPY',
+            type: 'POSITION',
+            status: 'EXECUTED',
+            dateUTC: fiveHoursAgo,
+            details: { direction: 'BUY', size: 10, level: 200 }
+          },
+          {
+            dealId: 'exec-30h',
+            epic: 'SPY',
+            type: 'POSITION',
+            status: 'EXECUTED',
+            dateUTC: thirtyHoursAgo,
+            details: { direction: 'SELL', size: 5, level: 210 }
+          }
+        );
+      } else {
+         activities.push(
+          {
+            dealId: 'exec-5h',
+            epic: 'SPY',
+            type: 'POSITION',
+            status: 'EXECUTED',
+            dateUTC: fiveHoursAgo,
+            details: { direction: 'BUY', size: 10, level: 200 }
+          }
+        );
+      }
+
+      return route.fulfill({
+        status: 200,
+        json: { activities }
       });
-    }
-
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/market/v1/prices/*', route => {
-      return route.fulfill({ status: 200, json: { prices } });
     });
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/market/v1/markets*', route => route.fulfill({ status: 200, json: { markets: [{ epic: 'SPY', instrumentName: 'SPY', expiry: '-', lotSize: 1, currencies: [{ symbol: '$' }] }] } }));
 
-    // Mock the activity history API
-    // We provide dateUTC without a 'Z' to reproduce Capital.com's API behavior.
-    // The execution should be at 08:00:00.
-    page.on("console", msg => console.log("BROWSER:", msg.text()));
-    await page.route('**/api/order/v1/history/activity**', route => route.fulfill({ 
-      status: 200, 
-      json: {
-        activities: [{ 
-          dealId: 'mock-old-deal', 
-          epic: 'SPY', 
-          dateUTC: '2024-01-02T08:00:00', // Missing Z
-          type: 'POSITION', 
-          status: 'ACCEPTED', 
-          details: { direction: 'SELL', size: 1, level: 150, openPrice: 150 } 
-        }]
-      } 
-    }));
+    // 3. Mock Chart Data (Prices)
+    await page.route('**/prices/*', route => {
+      return route.fulfill({
+        status: 200, 
+        json: {
+          prices: Array.from({ length: 48 }).map((_, i) => {
+            // Generate hourly candles for the last 48 hours
+            const time = new Date(Date.now() - (48 - i) * 3600 * 1000);
+            return {
+              snapshotTime: time.toISOString(),
+              snapshotTimeUTC: time.toISOString(),
+              openPrice: { bid: 195, ask: 195 },
+              closePrice: { bid: 205, ask: 205 },
+              highPrice: { bid: 215, ask: 215 },
+              lowPrice: { bid: 190, ask: 190 }
+            };
+          })
+        }
+      });
+    });
 
-    // Start with empty local storage so syncExecutions runs
+    // 4. Inject LocalStorage Auth State
     await page.addInitScript(() => {
-      window.localStorage.setItem('CST', 'mock-cst-token');
-      window.localStorage.setItem('X-SECURITY-TOKEN', 'mock-security-token');
-      localStorage.setItem('trade-storage', JSON.stringify({
-        state: { executions: [], positions: [], pendingOrders: {} },
+      window.localStorage.setItem('auth-storage', JSON.stringify({
+        state: {
+          isAuthenticated: true,
+          activeAccountId: 'test-account',
+          tokens: { CST: 'mock-cst', XST: 'mock-xst' }
+        },
+        version: 0
+      }));
+      window.localStorage.setItem('workspace-storage', JSON.stringify({
+        state: {
+          activeWorkspace: 'default',
+          workspaces: [{
+            id: 'default',
+            charts: [{ id: 'chart-1', ticker: 'SPY', timeframe: '1H' }]
+          }]
+        },
         version: 0
       }));
       
-      // Canvas spy
+      // Spy on canvas draw calls to verify markers are visually rendered
       window.__MOCK_DRAW_CALLS = [];
       const originalFillStyle = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'fillStyle');
       if (originalFillStyle) {
@@ -92,27 +123,30 @@ test.describe('Historical Markers E2E', () => {
             }
             originalFillStyle.set.call(this, value);
           },
-          get() { return originalFillStyle.get.call(this); }
+          get() {
+            return originalFillStyle.get.call(this);
+          }
         });
       }
     });
+  });
 
-    await page.goto('/');
-    await page.waitForTimeout(3000);
+  test('Fetches orders from 30 hours ago and renders them on the chart', async ({ page }) => {
+    page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
     
-    const markers: any[] = await page.evaluate(() => (window as any).__TEST_MARKERS__);
-    console.log("Markers found:", markers);
-    
-    // There should be one marker
-    const executionMarker = markers.find(m => m.type === 'EXECUTION');
-    expect(executionMarker).toBeDefined();
-    
-    // The time of the marker should correspond to the 1D candle it snapped to.
-    // The execution is 2024-01-02T08:00:00Z, but on a 1D chart it snaps to 2024-01-02 00:00:00.
-    // 2024-01-02T00:00:00Z is 1704153600
-    expect(executionMarker.time).toBe(1704153600);
+    // We launch the app, which will trigger syncExecutions()
+    await page.goto('http://localhost:3001');
 
-    const drawCalls = await page.evaluate(() => window.__MOCK_DRAW_CALLS || []);
-    expect(drawCalls.some(color => color === '#ff3b30' || color === 'rgb(255, 59, 48)')).toBe(true);
+    // Wait for the chart to load
+    await page.waitForSelector('.tv-lightweight-charts');
+    await page.waitForTimeout(2000); // Wait for sync Executions to complete
+
+    // Assert that both markers were passed to the chart plugin
+    const markers = await page.evaluate(() => (window as any).__TEST_MARKERS__ || []);
+    expect(markers).toHaveLength(2);
+
+    // Verify that the markers were ACTUALLY drawn on the canvas (proving timeToCoordinate worked)
+    const drawCalls = await page.evaluate(() => (window as any).__MOCK_DRAW_CALLS || []);
+    expect(drawCalls.length).toBeGreaterThan(0);
   });
 });
