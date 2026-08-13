@@ -130,9 +130,9 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         // Stack offset calculation
                         const stackOffset = count * 8 * scale;
                         if (isBuy) {
-                            yPos += stackOffset;
+                            yPos = (yPos + stackOffset) as Coordinate;
                         } else {
-                            yPos -= stackOffset;
+                            yPos = (yPos - stackOffset) as Coordinate;
                         }
 
                         ctx.fillStyle = isBuy ? '#007aff' : '#ff3b30';
@@ -373,9 +373,13 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
             return this._items.map(item => {
                 const y = this._series!.priceToCoordinate(item.price);
                 
-                let x = null;
-                if (item.time) {
-                    x = this._chart!.timeScale().timeToCoordinate(item.time);
+                let x: Coordinate | null = null;
+                if (item.time !== undefined && item.time !== null) {
+                    try {
+                        x = this._chart!.timeScale().timeToCoordinate(item.time as Time);
+                    } catch (e) {
+                        x = null;
+                    }
                 }
 
                 let parentY = null;

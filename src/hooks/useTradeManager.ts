@@ -196,6 +196,18 @@ export function useTradeManager({
 
       const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
          // Binary search for closest bar <= execution timestamp
+         if (!chartData || chartData.length === 0) {
+           return {
+             id: e.id,
+             epic: e.epic,
+             price: e.price,
+             direction: e.direction,
+             size: e.size,
+             type: 'EXECUTION',
+             time: e.timestamp / 1000 as Time // fallback to exact seconds
+           };
+         }
+
          let left = 0;
          let right = chartData.length - 1;
          let matchBar = chartData[0];
@@ -223,7 +235,7 @@ export function useTradeManager({
            direction: e.direction,
            size: e.size,
            type: 'EXECUTION',
-           time: matchBar ? matchBar.time : undefined,
+           time: matchBar ? (Math.floor(parseTime(matchBar.time) / 1000) as Time) : undefined,
           };
       });
 
@@ -322,12 +334,21 @@ export function useTradeManager({
 
           const executionCounts = new Map<string, number>();
 
+          // Don't just use `hovered`, we need to check ALL executions for true 2D distance.
+          // Wait, hovered already filters by `m.time === exactTime`, which restricts us to the EXACT candle.
+          // That's actually fine as long as we also verify X distance, but if the user hovers slightly off 
+          // horizontally, `exactTime` might be a different candle.
+          // Let's rely on calculating the exact screen `x` for the markers that matched `exactTime` 
+          // AND ensure the mouse is within a 15px radius of the marker's center.
           for (const hMarker of hovered) {
             const execData = tickerExecutions.find(e => e.id === hMarker.id);
             if (!execData) continue;
 
             const y = priceSeriesRef.current!.priceToCoordinate(execData.price);
             if (y === null) continue;
+
+            const x = chartRef.current!.timeScale().timeToCoordinate(hMarker.time!);
+            if (x === null) continue;
 
             let arrowY = y;
             if (hMarker.direction === 'BUY' && hMarker.candleLow !== undefined) {
@@ -337,8 +358,10 @@ export function useTradeManager({
             }
 
             const directionKey = hMarker.direction;
-            const count = executionCounts.get(directionKey) || 0;
-            executionCounts.set(directionKey, count + 1);
+            // Use exact same key as TradePlugin
+            const key = `${Math.round(x)}_${directionKey}`;
+            const count = executionCounts.get(key) || 0;
+            executionCounts.set(key, count + 1);
 
             const stackOffset = count * 8 * scale;
             if (hMarker.direction === 'BUY') {
@@ -356,16 +379,17 @@ export function useTradeManager({
               markerCenterY -= offset + h / 2;
             }
 
-            // Distance ONLY to the actual drawn triangle center
-            const dist = Math.abs(param.point.y - markerCenterY);
+            // Calculate true 2D Euclidean distance to the marker triangle center
+            const distX = Math.abs(param.point.x - x);
+            const distY = Math.abs(param.point.y - markerCenterY);
+            const dist = Math.hypot(distX, distY);
 
-            // Use a strict threshold
+            // Use a strict 2D radius
             if (dist < minDistance && dist <= 15) {
               minDistance = dist;
               closestExec = {
-                x: param.point.x,
-                y,
-                renderY: markerCenterY,
+                x: x as any,
+                y: y as any,
                 price: execData.price,
                 direction: execData.direction,
                 action: execData.action
