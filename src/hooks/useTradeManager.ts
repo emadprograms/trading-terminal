@@ -105,11 +105,8 @@ export function useTradeManager({
   const [dragPreview, setDragPreview] = React.useState<{ id: string, price: number } | null>(null);
 
   // Map to ChartMarkers
-  const [baseMarkers, setBaseMarkers] = React.useState<ChartMarker[]>([]);
-
-  useEffect(() => {
-    // Run asynchronously to not block the main thread and chart render
-    const timeoutId = setTimeout(() => {
+  // Calculate base markers synchronously via useMemo to prevent race conditions and missing updates
+  const baseMarkers = useMemo(() => {
       const posMarkers: ChartMarker[] = debouncedNettedItems.filter(i => !i.isPending).flatMap(p => {
         const markers: ChartMarker[] = [{
           id: p.dealId,
@@ -226,14 +223,11 @@ export function useTradeManager({
            direction: e.direction,
            size: e.size,
            type: 'EXECUTION',
-           time: matchBar ? (Math.floor(matchBarTimeMs / 1000) as any) : undefined,
+           time: matchBar ? matchBar.time : undefined,
           };
       });
 
-      setBaseMarkers([...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers]);
-    }, 0);
-    
-    return () => clearTimeout(timeoutId);
+      return [...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers];
   }, [debouncedNettedItems, nonMarketOrders, tickerExecutions, chartData]);
 
   const markers = useMemo(() => {
