@@ -15,6 +15,8 @@ export const OrderHistory: React.FC = () => {
   }, [executions, syncFromExecutions]);
 
   const handleTradeClick = (trade: any) => {
+    useTradeStore.setState({ currentMarket: { epic: trade.epic } });
+
     // Only navigate for CLOSED trades or those with close time
     if (trade.openTime && trade.closeTime) {
       window.dispatchEvent(
@@ -70,7 +72,7 @@ export const OrderHistory: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8' }}>
                     <span>
-                      <span style={{ color: trade.direction === 'BUY' ? '#26a69a' : '#ef5350', fontWeight: '600' }}>{trade.direction}</span> {trade.totalSize}
+                      <span style={{ color: trade.direction === 'BUY' ? '#26a69a' : '#ef5350', fontWeight: '600' }}>{trade.direction}</span> {trade.maxSize || trade.totalSize}
                     </span>
                     <span>{trade.status}</span>
                   </div>

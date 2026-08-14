@@ -4,6 +4,7 @@ export interface Trade {
   epic: string;
   direction: 'BUY' | 'SELL';
   totalSize: number;
+  maxSize: number;
   openTime: string;
   closeTime: string | null;
   status: 'OPEN' | 'CLOSED';
@@ -23,6 +24,7 @@ export function processNetting(executions: Execution[]): Trade[] {
         epic: exec.epic,
         direction: exec.direction,
         totalSize: exec.size,
+        maxSize: exec.size,
         openTime: new Date(exec.timestamp).toISOString(),
         closeTime: null,
         status: 'OPEN',
