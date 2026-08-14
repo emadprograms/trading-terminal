@@ -1,43 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-/**
- * Mocking the basic structure we discovered from Capital.com API.
- */
-interface Execution {
-  dateUTC: string;
-  epic: string;
-  dealId: string;
-  type: string;
-  status: string;
-  details: {
-    size: number;
-    direction: 'BUY' | 'SELL';
-    level: number;
-    openPrice?: number;
-  };
-}
-
-/**
- * Proposed interface for the output.
- */
-interface Trade {
-  epic: string;
-  direction: 'BUY' | 'SELL';
-  totalSize: number;
-  openTime: string;
-  closeTime: string | null;
-  status: 'OPEN' | 'CLOSED';
-  realizedPnL?: number;
-}
-
-/**
- * The netting engine we will build in Phase 2.
- */
-function processNetting(executions: Execution[]): Trade[] {
-  // TODO: implement logic
-  return [];
-}
-
+import { Execution, Trade, processNetting } from '../../src/utils/nettingEngine';
 describe('Netting Engine (TDD)', () => {
   it('should process a full close and calculate realized PnL', () => {
     const mockExecutions: Execution[] = [
