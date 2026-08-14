@@ -362,6 +362,37 @@ export function useChartLifecycle({
   }, [ticker, timeframe, showEth, updateShadingConfig]);
 
 
+  // Handle Chart Navigation Event from Order History
+  useEffect(() => {
+    const handleChartNavigate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { openTime, closeTime } = customEvent.detail;
+      
+      if (!initChartRef.current) return;
+      
+      const ts = initChartRef.current.timeScale();
+      
+      const openSeconds = Math.floor(new Date(openTime).getTime() / 1000);
+      const closeSeconds = Math.floor(new Date(closeTime).getTime() / 1000);
+      
+      // Calculate a 10% padding based on the duration
+      const durationSeconds = closeSeconds - openSeconds;
+      const paddingSeconds = Math.max(durationSeconds * 0.1, 60); // at least 60 seconds padding
+      
+      try {
+        ts.setVisibleRange({
+          from: (openSeconds - paddingSeconds) as Time,
+          to: (closeSeconds + paddingSeconds) as Time
+        });
+      } catch (err) {
+        console.warn('Failed to set visible range:', err);
+      }
+    };
+
+    window.addEventListener('chart-navigate', handleChartNavigate);
+    return () => window.removeEventListener('chart-navigate', handleChartNavigate);
+  }, [initChartRef.current]);
+
   // 5. Handle Focus Click
   useEffect(() => {
     if (!initChartRef.current || !onFocus) return;
