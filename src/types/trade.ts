@@ -78,4 +78,5 @@ export interface Execution {
   direction: OrderDirection; // BUY or SELL
   timestamp: number;
   action: 'ENTRY' | 'EXIT';
+  openPrice?: number;
 }

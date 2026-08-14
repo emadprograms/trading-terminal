@@ -1,16 +1,4 @@
-export interface Execution {
-  dateUTC: string;
-  epic: string;
-  dealId: string;
-  type: string;
-  status: string;
-  details: {
-    size: number;
-    direction: 'BUY' | 'SELL';
-    level: number;
-    openPrice?: number;
-  };
-}
+import { Execution } from '../types/trade';
 
 export interface Trade {
   epic: string;
@@ -25,19 +13,17 @@ export interface Trade {
 export function processNetting(executions: Execution[]): Trade[] {
   const tradesMap = new Map<string, Trade>();
   
-  // Sort executions by dateUTC to ensure chronological order
-  const sortedExecutions = [...executions].sort((a, b) => {
-    return new Date(a.dateUTC).getTime() - new Date(b.dateUTC).getTime();
-  });
+  // Sort executions by timestamp to ensure chronological order
+  const sortedExecutions = [...executions].sort((a, b) => a.timestamp - b.timestamp);
 
   for (const exec of sortedExecutions) {
     if (!tradesMap.has(exec.dealId)) {
       // This is an opening execution
       tradesMap.set(exec.dealId, {
         epic: exec.epic,
-        direction: exec.details.direction,
-        totalSize: exec.details.size,
-        openTime: exec.dateUTC,
+        direction: exec.direction,
+        totalSize: exec.size,
+        openTime: new Date(exec.timestamp).toISOString(),
         closeTime: null,
         status: 'OPEN',
         realizedPnL: 0
@@ -47,9 +33,9 @@ export function processNetting(executions: Execution[]): Trade[] {
       const trade = tradesMap.get(exec.dealId)!;
       
       // Calculate PnL for this partial/full close
-      const closeSize = exec.details.size;
-      const openPrice = exec.details.openPrice ?? 0;
-      const closePrice = exec.details.level;
+      const closeSize = exec.size;
+      const openPrice = exec.openPrice ?? 0;
+      const closePrice = exec.price;
       
       let pnl = 0;
       if (trade.direction === 'BUY') {
@@ -64,7 +50,7 @@ export function processNetting(executions: Execution[]): Trade[] {
       if (trade.totalSize <= 0) {
         trade.totalSize = 0;
         trade.status = 'CLOSED';
-        trade.closeTime = exec.dateUTC;
+        trade.closeTime = new Date(exec.timestamp).toISOString();
       }
     }
   }

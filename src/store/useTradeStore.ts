@@ -955,7 +955,8 @@ export const useTradeStore = create<TradeState>()(
                 price: d.level || d.openPrice || 0,
                 direction: d.direction,
                 timestamp,
-                action: d.openPrice ? 'EXIT' : 'ENTRY'
+                action: d.openPrice ? 'EXIT' : 'ENTRY',
+                openPrice: d.openPrice
               };
             });
 
@@ -1261,3 +1262,4 @@ export const useTradeStore = create<TradeState>()(
     }
   )
 );
+if (typeof window !== 'undefined') (window as any).useTradeStore = useTradeStore;
