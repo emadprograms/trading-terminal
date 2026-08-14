@@ -1,10 +1,18 @@
-# Milestone: Order Marker Accuracy
+# Milestone v1.2 Requirements
 
-## Background
-Currently, visual trade markers (arrows indicating buy/sell points) on the chart appear in random, unpredictable locations rather than aligned perfectly with the executing candle. This causes confusion for traders trying to analyze their entries and exits.
+## Active Requirements
 
-## Requirements
-1. **Evident Proof First**: No code changes to the visual implementation can be made without first having a failing test that reproduces the exact timestamp/rendering misalignment.
-2. **Accurate Placement**: Buy/Sell arrows must align perfectly with the specific candle where the order was executed.
-3. **Hover Interaction**: Hovering over a candle that contains a trade must clearly display the buy/sell arrow or relevant trade information.
-4. **Test-Driven Fixes**: Fixes implemented must make the previously written failing test suite turn green.
+### Order History & Netting Engine
+- [ ] **HIST-01**: Build the Netting Engine logic to parse Capital.com raw execution activities chronologically and group them into logical `Trade` objects (handling partial closes, multiple staggered entries, and correct realized P&L).
+- [ ] **HIST-02**: Build a Sidebar UI component that displays a list of these aggregated `Trade` objects (showing Open Time, Close Time, total Size, and Realized P&L).
+- [ ] **HIST-03**: Integrate Chart synchronization so that clicking a `Trade` in the sidebar automatically sets the chart's visible X-axis time range to perfectly frame the time between that trade's open and close timestamps.
+- [ ] **HIST-04**: Build an airtight Test-Driven benchmark suite (Playwright/Vitest) that feeds mocked Capital.com activity arrays (testing multiple entries, partial closes, and full exits) into the Netting Engine and asserts that the calculated `Trade` objects match the mathematical expectations exactly.
+
+## Future Requirements
+- Export Order History to CSV.
+- Advanced filtering and sorting in the Sidebar.
+- Profitability Calendar view.
+
+## Out of Scope
+- Un-netted raw activity log UI (we are strictly building the netted/grouped Trade view for review purposes).
+- Backtesting simulations (we are only visualizing actual past trades).
