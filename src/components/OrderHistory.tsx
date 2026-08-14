@@ -15,16 +15,11 @@ export const OrderHistory: React.FC = () => {
   }, [executions, syncFromExecutions]);
 
   const handleTradeClick = (trade: any) => {
-    useTradeStore.setState({ currentMarket: { epic: trade.epic } });
-
-    // Only navigate for CLOSED trades or those with close time
-    if (trade.openTime && trade.closeTime) {
-      window.dispatchEvent(
-        new CustomEvent('chart-navigate', {
-          detail: { openTime: trade.openTime, closeTime: trade.closeTime }
-        })
-      );
-    }
+    // We want the chart to load the new ticker, THEN scroll.
+    useTradeStore.setState({ 
+      currentMarket: { epic: trade.epic },
+      pendingNavigation: { openTime: trade.openTime, closeTime: trade.closeTime }
+    });
   };
 
   const formatTime = (isoString: string) => {
@@ -55,6 +50,8 @@ export const OrderHistory: React.FC = () => {
             {trades.map((trade, idx) => {
               const key = (trade as any).id || `${trade.epic}-${trade.openTime}-${idx}`;
               const isClosed = trade.status === 'CLOSED';
+              const pnlStr = trade.realizedPnL !== undefined ? trade.realizedPnL.toFixed(2) : '---';
+              const pnlAbs = trade.realizedPnL !== undefined ? Math.abs(trade.realizedPnL).toFixed(2) : '---';
               const pnlColor = trade.realizedPnL !== undefined && trade.realizedPnL >= 0 ? '#26a69a' : '#ef5350';
               const pnlSign = trade.realizedPnL !== undefined && trade.realizedPnL >= 0 ? '+' : '';
               
@@ -67,7 +64,7 @@ export const OrderHistory: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontWeight: '600' }}>{trade.epic}</span>
                     <span style={{ color: pnlColor, fontWeight: '700' }}>
-                      {trade.realizedPnL !== undefined ? `${pnlSign}$${Math.abs(trade.realizedPnL)}` : '---'}
+                      {trade.realizedPnL !== undefined ? `${pnlSign}$${pnlAbs}` : '---'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8' }}>

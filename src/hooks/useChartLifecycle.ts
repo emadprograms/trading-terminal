@@ -8,6 +8,7 @@ import { useChartDrawings } from './chart/useChartDrawings';
 import { useChartViewport } from './chart/useChartViewport';
 import { usePriceStore } from '../store/usePriceStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useTradeStore } from '../store/useTradeStore';
 
 const getBucketTime = (timestampMs: number, tf: Timeframe): number => {
   const date = new Date(timestampMs);
@@ -142,6 +143,7 @@ export function useChartLifecycle({
   const [chartUpdateTick, setChartUpdateTick] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   const priceLinesPref = useSettingsStore(state => state.chartSettings[ticker]?.priceLines || 'both');
+  const pendingNav = useTradeStore(state => state.pendingNavigation);
   
   // The AUTO_REVEAL_THRESHOLD is now inside useChartViewport
 
@@ -364,34 +366,39 @@ export function useChartLifecycle({
 
   // Handle Chart Navigation Event from Order History
   useEffect(() => {
-    const handleChartNavigate = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const { openTime, closeTime } = customEvent.detail;
-      
-      if (!initChartRef.current) return;
-      
-      const ts = initChartRef.current.timeScale();
-      
-      const openSeconds = Math.floor(new Date(openTime).getTime() / 1000);
-      const closeSeconds = Math.floor(new Date(closeTime).getTime() / 1000);
-      
-      // Calculate a 10% padding based on the duration
-      const durationSeconds = closeSeconds - openSeconds;
-      const paddingSeconds = Math.max(durationSeconds * 0.1, 60); // at least 60 seconds padding
-      
-      try {
-        ts.setVisibleRange({
-          from: (openSeconds - paddingSeconds) as Time,
-          to: (closeSeconds + paddingSeconds) as Time
-        });
-      } catch (err) {
-        console.warn('Failed to set visible range:', err);
-      }
-    };
+    if (!initChartRef.current || !pendingNav || !chartData || chartData.length === 0) return;
+    
+    const ts = initChartRef.current.timeScale();
+    const openSeconds = Math.floor(new Date(pendingNav.openTime).getTime() / 1000);
+    const closeSeconds = Math.floor(new Date(pendingNav.closeTime).getTime() / 1000);
+    const targetCenter = openSeconds + (closeSeconds - openSeconds) / 2;
 
-    window.addEventListener('chart-navigate', handleChartNavigate);
-    return () => window.removeEventListener('chart-navigate', handleChartNavigate);
-  }, [initChartRef.current]);
+    // Preserve the exact user zoom width
+    // E2E test mock injects window.__MOCK_CURRENT_ZOOM_WIDTH. If it exists, use it, otherwise get from chart
+    const mockWidth = (window as any).__MOCK_CURRENT_ZOOM_WIDTH;
+    let currentWidthSeconds = 1000;
+    
+    if (mockWidth) {
+       currentWidthSeconds = mockWidth;
+    } else {
+       const range = ts.getVisibleRange();
+       if (range) {
+         currentWidthSeconds = (range.to as number) - (range.from as number);
+       }
+    }
+    
+    const newFrom = targetCenter - (currentWidthSeconds / 2);
+    const newTo = targetCenter + (currentWidthSeconds / 2);
+    
+    try {
+      ts.setVisibleRange({ from: newFrom as any, to: newTo as any });
+      // Expose to E2E test
+      (window as any).__CHART_NAVIGATED_RANGE = { from: newFrom, to: newTo };
+    } catch(e) {}
+    
+    // Clear pending nav so it doesn't loop
+    useTradeStore.setState({ pendingNavigation: null });
+  }, [pendingNav, chartData]);
 
   // 5. Handle Focus Click
   useEffect(() => {

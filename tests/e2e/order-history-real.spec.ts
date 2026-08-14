@@ -38,7 +38,7 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
           dealId: 'deal123',
           epic: 'AAPL',
           size: 5,
-          price: 145, // closed at 145 (loss of $5 * 5 = -$25)
+          price: 145.1234, // closed at 145.1234 (loss of $4.8766 * 5 = -$24.383)
           direction: 'SELL',
           timestamp: now,
           action: 'EXIT',
@@ -76,13 +76,20 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     // The user opened 10 size, so it must say 10.
     await expect(tradeCard).toContainText('10');
     
-    // Check P&L is 0
-    await expect(tradeCard).toContainText('$0');
+    // Check P&L is +$0.62 (rounded to 2 decimals)
+    await expect(tradeCard).toContainText('$0.62');
 
     // Currently the user is NOT on AAPL (the app defaults to whatever). 
     // We want to assert that clicking the history actually changes the active market to AAPL!
     await page.evaluate(() => {
       (window as any).useTradeStore.setState({ currentMarket: { epic: 'TSLA' } });
+      
+      // Mock the chart visible range to simulate the user's current zoom level
+      // Let's say the user is looking at a 1000 second window
+      (window as any).__MOCK_CURRENT_ZOOM_WIDTH = 1000;
+      
+      // We will ask the fix agent to expose the final range applied by the chart
+      (window as any).__CHART_NAVIGATED_RANGE = null;
     });
 
     await tradeCard.click();
@@ -94,8 +101,19 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     
     expect(currentEpic).toBe('AAPL');
 
-    // We can also verify that a chart plugin function was called, but if the chart isn't fully mocked
-    // in the DOM, just asserting the store updated the ticker is a huge step.
-    // We should also check the UI updated to AAPL
+    // Wait for the chart to process the navigation and expose the applied range
+    // The agent must implement pendingNavigation and set window.__CHART_NAVIGATED_RANGE
+    await page.waitForFunction(() => (window as any).__CHART_NAVIGATED_RANGE !== null, { timeout: 3000 });
+
+    const finalRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
+    expect(finalRange).toBeTruthy();
+    
+    // The duration between openTime and closeTime of the mocked trade is 100 seconds (now-100k vs now)
+    // Wait, the mock execution is 100 seconds? No.
+    // open: now - 100,000. close: now. Duration is 100,000 ms = 100 seconds.
+    // The user's zoom width was 1000 seconds.
+    // The fix agent MUST preserve the 1000 second width.
+    const appliedWidth = finalRange.to - finalRange.from;
+    expect(appliedWidth).toBeCloseTo(1000, -1); // Should be exactly 1000
   });
 });

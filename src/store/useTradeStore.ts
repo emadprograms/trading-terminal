@@ -13,6 +13,7 @@ interface TradeState {
   closingDealIds: Set<string>;
   executions: Execution[];
   historyLookbackDays: number;
+  pendingNavigation: { openTime: string; closeTime: string } | null;
   
   // Actions
   setHistoryLookbackDays: (days: number) => void;
@@ -57,6 +58,7 @@ export const useTradeStore = create<TradeState>()(
       closingDealIds: new Set<string>(),
       executions: [],
       historyLookbackDays: 7,
+      pendingNavigation: null,
 
       setHistoryLookbackDays: (days) => set({ historyLookbackDays: days }),
 
