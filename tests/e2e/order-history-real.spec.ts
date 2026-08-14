@@ -107,11 +107,20 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
 
     const finalRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
     expect(finalRange).toBeTruthy();
-    
     // The duration between openTime and closeTime of the mocked trade is 100 seconds (now-100k vs now)
-    // Wait, the mock execution is 100 seconds? No.
-    // open: now - 100,000. close: now. Duration is 100,000 ms = 100 seconds.
-    // The user's zoom width was 1000 seconds.
+    // open = now - 100000, close = now
+    // target center = (open + close) / 2 = now - 50000
+    // the target center in seconds should be Math.floor((now - 50000) / 1000)
+    const expectedCenter = await page.evaluate(() => Math.floor((Date.now() - 50000) / 1000));
+    
+    // The applied center should perfectly match expectedCenter
+    const appliedCenter = (finalRange.from + finalRange.to) / 2;
+    expect(appliedCenter).toBeCloseTo(expectedCenter, -1);
+    
+    // It must explicitly pass the epic string in the navigation payload so the chart 
+    // knows to wait for the correct ticker data before scrolling
+    expect(finalRange.epic).toBe('AAPL');
+    
     // The fix agent MUST preserve the 1000 second width.
     const appliedWidth = finalRange.to - finalRange.from;
     expect(appliedWidth).toBeCloseTo(1000, -1); // Should be exactly 1000

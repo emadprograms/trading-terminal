@@ -13,7 +13,7 @@ interface TradeState {
   closingDealIds: Set<string>;
   executions: Execution[];
   historyLookbackDays: number;
-  pendingNavigation: { openTime: string; closeTime: string } | null;
+  pendingNavigation: { openTime: string; closeTime: string; epic: string } | null;
   
   // Actions
   setHistoryLookbackDays: (days: number) => void;
@@ -938,7 +938,7 @@ export const useTradeStore = create<TradeState>()(
           const mapped: Execution[] = allActivities
             .filter(a => {
               const isValidType = a.type === 'POSITION';
-              const isFilledStatus = ['EXECUTED', 'FILLED', 'OPENED', 'CLOSED', 'ACCEPTED'].includes(a.status);
+              const isFilledStatus = ['EXECUTED', 'FILLED', 'OPENED', 'CLOSED'].includes(a.status);
               return isValidType && isFilledStatus && a.details && (a.details.level || a.details.openPrice);
             })
             .map(a => {

@@ -35,8 +35,24 @@ test.describe('Working Order Deduplication', () => {
           dealId: 'POS_12345',
           epic: 'ADBE',
           type: 'POSITION',
-          status: 'OPENED',
+          status: 'ACCEPTED', // Capital.com sends ACCEPTED immediately before OPENED
           dateUTC: '2026-08-14T10:00:01Z',
+          details: { direction: 'BUY', size: 30, level: 500 }
+        },
+        {
+          dealId: 'POS_12345',
+          epic: 'ADBE',
+          type: 'POSITION',
+          status: 'OPENED',
+          dateUTC: '2026-08-14T10:00:02Z',
+          details: { direction: 'BUY', size: 30, level: 500 }
+        },
+        {
+          dealId: 'POS_12345',
+          epic: 'ADBE',
+          type: 'POSITION',
+          status: 'OPENED', // Overlapping chunk duplication
+          dateUTC: '2026-08-14T10:00:02Z',
           details: { direction: 'BUY', size: 30, level: 500 }
         }
       ];
@@ -65,5 +81,7 @@ test.describe('Working Order Deduplication', () => {
     const tradeCard = tradeCards.first();
     await expect(tradeCard).toContainText('ADBE');
     await expect(tradeCard).toContainText('30');
+    // The trade should be OPEN, not prematurely CLOSED by a duplicate execution
+    await expect(tradeCard).toContainText('OPEN');
   });
 });

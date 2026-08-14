@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { useTradeStore } from '../store/useTradeStore';
 import { useNettingStore } from '../store/useNettingStore';
+import { useWorkspaceStore } from '../store/useWorkspaceStore';
 
 export const OrderHistory: React.FC = () => {
   const executions = useTradeStore(state => state.executions);
@@ -16,9 +17,13 @@ export const OrderHistory: React.FC = () => {
 
   const handleTradeClick = (trade: any) => {
     // We want the chart to load the new ticker, THEN scroll.
+    const wsStore = useWorkspaceStore.getState();
+    const targetId = wsStore.selectedId || '0';
+    wsStore.setTicker(targetId, trade.epic);
+    
     useTradeStore.setState({ 
       currentMarket: { epic: trade.epic },
-      pendingNavigation: { openTime: trade.openTime, closeTime: trade.closeTime }
+      pendingNavigation: { openTime: trade.openTime, closeTime: trade.closeTime, epic: trade.epic }
     });
   };
 
