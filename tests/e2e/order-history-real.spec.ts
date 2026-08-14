@@ -71,25 +71,31 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     const tradeCard = tradeCards.first();
     await expect(tradeCard).toContainText('AAPL');
     await expect(tradeCard).toContainText('CLOSED');
-    // Total size should be 0 because it subtracted it. Wait, UI should probably show the historical max size, but for now just check if it's there.
+    
+    // The UI must display the max size of the trade, NOT 0 (which happens when you subtract everything)
+    // The user opened 10 size, so it must say 10.
+    await expect(tradeCard).toContainText('10');
     
     // Check P&L is 0
     await expect(tradeCard).toContainText('$0');
 
-    // Click the trade card to trigger chart navigation
-    let navEventFired = false;
+    // Currently the user is NOT on AAPL (the app defaults to whatever). 
+    // We want to assert that clicking the history actually changes the active market to AAPL!
     await page.evaluate(() => {
-      window.addEventListener('chart-navigate', (e: any) => {
-        (window as any).__NAV_EVENT = e.detail;
-      });
+      (window as any).useTradeStore.setState({ currentMarket: { epic: 'TSLA' } });
     });
 
     await tradeCard.click();
 
-    // Verify the event was fired with open and close times
-    const navDetail = await page.evaluate(() => (window as any).__NAV_EVENT);
-    expect(navDetail).toBeTruthy();
-    expect(navDetail.openTime).toBeDefined();
-    expect(navDetail.closeTime).toBeDefined();
+    // Verify the store's current market changed to AAPL
+    const currentEpic = await page.evaluate(() => {
+      return (window as any).useTradeStore.getState().currentMarket?.epic;
+    });
+    
+    expect(currentEpic).toBe('AAPL');
+
+    // We can also verify that a chart plugin function was called, but if the chart isn't fully mocked
+    // in the DOM, just asserting the store updated the ticker is a huge step.
+    // We should also check the UI updated to AAPL
   });
 });
