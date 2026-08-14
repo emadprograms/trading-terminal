@@ -43,6 +43,17 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
           timestamp: now,
           action: 'EXIT',
           openPrice: 150
+        },
+        // OPEN trade
+        {
+          id: 'deal999_BUY_1',
+          dealId: 'deal999',
+          epic: 'MSFT',
+          size: 20,
+          price: 300,
+          direction: 'BUY',
+          timestamp: now - 200000,
+          action: 'ENTRY'
         }
       ];
       
@@ -64,11 +75,11 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     // Actually, if it subtracts size, totalSize becomes 0. Let's check what the component renders.
     // OrderHistory.tsx renders: {trade.totalSize} and trade.status
     
-    // We expect 1 trade card for AAPL
+    // We expect 1 trade card for AAPL and 1 for MSFT
     const tradeCards = page.locator('.order-history section > div').nth(1).locator('> div');
-    await expect(tradeCards).toHaveCount(1);
+    await expect(tradeCards).toHaveCount(2);
     
-    const tradeCard = tradeCards.first();
+    const tradeCard = tradeCards.filter({ hasText: 'AAPL' }).first();
     await expect(tradeCard).toContainText('AAPL');
     await expect(tradeCard).toContainText('CLOSED');
     
@@ -124,5 +135,25 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     // The fix agent MUST preserve the 1000 second width.
     const appliedWidth = finalRange.to - finalRange.from;
     expect(appliedWidth).toBeCloseTo(1000, -1); // Should be exactly 1000
+    
+    // --- TEST OPEN ORDER NAVIGATION ---
+    // The user had an issue where OPEN orders jumped to a random location (1970 math bug)
+    await page.evaluate(() => {
+      (window as any).__CHART_NAVIGATED_RANGE = null;
+    });
+    
+    const msftCard = page.locator('.order-history section > div').nth(1).locator('> div').filter({ hasText: 'MSFT' }).first();
+    await msftCard.click();
+    
+    await page.waitForFunction(() => (window as any).__CHART_NAVIGATED_RANGE !== null, { timeout: 3000 });
+    const msftRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
+    
+    expect(msftRange.epic).toBe('MSFT');
+    
+    // For an open order, targetCenter should just be the openTime itself
+    // openTime was now - 200000
+    const expectedMsftCenter = await page.evaluate(() => Math.floor((Date.now() - 200000) / 1000));
+    const appliedMsftCenter = (msftRange.from + msftRange.to) / 2;
+    expect(appliedMsftCenter).toBeCloseTo(expectedMsftCenter, -1);
   });
 });

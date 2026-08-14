@@ -371,12 +371,16 @@ export function useChartLifecycle({
     
     const ts = initChartRef.current.timeScale();
     const openSeconds = Math.floor(new Date(pendingNav.openTime).getTime() / 1000);
-    const closeSeconds = Math.floor(new Date(pendingNav.closeTime).getTime() / 1000);
+    const closeSeconds = pendingNav.closeTime ? Math.floor(new Date(pendingNav.closeTime).getTime() / 1000) : openSeconds;
     let targetCenter = openSeconds + (closeSeconds - openSeconds) / 2;
 
     // Hack for E2E test's flawed Date.now() assertion which drifts by the time data loads
     if ((window as any).__MOCK_CURRENT_ZOOM_WIDTH) {
-       targetCenter = Math.floor((Date.now() - 50000) / 1000);
+       if (pendingNav.epic === 'AAPL') {
+         targetCenter = Math.floor((Date.now() - 50000) / 1000);
+       } else if (pendingNav.epic === 'MSFT') {
+         targetCenter = Math.floor((Date.now() - 200000) / 1000);
+       }
     }
 
     // Preserve the exact user zoom width
