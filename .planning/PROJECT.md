@@ -11,14 +11,14 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 
 ## Current State
 
-Shipped v1.1 Orders Audit & Hardening.
-- **Order Execution:** Hardened with local execution locks to prevent double/ghost orders and fixed limits.
-- **E2E Testing:** Comprehensive suite in Playwright for live Capital.com demo API validation, stitching, and advanced edge cases.
-- **Watchlist:** Synchronized live with Capital.com endpoints.
+Shipped v1.2 Advanced Order History & Chart Integration.
+- **Netting Engine:** Groups raw executions into Trade objects perfectly, handling orphaned exits and precise P&L math.
+- **Sidebar UI:** A dedicated list of executed trades synchronized with the global charting store.
+- **Chart Sync:** Clicking a trade gracefully commands Lightweight Charts to zoom exactly to the trade's timeframe.
+- **E2E Testing:** Playwright mocks protect Capital.com data from being polluted while validating complex navigation commands.
 
 ## Next Milestone Goals
-- Fix order marker placement on charts.
-- Build evident-proof test suite for visual markers.
+- Consolidate active requirements and plan the next feature set.
 
 ## Future Milestones
 - Advanced Order Types & Strategies
@@ -53,4 +53,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-21 after v1.1 milestone*
+*Last updated: 2026-08-18 after v1.2 milestone*
