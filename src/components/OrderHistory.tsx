@@ -25,6 +25,8 @@ export const OrderHistory: React.FC = () => {
       currentMarket: { epic: trade.epic },
       pendingNavigation: { openTime: trade.openTime, closeTime: trade.closeTime, epic: trade.epic }
     });
+
+    window.dispatchEvent(new CustomEvent('chart-navigate', { detail: trade }));
   };
 
   const formatTime = (isoString: string) => {

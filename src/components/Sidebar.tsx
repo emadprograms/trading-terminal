@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List, History, RefreshCw, Loader2, Check } from 'lucide-react';
+import { Activity, Database, UploadCloud, Calendar as CalendarIcon, RotateCcw, HardDrive, ExternalLink, ClipboardList, ChevronLeft, List, History, RefreshCw, Loader2, Check, Bell } from 'lucide-react';
 import { TradeLog } from './TradeLog';
 import { Watchlist } from './Watchlist';
 import { OrderHistory } from './OrderHistory';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { toast } from 'sonner';
+import { AlertsPanel } from './AlertsPanel';
 
 interface SidebarProps {
   dbStatus: string;
@@ -34,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   layoutMode,
   setLayoutMode
 }) => {
-  const [activePanel, setActivePanel] = useState<'tradeLog' | 'watchlist' | 'orderHistory' | null>('orderHistory');
+  const [activePanel, setActivePanel] = useState<'tradeLog' | 'watchlist' | 'orderHistory' | 'alerts' | null>('orderHistory');
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncedLabel, setShowSyncedLabel] = useState(false);
   const syncWithRemote = useWatchlistStore((state) => state.syncWithRemote);
@@ -110,6 +111,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <History size={20} />
+        </button>
+
+        
+        <button 
+          className={`btn-icon ${activePanel === 'alerts' ? 'active' : ''}`} 
+          onClick={() => setActivePanel(activePanel === 'alerts' ? null : 'alerts')} 
+          title="Alerts"
+          style={{ 
+            color: activePanel === 'alerts' ? 'var(--accent-green)' : 'var(--text-secondary)',
+            background: activePanel === 'alerts' ? 'rgba(38, 166, 154, 0.1)' : 'transparent',
+            marginTop: '8px'
+          }}
+        >
+          <Bell size={20} />
         </button>
 
         <div style={{ flex: 1 }}></div>
@@ -250,6 +265,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       )}
+    
+      {activePanel === 'alerts' && (
+        <div className="sidebar-panel watchlist-panel" style={{
+          width: '320px',
+          background: 'rgba(0, 0, 0, 0.9)',
+          backdropFilter: 'var(--glass-blur)',
+          borderRight: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 90
+        }}>
+          <div style={{ 
+            padding: '16px', 
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price Alerts</h3>
+            <button className="btn-icon" onClick={() => setActivePanel(null)}>
+              <ChevronLeft size={18} />
+            </button>
+          </div>
+          <AlertsPanel />
+        </div>
+      )}
+
     </>
   );
 };

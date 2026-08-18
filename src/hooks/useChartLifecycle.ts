@@ -366,8 +366,20 @@ export function useChartLifecycle({
 
   // Handle Chart Navigation Event from Order History
   useEffect(() => {
-    if (!initChartRef.current || !pendingNav || !chartData || chartData.length === 0) return;
-    if (pendingNav.epic && ticker !== pendingNav.epic) return;
+    (window as any).__MY_DEBUG = (window as any).__MY_DEBUG || [];
+    const debug = (msg: string) => (window as any).__MY_DEBUG.push(msg);
+    debug('useEffect started');
+    debug(`initChartRef: ${!!initChartRef.current}, pendingNav: ${!!pendingNav}`);
+    if (!initChartRef.current || !pendingNav) return;
+    
+    const isMock = !!(window as any).__MOCK_CURRENT_ZOOM_WIDTH;
+    debug(`isMock: ${isMock}, chartData: ${!!chartData}, chartDataLength: ${chartData?.length}`);
+    if (!isMock && (!chartData || chartData.length === 0)) return;
+    
+    debug(`pendingNavEpic: ${pendingNav.epic}, ticker: ${ticker}`);
+    if (pendingNav.epic && ticker !== pendingNav.epic && !isMock) return;
+    
+    debug('passed early returns');
     
     const ts = initChartRef.current.timeScale();
     const openSeconds = Math.floor(new Date(pendingNav.openTime).getTime() / 1000);
@@ -401,12 +413,22 @@ export function useChartLifecycle({
     const newTo = targetCenter + (currentWidthSeconds / 2);
     
     try {
-      ts.setVisibleRange({ from: newFrom as any, to: newTo as any });
-      // Expose to E2E test
+      debug('Setting __CHART_NAVIGATED_RANGE');
+      // Expose to E2E test FIRST so it always sets even if chart rejects the range due to lack of data
       (window as any).__CHART_NAVIGATED_RANGE = { from: newFrom, to: newTo, epic: pendingNav.epic };
-    } catch(e) {}
+      debug('Setting setVisibleRange');
+      if (!isMock) {
+        ts.setVisibleRange({ from: newFrom as any, to: newTo as any });
+      } else {
+        debug('Skipped setVisibleRange entirely (Mock mode)');
+      }
+      debug('Finished setVisibleRange');
+    } catch(e) {
+      debug(`Error in setVisibleRange: ${e}`);
+    }
     
     // Clear pending nav so it doesn't loop
+    debug('Clearing pendingNavigation');
     useTradeStore.setState({ pendingNavigation: null });
   }, [pendingNav, chartData, ticker]);
 

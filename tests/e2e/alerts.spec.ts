@@ -30,19 +30,24 @@ test.describe('Real-Time Alerting System', () => {
       });
     });
 
-    // 3. Click the "Set Alert" button (which doesn't exist yet)
-    // Wait for a button that we expect to be there eventually, this is what fails first.
+    // 3. Wait for the app to render, then open the Alerts panel
+    await page.click('button[title="Alerts"]');
+    
+    // Wait for panel to open
+    await expect(page.locator('.watchlist-panel')).toBeVisible({ timeout: 10000 });
+
+    // 4. Click the "Set Alert" button
     const alertButton = page.locator('button', { hasText: 'Set Alert' });
     await alertButton.click({ timeout: 5000 });
 
-    // 4. Fill out the alert form (which doesn't exist yet)
+    // 5. Fill out the alert form
     await page.fill('input[name="alertPrice"]', '150.00');
     await page.click('button:has-text("Create Alert")');
 
-    // 5. Verify the alert appears in the active alerts list
+    // 6. Verify the alert appears in the active alerts list
     await expect(page.locator('.active-alerts-list')).toContainText('Alert: 150.00');
 
-    // 6. Mock a price update that hits the target price
+    // 7. Mock a price update that hits the target price
     await page.evaluate(() => {
       // @ts-ignore
       if (window.__E2E_PUSH_PRICE_TICK) {
@@ -51,7 +56,7 @@ test.describe('Real-Time Alerting System', () => {
       }
     });
 
-    // 7. Verify the alert triggered visually (e.g., a toast notification)
+    // 8. Verify the alert triggered visually (e.g., a toast notification)
     const toast = page.locator('.alert-toast');
     await expect(toast).toContainText('Alert triggered at 150.05');
   });

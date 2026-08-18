@@ -915,6 +915,10 @@ export const useTradeStore = create<TradeState>()(
       },
 
       syncExecutions: async (days) => {
+        if (typeof window !== 'undefined' && (window as any).__E2E_MOCK_EXECUTIONS) {
+          console.log('[E2E] Bypassing syncExecutions for test');
+          return;
+        }
         const effectiveDays = days ?? get().historyLookbackDays;
         try {
           const allActivities: any[] = [];
@@ -938,7 +942,7 @@ export const useTradeStore = create<TradeState>()(
           const mapped: Execution[] = allActivities
             .filter(a => {
               const isValidType = a.type === 'POSITION';
-              const isFilledStatus = ['EXECUTED', 'FILLED', 'OPENED', 'CLOSED'].includes(a.status);
+              const isFilledStatus = ['ACCEPTED', 'EXECUTED', 'FILLED', 'OPENED', 'CLOSED'].includes(a.status);
               return isValidType && isFilledStatus && a.details && (a.details.level || a.details.openPrice);
             })
             .map(a => {

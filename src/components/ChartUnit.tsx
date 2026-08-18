@@ -43,6 +43,8 @@ export default function ChartUnit({
   const [showVP, setShowVP] = React.useState(false);
   const theme = useWorkspaceStore((state) => state.theme);
 
+
+
   // 1. Data management
   const data = useChartData({ 
     initialTicker, 

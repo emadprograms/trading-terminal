@@ -5,7 +5,24 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     // Navigate to the app
     await page.goto('http://localhost:3001');
 
-    // Inject mocked executions directly into useTradeStore
+    // Intercept API calls to prevent the app from fetching real historical data
+    // and overwriting our injected mocked executions.
+    await page.route('**/api/history/activity*', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ activities: [] })
+      });
+    });
+
+    // Wait for the app to initialize its stores
+    await page.waitForFunction(() => !!(window as any).__sessionStore);
+
+    // Force authentication so ChartWorkspace doesn't get unmounted by login spinner
+    await page.evaluate(() => {
+      (window as any).__E2E_MOCK_EXECUTIONS = true;
+      (window as any).__sessionStore.setState({ isAuthenticated: true, cst: 'mock', securityToken: 'mock' });
+    });
     // This simulates the app fetching raw data and mapping it, then the netting engine picking it up
     await page.evaluate(() => {
       const now = Date.now();
@@ -105,18 +122,25 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
 
     await tradeCard.click();
 
-    // Verify the store's current market changed to AAPL
     const currentEpic = await page.evaluate(() => {
-      return (window as any).useTradeStore.getState().currentMarket?.epic;
+      const state = (window as any).useTradeStore.getState();
+      return state.currentMarket?.epic;
     });
     
     expect(currentEpic).toBe('AAPL');
 
-    // Wait for the chart to process the navigation and expose the applied range
-    // The agent must implement pendingNavigation and set window.__CHART_NAVIGATED_RANGE
-    await page.waitForFunction(() => (window as any).__CHART_NAVIGATED_RANGE !== null, { timeout: 3000 });
-
-    const finalRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
+    // Node-side polling to avoid browser-side freezing
+    let navRange = null;
+    for (let i = 0; i < 20; i++) { // wait up to 2 seconds
+      navRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
+      if (navRange !== null) break;
+      await page.waitForTimeout(100);
+    }
+    
+    if (navRange === null) {
+      throw new Error('Timed out waiting for __CHART_NAVIGATED_RANGE');
+    }
+    const finalRange = navRange;
     expect(finalRange).toBeTruthy();
     // The duration between openTime and closeTime of the mocked trade is 100 seconds (now-100k vs now)
     // open = now - 100000, close = now
@@ -145,7 +169,15 @@ test.describe('Order History & Netting Engine (Real Flow)', () => {
     const msftCard = page.locator('.order-history section > div').nth(1).locator('> div').filter({ hasText: 'MSFT' }).first();
     await msftCard.click();
     
-    await page.waitForFunction(() => (window as any).__CHART_NAVIGATED_RANGE !== null, { timeout: 3000 });
+    navRange = null;
+    for (let i = 0; i < 20; i++) {
+      navRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
+      if (navRange !== null) break;
+      await page.waitForTimeout(100);
+    }
+    if (navRange === null) {
+      throw new Error('Timed out waiting for MSFT __CHART_NAVIGATED_RANGE');
+    }
     const msftRange = await page.evaluate(() => (window as any).__CHART_NAVIGATED_RANGE);
     
     expect(msftRange.epic).toBe('MSFT');

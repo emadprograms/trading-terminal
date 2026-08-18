@@ -19,6 +19,7 @@ import { useSessionStore } from './store/useSessionStore';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { WatchlistManager } from './components/WatchlistManager';
 import { Clock } from './components/Clock';
+import { AlertToast } from './components/AlertToast';
 
 export default function App() {
   const { 
@@ -160,6 +161,7 @@ export default function App() {
       </div>
       <Toaster theme="dark" position="top-right" richColors />
       <WatchlistManager />
+      <AlertToast />
     </div>
   );
 }
