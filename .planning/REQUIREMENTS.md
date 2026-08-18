@@ -16,3 +16,12 @@
 
 ## Out of Scope
 - Backend alert processing (we are starting with client-side evaluating via the WebSockets to save on latency and server costs).
+
+## Traceability
+
+| Requirement ID | Description | Phase | Status |
+|---|---|---|---|
+| ALERT-01 | Build a comprehensive Playwright E2E test suite *first* | 01-alerting-e2e-benchmark | [ ] |
+| ALERT-02 | Implement the core Alert Engine logic | 02-alerting-engine | [ ] |
+| ALERT-03 | Build the Alert creation UI components | 03-alert-ui-notifications | [ ] |
+| ALERT-04 | Implement the visual/audio trigger mechanism in the UI | 03-alert-ui-notifications | [ ] |
