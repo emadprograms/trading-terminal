@@ -1,3 +1,7 @@
+---
+status: resolved
+updated: 2026-08-18
+---
 # Debug Session: watchlist-init-400
 
 ## Objective
