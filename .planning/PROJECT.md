@@ -17,13 +17,14 @@ Shipped v1.2 Advanced Order History & Chart Integration.
 - **Chart Sync:** Clicking a trade gracefully commands Lightweight Charts to zoom exactly to the trade's timeframe.
 - **E2E Testing:** Playwright mocks protect Capital.com data from being polluted while validating complex navigation commands.
 
-## Next Milestone Goals
-- Consolidate active requirements and plan the next feature set.
+## Current Milestone Goals
+- Build a Real-Time Alerting System using a strict end-to-end Test-Driven Development (TDD) methodology.
+- Create upfront Playwright E2E tests for setting and triggering alerts.
+- Execute feature development with individual unit tests.
 
 ## Future Milestones
 - Advanced Order Types & Strategies
 - Portfolio Analytics & Performance History
-- Real-time Alerting System
 
 ## Technical Constraints & Stack
 - **Frontend:** React (Vite), Zustand (State), TailwindCSS (assumed, or Vanilla CSS), Lightweight Charts.
