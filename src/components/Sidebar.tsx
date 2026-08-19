@@ -4,6 +4,7 @@ import { TradeLog } from './TradeLog';
 import { Watchlist } from './Watchlist';
 import { OrderHistory } from './OrderHistory';
 import { useWatchlistStore } from '../store/useWatchlistStore';
+import { useAlertStore } from '../store/useAlertStore';
 import { toast } from 'sonner';
 import { AlertsPanel } from './AlertsPanel';
 
@@ -42,6 +43,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const availableWatchlists = useWatchlistStore((state) => state.availableWatchlists);
   const remoteWatchlistId = useWatchlistStore((state) => state.remoteWatchlistId);
   const setActiveWatchlist = useWatchlistStore((state) => state.setActiveWatchlist);
+  const isAlertPanelOpen = useAlertStore((state) => state.isPanelOpen);
+  const closeAlertPanel = useAlertStore((state) => state.closePanel);
+
+  useEffect(() => {
+    if (isAlertPanelOpen) {
+      setActivePanel('alerts');
+    }
+  }, [isAlertPanelOpen]);
+
+  useEffect(() => {
+    if (activePanel !== 'alerts' && isAlertPanelOpen) {
+      closeAlertPanel();
+    }
+  }, [activePanel, isAlertPanelOpen, closeAlertPanel]);
 
   const handleSyncWatchlist = async (showToast = false) => {
     setIsSyncing(true);

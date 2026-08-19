@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAlertStore } from '../store/useAlertStore';
+import { useWorkspaceStore, getEffectiveTicker } from '../store/useWorkspaceStore';
+import { usePriceStore } from '../store/usePriceStore';
 
 export const AlertsPanel: React.FC = () => {
-  const { alerts, addAlert } = useAlertStore();
+  const { alerts, addAlert, prefilledPrice } = useAlertStore();
   const [isOpen, setIsOpen] = useState(false);
   const [price, setPrice] = useState('');
 
+  useEffect(() => {
+    if (prefilledPrice !== null) {
+      setIsOpen(true);
+      setPrice(prefilledPrice.toString());
+    }
+  }, [prefilledPrice]);
+
+  const selectedId = useWorkspaceStore(s => s.selectedId);
+  const epic = selectedId ? getEffectiveTicker(selectedId) : 'MOCK_EPIC';
+  
+  const currentPriceObj = usePriceStore(s => s.prices[epic]);
+  const currentPrice = currentPriceObj ? (currentPriceObj.bid + currentPriceObj.ask) / 2 : 100;
+
   const handleCreate = () => {
     if (price) {
-      // Use 0 as current price for the sake of the E2E mock if we don't have a real current price handy here. 
-      // Actually, standardizing currentPrice is better.
-      // E2E test uses 150 as target and 150.05 as trigger (so 'above' condition). 
-      // We'll pass 100 as the "current price" to ensure condition is 'above'.
-      addAlert(parseFloat(price), 100);
+      addAlert(epic, parseFloat(price), currentPrice);
       setPrice('');
       setIsOpen(false);
     }
