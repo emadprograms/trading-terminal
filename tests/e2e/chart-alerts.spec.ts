@@ -26,7 +26,7 @@ test.describe('Chart Alerts E2E', () => {
     await page.route('**/api/market/v1/markets*', route => route.fulfill({ status: 200, json: { markets: [{ epic: 'MOCK_EPIC', instrumentName: 'MOCK', expiry: '-', lotSize: 1, currencies: [{ symbol: '$' }] }] } }));
     
     // Set up app state
-    await page.goto('http://localhost:3001');
+    await page.goto('/');
 
     await page.waitForFunction(() => !!(window as any).__sessionStore);
 
@@ -44,7 +44,7 @@ test.describe('Chart Alerts E2E', () => {
     });
 
     // Wait for canvas to be visible
-    const canvas = page.locator('canvas').first();
+    const canvas = page.getByTestId('chart-container').locator('canvas').first();
     await expect(canvas).toBeVisible({ timeout: 10000 });
 
     // Hover over the canvas to trigger the crosshair and y-axis button
@@ -52,7 +52,9 @@ test.describe('Chart Alerts E2E', () => {
     if (!box) throw new Error('Canvas bounding box not found');
     
     // Simulate hover on the Y-axis (right side of the chart)
-    await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2);
+    const Y_AXIS_WIDTH = 60;
+    const hoverX = box.x + box.width - (Y_AXIS_WIDTH / 2);
+    await page.mouse.move(hoverX, box.y + box.height / 2);
 
     // Wait for the plus button to appear in the DOM
     const plusButton = page.locator('.chart-alert-plus-button');
@@ -62,7 +64,7 @@ test.describe('Chart Alerts E2E', () => {
     await plusButton.click();
 
     // Verify the alert creation flow opens with pre-filled price
-    const alertModal = page.locator('.alert-modal, .watchlist-panel'); // depending on where it opens
+    const alertModal = page.locator('.alert-modal');
     await expect(alertModal).toBeVisible();
 
     // Check if the price input is pre-filled with a value

@@ -33,7 +33,7 @@ export function ChartCanvas({
   theme = 'oled'
 }: ChartCanvasProps) {
   return (
-    <div ref={chartContainerRef} style={{ flex: 1, position: 'relative', minHeight: 0, minWidth: 0, overflow: 'hidden', cursor: isDrawingMode ? 'crosshair' : 'default' }}>
+    <div data-testid="chart-container" ref={chartContainerRef} style={{ flex: 1, position: 'relative', minHeight: 0, minWidth: 0, overflow: 'hidden', cursor: isDrawingMode ? 'crosshair' : 'default' }}>
       
       {!isHydrated && (
         <div style={{ 
