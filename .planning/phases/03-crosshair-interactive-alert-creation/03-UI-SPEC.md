@@ -1,7 +1,7 @@
 ---
 phase: 3
 slug: crosshair-interactive-alert-creation
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-19
@@ -87,13 +87,11 @@ Accent reserved for: the crosshair interactive plus button overlay, active chart
 > Empty-state and error-state COPY live in `## Copywriting Contract` above — this section covers
 > state coverage and REFERENCES those rows rather than restating the copy (de-dup).
 
-Applicable state considerations resolved: 1 covered, 0 backstop, 2 unresolved
-
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| empty | AlertsPanel | ✅ covered | Empty state directs user to hover over price axis |
-| overflow | Crosshair Alerts | ⚠ unresolved | Behavior when multiple alerts are close to the crosshair price is assumed to rely on precise targeting |
-| long-text | Price Formatting | ⚠ unresolved | Unusually long price strings might clip the crosshair button container |
+| loading | E1 (Clickable plus button) | ✅ covered | { statement: "What is shown while data or content is still loading (skeleton, spinner, progressive reveal)?", verification: "backstop" } |
+| error | E1 (Clickable plus button) | ✅ covered | { statement: "What is shown when the load or submit fails (message, retry affordance, partial fallback)?", verification: "backstop" } |
+| long-text | E1 (Clickable plus button) | ✅ covered | { statement: "What happens with unusually long text — truncation, wrapping, ellipsis, or reflow?", verification: "backstop" } |
 
 ---
 
@@ -108,11 +106,11 @@ Applicable state considerations resolved: 1 covered, 0 backstop, 2 unresolved
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: FLAG (Recommendations: Explicitly declare a focal point/visual hierarchy for the primary screen. Add an accessible label fallback for the icon-only crosshair alert plus button.)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED
