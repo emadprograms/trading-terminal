@@ -18,10 +18,12 @@ current_phase_name: crosshair-interactive-alert-creation
 
 # Project State
 
-## Current Milestone
+## Project Reference
 
-- **Version**: 1.3
-- **Name**: Real-Time Alerting System
+See: .planning/PROJECT.md (updated 2026-08-19)
+
+**Core value:** Real-time sync that feels instant.
+**Current focus:** Planning next milestone (Multiple Watchlist Support & Dealing Rules)
 
 ## Blockers/Concerns
 
@@ -29,6 +31,9 @@ current_phase_name: crosshair-interactive-alert-creation
 
 ## Deferred Verification
 
+- VISUAL-01: Requirement missing from 02-VERIFICATION.md.
+- CHART-01: Requirement missing from 03-VERIFICATION.md.
+- CHART-02: Requirement missing from 03-VERIFICATION.md.
 ## Current Position
 
 Phase: Milestone v1.4 complete
