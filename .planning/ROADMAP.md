@@ -10,22 +10,28 @@
 ## Phases
 
 ### Phase 1: Chart Alerts E2E Benchmark (TDD)
+
 **Goal:** Build the strict Playwright E2E test that validates the chart interaction flow before any implementation.
 **Requirements:** TEST-01
+
 - [ ] Create `tests/e2e/chart-alerts.spec.ts` to test hovering over the chart axis and clicking the plus button.
 - [ ] Test should mock chart rendering and verify correct interaction flows.
 - [ ] Verify test fails correctly before moving to next phase.
 
 ### Phase 2: Lightweight Charts Visual Alerts
+
 **Goal:** Visually plot active alerts for the current asset on the chart.
 **Requirements:** VISUAL-01
+
 - [ ] Read active alerts for the current asset from `useAlertStore`.
 - [ ] Draw horizontal price lines on the Lightweight Chart for each active alert.
 - [ ] Ensure lines update/remove when alerts trigger or are deleted.
 
 ### Phase 3: Crosshair Interactive Alert Creation
+
 **Goal:** Implement the plus button on the Y-axis when the user hovers/moves the crosshair.
 **Requirements:** CHART-01, CHART-02
+
 - [ ] Track crosshair position on the Y-axis (price level) in Lightweight Charts.
 - [ ] Render a clickable plus (+) symbol on the Y-axis aligned with the crosshair.
 - [ ] Connect the plus symbol click to the alert creation UI modal/sidebar.
