@@ -10,19 +10,16 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 - **Premium Aesthetics:** A sleek, modern, and highly polished user interface with fluid micro-animations and exact interaction states.
 - **Real-Time Alerting:** Asset-specific price alerts that evaluate live WebSocket ticks and notify the user visually (toast) and audibly (Web Audio API beep).
 
-## Current Milestone Goals
-- **Chart Alerts Integration:** Allow users to set price alerts visually by clicking a plus symbol on the chart's Y-axis crosshair.
-- **Key capability:** Integrate the Real-Time Alerting System built in v1.3 directly into the Lightweight Charts interface for a seamless UX.
+## Next Milestone Goals
+- **Multiple Watchlist Support:** Support selection between multiple watchlists.
+- **Dealing Rules Validation:** Enforce stock order quantity validation using Capital.com dealing rules.
 
 ## Current State
 
-Shipped v1.3 Real-Time Alerting System.
-- **Alert Engine:** Zustand-backed `useAlertStore` evaluates live WebSocket price ticks per-epic and triggers alerts when conditions are met.
-- **Alert UI:** `AlertsPanel` in the sidebar for creating/managing alerts, uses the active workspace's current price as the baseline.
-- **Notification System:** `AlertToast` shows a visual toast and plays a Web Audio API beep on alert trigger.
-- **Full E2E Coverage:** Playwright tests verify the complete lifecycle from alert creation → WebSocket tick → toast notification, with no mock bypasses.
-
-Completed Phase 01 (Chart Alerts E2E Benchmark TDD). Built failing Playwright test to guide upcoming Lightweight Charts UI interaction.
+Shipped v1.4 Chart Alerts Integration.
+- **Visual Chart Alerts:** Active alerts are visually plotted on the Lightweight Chart as horizontal price lines.
+- **Interactive Creation:** Clickable plus symbol on the chart's Y-axis crosshair allows setting alerts precisely at price levels.
+- **TDD Flow:** Implemented Playwright E2E benchmark tests to ensure correct chart UI interaction before actual implementation.
 
 ## Requirements
 
@@ -36,6 +33,8 @@ Completed Phase 01 (Chart Alerts E2E Benchmark TDD). Built failing Playwright te
 - ✓ Toast + audio notification on alert trigger — v1.3
 - ✓ E2E TDD test coverage for alert lifecycle — v1.3
 - ✓ Chart alerts benchmark E2E test — v1.4 (Phase 01)
+- ✓ Lightweight Charts Visual Alerts — v1.4 (Phase 02)
+- ✓ Crosshair Interactive Alert Creation — v1.4 (Phase 03)
 
 ### Active (Next Milestone)
 - [ ] Multiple watchlist selection dropdown
@@ -80,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-19*
+*Last updated: 2026-08-19 after v1.4 milestone*
