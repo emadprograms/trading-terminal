@@ -47,16 +47,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const closeAlertPanel = useAlertStore((state) => state.closePanel);
 
   useEffect(() => {
-    if (isAlertPanelOpen) {
+    if (isAlertPanelOpen && activePanel !== 'alerts') {
       setActivePanel('alerts');
     }
-  }, [isAlertPanelOpen]);
-
-  useEffect(() => {
-    if (activePanel !== 'alerts' && isAlertPanelOpen) {
-      closeAlertPanel();
-    }
-  }, [activePanel, isAlertPanelOpen, closeAlertPanel]);
+  }, [isAlertPanelOpen, activePanel]);
 
   const handleSyncWatchlist = async (showToast = false) => {
     setIsSyncing(true);
@@ -299,7 +293,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             justifyContent: 'space-between'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price Alerts</h3>
-            <button className="btn-icon" onClick={() => setActivePanel(null)}>
+            <button className="btn-icon" onClick={() => {
+              setActivePanel(null);
+              closeAlertPanel();
+            }}>
               <ChevronLeft size={18} />
             </button>
           </div>

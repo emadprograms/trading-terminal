@@ -57,14 +57,14 @@ test.describe('Chart Alerts E2E', () => {
     await page.mouse.move(hoverX, box.y + box.height / 2);
 
     // Wait for the plus button to appear in the DOM
-    const plusButton = page.locator('.chart-alert-plus-button');
+    const plusButton = page.getByTestId('crosshair-alert-btn').first();
     await expect(plusButton).toBeVisible({ timeout: 5000 });
 
     // Click the plus button
     await plusButton.click();
 
     // Verify the alert creation flow opens with pre-filled price
-    const alertModal = page.locator('.alert-modal');
+    const alertModal = page.locator('.alerts-panel');
     await expect(alertModal).toBeVisible();
 
     // Check if the price input is pre-filled with a value

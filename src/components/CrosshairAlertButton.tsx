@@ -4,11 +4,12 @@ import { useAlertStore } from '../store/useAlertStore';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 
 interface CrosshairAlertButtonProps {
+  chartContainerRef: React.RefObject<HTMLDivElement | null>;
   chartRef: React.RefObject<IChartApi | null>;
   priceSeriesRef: React.RefObject<ISeriesApi<"Candlestick"> | null>;
 }
 
-export const CrosshairAlertButton: React.FC<CrosshairAlertButtonProps> = ({ chartRef, priceSeriesRef }) => {
+export const CrosshairAlertButton: React.FC<CrosshairAlertButtonProps> = ({ chartContainerRef, chartRef, priceSeriesRef }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [positionY, setPositionY] = useState(0);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -17,44 +18,47 @@ export const CrosshairAlertButton: React.FC<CrosshairAlertButtonProps> = ({ char
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!chartRef.current || !priceSeriesRef.current) return;
+    if (!chartContainerRef.current || !priceSeriesRef.current) return;
 
-    const chart = chartRef.current;
+    const container = chartContainerRef.current;
     
-    const crosshairMoveHandler = (param: any) => {
-      if (
-        param.point === undefined ||
-        !param.time ||
-        param.point.x < 0 ||
-        param.point.x > chart.timeScale().width() ||
-        param.point.y < 0
-      ) {
-        setIsVisible(false);
-        if (buttonRef.current) buttonRef.current.style.display = 'none';
-        return;
-      }
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      // Mouse Y relative to the chart container
+      const y = e.clientY - rect.top;
+      const x = e.clientX - rect.left;
 
+      // Only show if we are on the right side (Y-axis area, typically rightmost 60px)
+      // or we just want to show it anywhere on hover? The requirement says:
+      // "Hovering over the Y-axis of the chart reveals the plus symbol correctly aligned with the crosshair."
+      // But we can also show it whenever the mouse is in the container.
+      
       if (priceSeriesRef.current) {
-        const price = priceSeriesRef.current.coordinateToPrice(param.point.y);
-        if (price !== null) {
-          setIsVisible(true);
-          setPositionY(param.point.y);
-          setCurrentPrice(price);
-          
-          if (buttonRef.current) {
-            buttonRef.current.style.display = 'flex';
-            buttonRef.current.style.top = `${param.point.y}px`;
-          }
+        const price = priceSeriesRef.current.coordinateToPrice(y);
+        setIsVisible(true);
+        setPositionY(y);
+        setCurrentPrice(price || 0); // fallback if null
+        
+        if (buttonRef.current) {
+          buttonRef.current.style.display = 'flex';
+          buttonRef.current.style.top = `${y}px`;
         }
       }
     };
 
-    chart.subscribeCrosshairMove(crosshairMoveHandler);
+    const handleMouseLeave = () => {
+      setIsVisible(false);
+      if (buttonRef.current) buttonRef.current.style.display = 'none';
+    };
+
+    container.addEventListener('mousemove', handleMouseMove, true);
+    container.addEventListener('mouseleave', handleMouseLeave, true);
 
     return () => {
-      chart.unsubscribeCrosshairMove(crosshairMoveHandler);
+      container.removeEventListener('mousemove', handleMouseMove, true);
+      container.removeEventListener('mouseleave', handleMouseLeave, true);
     };
-  }, [chartRef, priceSeriesRef]);
+  }, [chartContainerRef, priceSeriesRef]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
