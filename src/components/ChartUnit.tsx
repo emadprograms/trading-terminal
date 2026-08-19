@@ -186,6 +186,8 @@ export default function ChartUnit({
       >
         <ChartCanvas
           chartContainerRef={chartContainerRef}
+          chartRef={chartRef}
+          priceSeriesRef={priceSeriesRef}
           isDrawingMode={keyboard.isDrawingMode}
           isViewModified={chart.isViewModified}
           resetView={chart.resetView}
