@@ -7,7 +7,7 @@
 
 ### Visual State
 
-- [ ] **VISUAL-01**: Existing alerts for the current asset are visually plotted on the chart as horizontal lines.
+- [x] **VISUAL-01**: Existing alerts for the current asset are visually plotted on the chart as horizontal lines.
 
 ### Test Coverage
 
