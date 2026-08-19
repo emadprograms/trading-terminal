@@ -10,6 +10,10 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 - **Premium Aesthetics:** A sleek, modern, and highly polished user interface with fluid micro-animations and exact interaction states.
 - **Real-Time Alerting:** Asset-specific price alerts that evaluate live WebSocket ticks and notify the user visually (toast) and audibly (Web Audio API beep).
 
+## Current Milestone Goals
+- **Chart Alerts Integration:** Allow users to set price alerts visually by clicking a plus symbol on the chart's Y-axis crosshair.
+- **Key capability:** Integrate the Real-Time Alerting System built in v1.3 directly into the Lightweight Charts interface for a seamless UX.
+
 ## Current State
 
 Shipped v1.3 Real-Time Alerting System.
@@ -17,7 +21,6 @@ Shipped v1.3 Real-Time Alerting System.
 - **Alert UI:** `AlertsPanel` in the sidebar for creating/managing alerts, uses the active workspace's current price as the baseline.
 - **Notification System:** `AlertToast` shows a visual toast and plays a Web Audio API beep on alert trigger.
 - **Full E2E Coverage:** Playwright tests verify the complete lifecycle from alert creation → WebSocket tick → toast notification, with no mock bypasses.
-- **Strict TDD Methodology:** The entire milestone was built test-first — E2E benchmark → unit tests → implementation → E2E validation.
 
 ## Requirements
 
@@ -60,6 +63,13 @@ Shipped v1.3 Real-Time Alerting System.
 
 This document evolves at phase transitions and milestone boundaries.
 
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
 **After each milestone** (via `/gsd-complete-milestone`):
 1. Full review of all sections
 2. Core Value check — still the right priority?
@@ -67,4 +77,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-18 after v1.3 milestone*
+*Last updated: 2026-08-19*
