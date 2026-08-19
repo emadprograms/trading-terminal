@@ -5,7 +5,7 @@ import type { ISeriesApi, IPriceLine } from 'lightweight-charts';
 export interface UseChartAlertsProps {
   ticker: string;
   priceSeriesRef: React.MutableRefObject<ISeriesApi<"Candlestick"> | null>;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'oled';
 }
 
 export function useChartAlerts({ ticker, priceSeriesRef, theme }: UseChartAlertsProps) {
