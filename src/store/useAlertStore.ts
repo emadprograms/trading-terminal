@@ -4,6 +4,7 @@ export type AlertCondition = 'above' | 'below';
 
 export interface Alert {
   id: string;
+  epic: string;
   targetPrice: number;
   condition: AlertCondition;
   triggered: boolean;
@@ -12,18 +13,33 @@ export interface Alert {
 
 interface AlertStore {
   alerts: Alert[];
-  addAlert: (targetPrice: number, currentPrice: number) => void;
+  addAlert: (epic: string, targetPrice: number, currentPrice: number) => void;
   removeAlert: (id: string) => void;
-  evaluatePrice: (currentPrice: number) => void;
+  evaluatePrice: (epic: string, currentPrice: number) => void;
+  isPanelOpen: boolean;
+  prefilledPrice: number | null;
+  openPanelWithPrice: (price: number) => void;
+  closePanel: () => void;
 }
 
 export const useAlertStore = create<AlertStore>((set, get) => ({
   alerts: [],
+  isPanelOpen: false,
+  prefilledPrice: null,
+  
+  openPanelWithPrice: (price: number) => {
+    set({ isPanelOpen: true, prefilledPrice: price });
+  },
+  
+  closePanel: () => {
+    set({ isPanelOpen: false, prefilledPrice: null });
+  },
 
-  addAlert: (targetPrice: number, currentPrice: number) => {
+  addAlert: (epic: string, targetPrice: number, currentPrice: number) => {
     const condition: AlertCondition = currentPrice > targetPrice ? 'below' : 'above';
     const newAlert: Alert = {
       id: Math.random().toString(36).substring(7),
+      epic,
       targetPrice,
       condition,
       triggered: false,
@@ -36,12 +52,12 @@ export const useAlertStore = create<AlertStore>((set, get) => ({
     set((state) => ({ alerts: state.alerts.filter(a => a.id !== id) }));
   },
 
-  evaluatePrice: (currentPrice: number) => {
+  evaluatePrice: (epic: string, currentPrice: number) => {
     const { alerts } = get();
     let updated = false;
 
     const evaluatedAlerts = alerts.map(alert => {
-      if (alert.triggered) return alert;
+      if (alert.triggered || alert.epic !== epic) return alert;
 
       let triggerNow = false;
       if (alert.condition === 'above' && currentPrice >= alert.targetPrice) {
@@ -69,9 +85,5 @@ export const useAlertStore = create<AlertStore>((set, get) => ({
   }
 }));
 
-// Expose evaluation for E2E tests
-if (typeof window !== 'undefined') {
-  (window as any).__E2E_PUSH_PRICE_TICK = (price: number) => {
-    useAlertStore.getState().evaluatePrice(price);
-  };
-}
+// Removed E2E mock since it's now handled by ws-manager
+
