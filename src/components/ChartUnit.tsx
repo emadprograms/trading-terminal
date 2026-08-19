@@ -14,6 +14,7 @@ import { parseInput } from '../lib/parsing';
 import { useTradeStore } from '../store/useTradeStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { StitchingErrorBanner } from './StitchingErrorBanner';
+import { useChartAlerts } from '../hooks/chart/useChartAlerts';
 
 export default function ChartUnit({ 
   id, 
@@ -122,6 +123,12 @@ export default function ChartUnit({
     priceSeriesRef, 
     tradePluginRef: chart.tradePluginRef,
     pluginVersion: chart.pluginVersion
+  });
+
+  useChartAlerts({
+    ticker: data.ticker,
+    priceSeriesRef,
+    theme,
   });
 
   const hasExplicitSize = style.width || style.height;
