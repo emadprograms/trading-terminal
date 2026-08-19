@@ -22,6 +22,8 @@ Shipped v1.3 Real-Time Alerting System.
 - **Notification System:** `AlertToast` shows a visual toast and plays a Web Audio API beep on alert trigger.
 - **Full E2E Coverage:** Playwright tests verify the complete lifecycle from alert creation → WebSocket tick → toast notification, with no mock bypasses.
 
+Completed Phase 01 (Chart Alerts E2E Benchmark TDD). Built failing Playwright test to guide upcoming Lightweight Charts UI interaction.
+
 ## Requirements
 
 ### Validated
@@ -33,6 +35,7 @@ Shipped v1.3 Real-Time Alerting System.
 - ✓ Alert creation UI in sidebar — v1.3
 - ✓ Toast + audio notification on alert trigger — v1.3
 - ✓ E2E TDD test coverage for alert lifecycle — v1.3
+- ✓ Chart alerts benchmark E2E test — v1.4 (Phase 01)
 
 ### Active (Next Milestone)
 - [ ] Multiple watchlist selection dropdown
