@@ -1,163 +1,48 @@
-<!-- refreshed: 2026-08-12 -->
 # Architecture
 
-**Analysis Date:** 2026-08-12
+**Mapped:** 2026-06-13
+**Scope:** Full codebase
 
-## System Overview
+## System Design
+The application follows a **Serverless Proxy + SPA** architecture designed for minimum latency and maximum responsiveness.
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                      UI Components                           │
-├──────────────────┬──────────────────┬───────────────────────┤
-│   ChartCanvas    │  TradeControls   │    Watchlist          │
-│  `src/components`│  `src/components`│   `src/components`    │
-└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
-         │                  │                     │
-         ▼                  ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  State & Logic Hooks                        │
-│         `src/store` & `src/hooks`                           │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API Client Services                       │
-│         `src/services`                                       │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Serverless API Proxy                      │
-│         `api/` (Vercel Functions)                            │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│               External Trading Provider (Capital.com)        │
-└─────────────────────────────────────────────────────────────┘
-```
+### 1. Presentation Layer (React SPA)
+- Built with Vite and React 18.
+- Manages local UI state with Zustand (e.g., `useTradeStore`).
+- Handles data fetching via React Query.
+- Renders high-performance canvas charts using Lightweight Charts.
 
-## Component Responsibilities
+### 2. API Proxy Layer (Vercel Serverless Functions)
+- Located in the `api/` directory.
+- Intercepts requests from the frontend (e.g., `/api/market`, `/api/order`).
+- Uses `undici` to directly proxy requests to Capital.com (`api-capital.backend-capital.com`).
+- Handles CORS preflight (`OPTIONS`) and injects server-side credentials (`X-CAP-API-KEY`) securely without exposing them to the browser.
+- Explicitly avoids heavy middle-tiers like Hono or Cloudflare Tunnels to minimize latency.
 
-| Component | Responsibility | File |
-|-----------|----------------|------|
-| `App` | Main application layout and providers | `src/App.tsx` |
-| `ChartWorkspace` | Manages the chart area and toolbars | `src/components/ChartWorkspace.tsx` |
-| `TradeControls` | Input form for placing trades | `src/components/TradeControls.tsx` |
-| `TradeLog` | Displays active positions and history | `src/components/TradeLog.tsx` |
-| `WatchlistManager` | Manages list of tracked instruments | `src/components/WatchlistManager.tsx` |
+### 3. Data Processing Layer (In-Memory Engine)
+- Utilizes an optimized `Map` inside `sync-coordinator.ts` to cache massive arrays of tick data.
+- Handles play-by-play playback and charting without blocking the main React rendering thread.
+- *Note:* The Web Worker SQLite (`sql.js`) integration remains, but it is strictly used for uploading static `.db` files for offline backtesting, not live trading.
 
-## Pattern Overview
+## Data Sync, Stitching, & Resampling Flow
 
-**Overall:** Client-Side SPA with Serverless Proxy
+The application achieves zero-lag chart rendering and highly accurate Daily (1D) bars through a sophisticated data synchronization and resampling engine located in `src/hooks/useChartData.ts` and `src/lib/sync-coordinator.ts`.
 
-**Key Characteristics:**
-- **Component-Based UI:** React is used for building encapsulated, reusable UI components.
-- **Global State Management:** Zustand handles complex client-side state across the app.
-- **Serverless API Proxy:** Vercel serverless functions in `api/` proxy requests to the external trading provider, handling CORS, secrets, and validation.
+### 1. Initial Load & Caching (`syncCoordinator`)
+- **Instant Cache Hit:** When a user switches markets, the `syncCoordinator` first attempts to fetch historical data instantly from its in-memory `Map` cache.
+- **REST Fallback:** If the cache is empty or incomplete, it fetches a 1000-candle chunk via the Capital.com REST API (proxied through Vercel Serverless).
+- **Infinite Scroll:** As the user pans left on the chart, `timeScale` detects when the view approaches the oldest loaded candle. It triggers `fetchHistoricalChunk` dynamically, prepending older data while rigorously deduplicating and sorting it to prevent chart engine crashes.
 
-## Layers
+### 2. WebSocket Stitching
+- **Live Streaming:** `wsManager` maintains an active WebSocket connection to Capital.com for real-time tick data.
+- **Offline Gap Recovery:** If the user minimizes the tab or loses internet connection, the app uses `visibilitychange` and `online` event listeners to re-trigger the `syncCoordinator`. This automatically fills in any data gaps missed while offline.
+- **Stitching:** Real-time WebSocket ticks are dynamically appended to the historical REST data array and pushed to the local in-memory cache to keep it perfectly synchronized.
 
-**UI Layer:**
-- Purpose: Renders the user interface and captures user interactions.
-- Location: `src/components/`
-- Contains: React `.tsx` components
-- Depends on: `src/store/`, `src/hooks/`, `src/types/`
-- Used by: `src/App.tsx`
-
-**State & Logic (Store/Hooks):**
-- Purpose: Manages global state, derived data, and complex business logic.
-- Location: `src/store/` and `src/hooks/`
-- Contains: Zustand stores, custom React hooks
-- Depends on: `src/services/`
-- Used by: `src/components/`
-
-**API Services Layer (Client):**
-- Purpose: Wraps API calls to backend endpoints.
-- Location: `src/services/`
-- Contains: TypeScript `.ts` modules
-- Depends on: `src/lib/api-utils.ts`
-- Used by: `src/store/`, `src/components/`
-
-**API Proxy Layer (Serverless):**
-- Purpose: Securely proxies requests to external providers (Capital.com), validates input schemas.
-- Location: `api/`
-- Contains: Node.js serverless handlers (`.ts`)
-- Depends on: `api/_utils.ts`
-- Used by: Frontend HTTP client
-
-## Data Flow
-
-### Primary Request Path (Placing a Trade)
-
-1. Trade form submission (`src/components/TradeControls.tsx`)
-2. Store action triggered (`src/store/useTradeStore.ts`)
-3. API client called (`src/services/trade.ts`)
-4. Proxy validates & forwards request (`api/order.ts`)
-
-### State Management Flow
-
-1. External data fetched via React Query or Zustand actions.
-2. Store state mutated.
-3. Components re-render based on selected state slices.
-
-**State Management:**
-- Zustand for global application state (`useTradeStore`, `useSessionStore`, `usePriceStore`).
-- React Query (TanStack Query) for remote data fetching and caching (used in hooks).
-- Local component state via `useState`.
-
-## Key Abstractions
-
-**API Utilities:**
-- Purpose: Shared HTTP request wrappers and token management.
-- Examples: `src/lib/api-utils.ts`
-- Pattern: Axios/Fetch wrappers with interceptors.
-
-**Proxy Utilities:**
-- Purpose: Serverless request proxying to Capital.com.
-- Examples: `api/_utils.ts`
-- Pattern: HTTP stream proxying and error mapping.
-
-## Entry Points
-
-**Frontend Application:**
-- Location: `src/main.tsx`
-- Triggers: Browser load
-- Responsibilities: Initializes React, mounts App, provides QueryClient.
-
-**Backend Proxy:**
-- Location: `api/*.ts` (e.g., `api/order.ts`, `api/market.ts`)
-- Triggers: HTTP requests to `/api/*`
-- Responsibilities: Input validation (Zod), request forwarding, error handling.
-
-## Architectural Constraints
-
-- **Threading:** Single-threaded JavaScript execution on frontend and backend serverless endpoints.
-- **Global state:** Handled centrally by Zustand to avoid prop drilling and scattered context providers.
-- **Security:** Credentials and API keys must remain backend-only, hence the proxy layer.
-
-## Anti-Patterns
-
-### Direct External API Calls from Client
-
-**What happens:** Client code makes HTTP requests directly to Capital.com.
-**Why it's wrong:** Exposes API keys, causes CORS errors, circumvents centralized request/response mapping.
-**Do this instead:** Route calls through the `api/` proxy.
-
-## Error Handling
-
-**Strategy:** Centralized and typed error reporting.
-
-**Patterns:**
-- UI displays errors via Toaster (`sonner`).
-- API proxy catches request errors, normalizes them, and returns standard JSON responses with `errorCode` and `developerMessage`.
-
-## Cross-Cutting Concerns
-
-**Logging:** Backend uses `console.log` with `[StabilityTrace]` prefixes for tracking request lifecycles.
-**Validation:** Backend endpoints use Zod for schema validation on incoming payloads (e.g., `marketOrderSchema` in `api/order.ts`).
-**Authentication:** Managed via session tokens handled by `src/store/useSessionStore.ts` and `api/session.ts`.
-
----
-
-*Architecture analysis: 2026-08-12*
+### 3. Advanced 1D Chart Resampling (Regular Trading Hours)
+Capital.com's native 1D data often includes Extended Trading Hours (ETH) or uses UTC midnight boundaries, which distorts daily candles for equities (e.g., AAPL should only show 09:30-16:00 EST).
+To fix this, the app uses a custom resampling engine (`src/lib/resampling.ts`):
+- **Condition:** When viewing a **1D timeframe**, with ETH hidden, and the asset is not UTC-based.
+- **Intraday Sourcing:** The app pulls `30min` intraday data from the local cache.
+- **Filtering:** It filters out all non-RTH (Regular Trading Hours) candles from the 30min dataset.
+- **Aggregation:** It passes the filtered 30min data into `resampleData(data, '1D')`, which aggregates the Open, High, Low, Close, and Volume into perfectly aligned daily candles.
+- **Splicing:** These ultra-accurate, dynamically generated daily candles are then seamlessly spliced on top of the older historical 1D data, giving the user a flawless chart without losing deep history.

@@ -51,21 +51,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     console.log(`[StabilityTrace] Session: ${method} -> ${targetUrl}, env=${envHeader}`);
 
+    // Read body for POST (login)
     let bodyBuffer: Buffer | undefined;
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      if ((req as any).body) {
-        // Vercel CLI might have already parsed it
-        const b = (req as any).body;
-        bodyBuffer = typeof b === 'string' ? Buffer.from(b) : Buffer.from(JSON.stringify(b));
-      } else {
-        const chunks: Buffer[] = [];
-        for await (const chunk of req) {
-          chunks.push(chunk as Buffer);
-        }
-        if (chunks.length > 0) {
-          bodyBuffer = Buffer.concat(chunks);
-        }
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk as Buffer);
       }
+      bodyBuffer = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
     }
 
     // For POST /session, inject credentials from env if not provided by frontend
@@ -80,26 +73,17 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
             identifier: parsed.identifier || process.env.CAPITAL_USER || process.env.VITE_CAPITAL_USER,
             password: parsed.password || process.env.CAPITAL_PASSWORD || process.env.VITE_CAPITAL_PASSWORD,
           };
-          console.log('[StabilityTrace] Enriched payload identifier:', enriched.identifier);
           finalBody = Buffer.from(JSON.stringify(enriched));
         }
       } catch (e) {
         // Not JSON, pass through as-is
       }
     }
-    
-    console.log('[StabilityTrace] Final body length:', finalBody ? finalBody.length : 0);
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-CAP-API-KEY': apiKey,
     };
-    if (process.env.VITE_CF_ACCESS_CLIENT_ID) {
-      requestHeaders['CF-Access-Client-Id'] = process.env.VITE_CF_ACCESS_CLIENT_ID;
-    }
-    if (process.env.VITE_CF_ACCESS_CLIENT_SECRET) {
-      requestHeaders['CF-Access-Client-Secret'] = process.env.VITE_CF_ACCESS_CLIENT_SECRET;
-    }
 
     // Forward existing auth tokens (for session refresh/delete)
     const cst = req.headers['cst'] as string;

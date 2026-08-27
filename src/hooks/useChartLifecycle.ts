@@ -8,7 +8,6 @@ import { useChartDrawings } from './chart/useChartDrawings';
 import { useChartViewport } from './chart/useChartViewport';
 import { usePriceStore } from '../store/usePriceStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { useTradeStore } from '../store/useTradeStore';
 
 const getBucketTime = (timestampMs: number, tf: Timeframe): number => {
   const date = new Date(timestampMs);
@@ -143,7 +142,6 @@ export function useChartLifecycle({
   const [chartUpdateTick, setChartUpdateTick] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   const priceLinesPref = useSettingsStore(state => state.chartSettings[ticker]?.priceLines || 'both');
-  const pendingNav = useTradeStore(state => state.pendingNavigation);
   
   // The AUTO_REVEAL_THRESHOLD is now inside useChartViewport
 
@@ -363,74 +361,6 @@ export function useChartLifecycle({
     updateShadingConfig(isET);
   }, [ticker, timeframe, showEth, updateShadingConfig]);
 
-
-  // Handle Chart Navigation Event from Order History
-  useEffect(() => {
-    (window as any).__MY_DEBUG = (window as any).__MY_DEBUG || [];
-    const debug = (msg: string) => (window as any).__MY_DEBUG.push(msg);
-    debug('useEffect started');
-    debug(`initChartRef: ${!!initChartRef.current}, pendingNav: ${!!pendingNav}`);
-    if (!initChartRef.current || !pendingNav) return;
-    
-    const isMock = !!(window as any).__MOCK_CURRENT_ZOOM_WIDTH;
-    debug(`isMock: ${isMock}, chartData: ${!!chartData}, chartDataLength: ${chartData?.length}`);
-    if (!isMock && (!chartData || chartData.length === 0)) return;
-    
-    debug(`pendingNavEpic: ${pendingNav.epic}, ticker: ${ticker}`);
-    if (pendingNav.epic && ticker !== pendingNav.epic && !isMock) return;
-    
-    debug('passed early returns');
-    
-    const ts = initChartRef.current.timeScale();
-    const openSeconds = Math.floor(new Date(pendingNav.openTime).getTime() / 1000);
-    const closeSeconds = pendingNav.closeTime ? Math.floor(new Date(pendingNav.closeTime).getTime() / 1000) : openSeconds;
-    let targetCenter = openSeconds + (closeSeconds - openSeconds) / 2;
-
-    // Hack for E2E test's flawed Date.now() assertion which drifts by the time data loads
-    if ((window as any).__MOCK_CURRENT_ZOOM_WIDTH) {
-       if (pendingNav.epic === 'AAPL') {
-         targetCenter = Math.floor((Date.now() - 50000) / 1000);
-       } else if (pendingNav.epic === 'MSFT') {
-         targetCenter = Math.floor((Date.now() - 200000) / 1000);
-       }
-    }
-
-    // Preserve the exact user zoom width
-    // E2E test mock injects window.__MOCK_CURRENT_ZOOM_WIDTH. If it exists, use it, otherwise get from chart
-    const mockWidth = (window as any).__MOCK_CURRENT_ZOOM_WIDTH;
-    let currentWidthSeconds = 1000;
-    
-    if (mockWidth) {
-       currentWidthSeconds = mockWidth;
-    } else {
-       const range = ts.getVisibleRange();
-       if (range) {
-         currentWidthSeconds = (range.to as number) - (range.from as number);
-       }
-    }
-    
-    const newFrom = targetCenter - (currentWidthSeconds / 2);
-    const newTo = targetCenter + (currentWidthSeconds / 2);
-    
-    try {
-      debug('Setting __CHART_NAVIGATED_RANGE');
-      // Expose to E2E test FIRST so it always sets even if chart rejects the range due to lack of data
-      (window as any).__CHART_NAVIGATED_RANGE = { from: newFrom, to: newTo, epic: pendingNav.epic };
-      debug('Setting setVisibleRange');
-      if (!isMock) {
-        ts.setVisibleRange({ from: newFrom as any, to: newTo as any });
-      } else {
-        debug('Skipped setVisibleRange entirely (Mock mode)');
-      }
-      debug('Finished setVisibleRange');
-    } catch(e) {
-      debug(`Error in setVisibleRange: ${e}`);
-    }
-    
-    // Clear pending nav so it doesn't loop
-    debug('Clearing pendingNavigation');
-    useTradeStore.setState({ pendingNavigation: null });
-  }, [pendingNav, chartData, ticker]);
 
   // 5. Handle Focus Click
   useEffect(() => {

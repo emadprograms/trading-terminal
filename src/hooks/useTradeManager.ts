@@ -105,144 +105,106 @@ export function useTradeManager({
   const [dragPreview, setDragPreview] = React.useState<{ id: string, price: number } | null>(null);
 
   // Map to ChartMarkers
-  // Calculate base markers synchronously via useMemo to prevent race conditions and missing updates
-  const baseMarkers = useMemo(() => {
-      const posMarkers: ChartMarker[] = debouncedNettedItems.filter(i => !i.isPending).flatMap(p => {
-        const markers: ChartMarker[] = [{
-          id: p.dealId,
+  const baseMarkers = useMemo((): ChartMarker[] => {
+    const posMarkers: ChartMarker[] = debouncedNettedItems.filter(i => !i.isPending).flatMap(p => {
+      const markers: ChartMarker[] = [{
+        id: p.dealId,
+        epic: p.epic,
+        price: p.entryPrice,
+        direction: p.direction,
+        size: p.size,
+        type: 'POSITION',
+        hasSL: !!p.stopLevel,
+        hasTP: !!p.profitLevel
+      }];
+
+      if (p.stopLevel) {
+        markers.push({
+          id: `${p.dealId}_SL`,
           epic: p.epic,
-          price: p.entryPrice,
-          direction: p.direction,
+          price: p.stopLevel,
+          direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
           size: p.size,
-          type: 'POSITION',
-          hasSL: !!p.stopLevel,
-          hasTP: !!p.profitLevel
-        }];
-
-        if (p.stopLevel) {
-          markers.push({
-            id: `${p.dealId}_SL`,
-            epic: p.epic,
-            price: p.stopLevel,
-            direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
-            size: p.size,
-            type: 'ORDER',
-            label: 'SL',
-            isDashed: true,
-            parentPrice: p.entryPrice
-          });
-        }
-
-        if (p.profitLevel) {
-          markers.push({
-            id: `${p.dealId}_TP`,
-            epic: p.epic,
-            price: p.profitLevel,
-            direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
-            size: p.size,
-            type: 'ORDER',
-            label: 'TP',
-            isDashed: true,
-            parentPrice: p.entryPrice
-          });
-        }
-
-        return markers;
-      });
-
-      const marketOrderMarkers: ChartMarker[] = debouncedNettedItems.filter(i => i.isPending).map(o => {
-        let price = o.level || 0;
-        let label = 'MARKET';
-        const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
-        label = `✓ ${shortId}`;
-
-        return {
-          id: o.dealId || o.dealReference,
-          epic: o.epic,
-          price,
-          direction: o.direction,
-          size: o.size,
           type: 'ORDER',
-          label
-        };
-      });
+          label: 'SL',
+          isDashed: true,
+          parentPrice: p.entryPrice
+        });
+      }
 
-      const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
-        const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
-        const prefix = o.type === 'STOP' ? 'STP' : 'LMT';
-        return {
-          id: o.dealId || o.dealReference,
-          epic: o.epic,
-          price: o.level || 0,
-          direction: o.direction,
-          size: o.size,
+      if (p.profitLevel) {
+        markers.push({
+          id: `${p.dealId}_TP`,
+          epic: p.epic,
+          price: p.profitLevel,
+          direction: p.direction === 'BUY' ? 'SELL' : 'BUY',
+          size: p.size,
           type: 'ORDER',
-          label: `${prefix} ${shortId}`
-        };
-      });
+          label: 'TP',
+          isDashed: true,
+          parentPrice: p.entryPrice
+        });
+      }
 
-      const parseTime = (time: any) => {
-        if (typeof time === 'number') return time * 1000;
-        if (typeof time === 'string') {
-          if (time.includes(' ')) return new Date(time.replace(' ', 'T') + 'Z').getTime();
-          if (time.includes('T')) return new Date(time).getTime();
-          return new Date(time + 'T00:00:00Z').getTime();
-        }
-        if (time && typeof time === 'object' && 'year' in time) {
-          return new Date(Date.UTC(time.year, time.month - 1, time.day)).getTime();
-        }
-        return 0;
+      return markers;
+    });
+
+    const marketOrderMarkers: ChartMarker[] = debouncedNettedItems.filter(i => i.isPending).map(o => {
+      let price = o.level || 0;
+      let label = 'MARKET';
+      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
+      label = `✓ ${shortId}`;
+
+      return {
+        id: o.dealId || o.dealReference,
+        epic: o.epic,
+        price,
+        direction: o.direction,
+        size: o.size,
+        type: 'ORDER',
+        label
       };
+    });
 
-      const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
-         // Binary search for closest bar <= execution timestamp
-         if (!chartData || chartData.length === 0) {
-           return {
-             id: e.id,
-             epic: e.epic,
-             price: e.price,
-             direction: e.direction,
-             size: e.size,
-             type: 'EXECUTION',
-             time: e.timestamp / 1000 as Time // fallback to exact seconds
-           };
+    const limitOrderMarkers: ChartMarker[] = nonMarketOrders.map(o => {
+      const shortId = (o.dealReference || o.dealId || '').replace(/^o_/, '').slice(-6).toUpperCase();
+      const prefix = o.type === 'STOP' ? 'STP' : 'LMT';
+      return {
+        id: o.dealId || o.dealReference,
+        epic: o.epic,
+        price: o.level || 0,
+        direction: o.direction,
+        size: o.size,
+        type: 'ORDER',
+        label: `${prefix} ${shortId}`
+      };
+    });
+
+    const executionMarkers: ChartMarker[] = tickerExecutions.map(e => {
+       // Find the closest bar timestamp <= execution timestamp
+       let matchBar = chartData[0];
+       for (const bar of chartData) {
+         if (new Date(bar.time + 'Z').getTime() <= e.timestamp) {
+           matchBar = bar;
+         } else {
+           break;
          }
+       }
+       
+       return {
+         id: e.id,
+         epic: e.epic,
+         price: e.price,
+         candleLow: matchBar ? matchBar.low : undefined,
+         candleHigh: matchBar ? matchBar.high : undefined,
+         direction: e.direction,
+         size: e.size,
+         type: 'EXECUTION',
+         time: Math.floor(new Date(matchBar ? matchBar.time + 'Z' : 0).getTime() / 1000) as Time,
+        };
+    });
 
-         let matchBar: ChartBar | undefined = undefined;
-         
-         // Only search if the execution is not older than our oldest chart data
-         if (e.timestamp >= parseTime(chartData[0].time)) {
-             matchBar = chartData[0];
-             let left = 0;
-             let right = chartData.length - 1;
-
-             while (left <= right) {
-               const mid = Math.floor((left + right) / 2);
-               const barTimeMs = parseTime(chartData[mid].time);
-               
-               if (barTimeMs <= e.timestamp) {
-                 matchBar = chartData[mid];
-                 left = mid + 1; // Try to find a closer one on the right
-               } else {
-                 right = mid - 1;
-               }
-             }
-         }
-         
-         return {
-           id: e.id,
-           epic: e.epic,
-           price: e.price,
-           candleLow: matchBar ? matchBar.low : undefined,
-           candleHigh: matchBar ? matchBar.high : undefined,
-           direction: e.direction,
-           size: e.size,
-           type: 'EXECUTION',
-           time: matchBar ? (Math.floor(parseTime(matchBar.time) / 1000) as Time) : (Math.floor(e.timestamp / 1000) as Time),
-          };
-      });
-
-      return [...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers];
+    return [...posMarkers, ...marketOrderMarkers, ...limitOrderMarkers, ...executionMarkers];
   }, [debouncedNettedItems, nonMarketOrders, tickerExecutions, chartData]);
 
   const markers = useMemo(() => {
@@ -276,14 +238,6 @@ export function useTradeManager({
     return baseMarkers;
   }, [baseMarkers, dragPreview]);
 
-  // Expose markers for E2E tests
-  if (typeof window !== 'undefined') {
-    (window as any).__TEST_MARKERS__ = markers;
-    (window as any).__MARKERS__ = markers;
-    (window as any).__TEST_CHART_API__ = chartRef?.current;
-    (window as any).__TEST_PRICE_SERIES__ = priceSeriesRef?.current;
-  }
-
   // Update TradePlugin
   useEffect(() => {
     if (tradePluginRef.current && typeof tradePluginRef.current.setItems === 'function') {
@@ -303,55 +257,19 @@ export function useTradeManager({
           return;
         }
 
-        if (typeof window !== 'undefined') (window as any).__MARKERS__ = markers;
-        let exactTime: number | undefined;
-        if (typeof param.time === 'string') {
-          exactTime = new Date(param.time).getTime() / 1000;
-        } else if (param.time && typeof param.time === 'object' && 'year' in param.time) {
-          exactTime = new Date(Date.UTC(param.time.year, param.time.month - 1, param.time.day)).getTime() / 1000;
-        } else if (typeof param.time === 'number') {
-          exactTime = param.time;
-        }
-        
+        const exactTime = param.time as number;
         // Find executions that match this exact candle
         const hovered = markers.filter(m => m.type === 'EXECUTION' && m.time === exactTime);
-        if (typeof window !== 'undefined') (window as any).__LAST_HOVERED_RAW__ = hovered;
-
         if (hovered.length > 0) {
           let closestExec = null;
           let minDistance = Infinity;
 
-          let scale = 1;
-          if (chartRef.current) {
-            const timeScale = chartRef.current.timeScale();
-            const logicalRange = timeScale.getVisibleLogicalRange();
-            if (logicalRange) {
-              const width = timeScale.width();
-              const barsVisible = logicalRange.to - logicalRange.from;
-              const barSpacing = width / barsVisible;
-              if (barSpacing < 8) {
-                scale = Math.max(0.3, barSpacing / 8);
-              }
-            }
-          }
-
-          const executionCounts = new Map<string, number>();
-
-          // Don't just use `hovered`, we need to check ALL executions for true 2D distance.
-          // Wait, hovered already filters by `m.time === exactTime`, which restricts us to the EXACT candle.
-          // That's actually fine as long as we also verify X distance, but if the user hovers slightly off 
-          // horizontally, `exactTime` might be a different candle.
-          // Let's rely on calculating the exact screen `x` for the markers that matched `exactTime` 
-          // AND ensure the mouse is within a 15px radius of the marker's center.
           for (const hMarker of hovered) {
             const execData = tickerExecutions.find(e => e.id === hMarker.id);
             if (!execData) continue;
 
             const y = priceSeriesRef.current!.priceToCoordinate(execData.price);
             if (y === null) continue;
-
-            const x = chartRef.current!.timeScale().timeToCoordinate(hMarker.time!);
-            if (x === null) continue;
 
             let arrowY = y;
             if (hMarker.direction === 'BUY' && hMarker.candleLow !== undefined) {
@@ -360,39 +278,17 @@ export function useTradeManager({
               arrowY = priceSeriesRef.current!.priceToCoordinate(hMarker.candleHigh) ?? y;
             }
 
-            const directionKey = hMarker.direction;
-            // Use exact same key as TradePlugin
-            const key = `${Math.round(x)}_${directionKey}`;
-            const count = executionCounts.get(key) || 0;
-            executionCounts.set(key, count + 1);
+            // Distance can be to the triangle (arrowY) or to the price level (y)
+            const dist = Math.min(
+              Math.abs(param.point.y - arrowY),
+              Math.abs(param.point.y - y)
+            );
 
-            const stackOffset = count * 8 * scale;
-            if (hMarker.direction === 'BUY') {
-              arrowY += stackOffset;
-            } else {
-              arrowY -= stackOffset;
-            }
-
-            const offset = 6 * scale;
-            const h = 8 * scale;
-            let markerCenterY = arrowY;
-            if (hMarker.direction === 'BUY') {
-              markerCenterY += offset + h / 2;
-            } else {
-              markerCenterY -= offset + h / 2;
-            }
-
-            // Calculate true 2D Euclidean distance to the marker triangle center
-            const distX = Math.abs(param.point.x - x);
-            const distY = Math.abs(param.point.y - markerCenterY);
-            const dist = Math.hypot(distX, distY);
-
-            // Use a strict 2D radius
-            if (dist < minDistance && dist <= 15) {
+            if (dist < minDistance) {
               minDistance = dist;
               closestExec = {
-                x: x as any,
-                y: y as any,
+                x: param.point.x,
+                y,
                 price: execData.price,
                 direction: execData.direction,
                 action: execData.action
@@ -404,20 +300,17 @@ export function useTradeManager({
             chartRef.current.applyOptions({ crosshair: { horzLine: { visible: false, labelVisible: false } } });
             if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
               tradePluginRef.current.setHoveredExecutions([closestExec]);
-              if (typeof window !== 'undefined') (window as any).__TEST_HOVERED_EXECUTIONS__ = [closestExec];
             }
           } else {
             chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
             if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
               tradePluginRef.current.setHoveredExecutions([]);
-              if (typeof window !== 'undefined') (window as any).__TEST_HOVERED_EXECUTIONS__ = [];
             }
           }
         } else {
           chartRef.current.applyOptions({ crosshair: { horzLine: { visible: true, labelVisible: true } } });
           if (typeof tradePluginRef.current.setHoveredExecutions === 'function') {
             tradePluginRef.current.setHoveredExecutions([]);
-            if (typeof window !== 'undefined') (window as any).__TEST_HOVERED_EXECUTIONS__ = [];
           }
         }
       };
@@ -429,7 +322,7 @@ export function useTradeManager({
         } catch(e) {}
       };
     }
-  }, [tickerExecutions, markers, priceSeriesRef, chartRef, tradePluginRef, pluginVersion]);
+  }, [tickerExecutions, markers, priceSeriesRef, chartRef, tradePluginRef]);
 
   // Register badge refs
   const handleRegisterBadge = useCallback((id: string, ref: React.RefObject<HTMLDivElement | null>) => {

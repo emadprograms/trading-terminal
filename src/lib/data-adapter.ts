@@ -37,9 +37,7 @@ export function transformCapitalCandleToRawBar(candle: CapitalCandle, ticker: st
 }
 
 export function transformCapitalCandles(candles: CapitalCandle[], ticker: string, useAsk = false): RawBar[] {
-  console.log("data-adapter input candles:", JSON.stringify(candles.slice(0, 2)));
   const transformed = candles.map(c => transformCapitalCandleToRawBar(c, ticker, useAsk));
-  console.log("data-adapter output bars:", JSON.stringify(transformed.slice(0, 2)));
   
   // Sort in ascending order by time string (which is lexicographically sortable)
   transformed.sort((a, b) => a.time.localeCompare(b.time));

@@ -1,120 +1,16 @@
-# Testing Patterns
+# Testing
 
-**Analysis Date:** 2026-08-12
+**Mapped:** 2026-06-13
+**Scope:** Full codebase
 
-## Test Framework
+## Frameworks & Tools
+- **Unit/Component Testing:** Vitest paired with React Testing Library (`@testing-library/react`). Configured in `vitest.config.ts`.
+- **E2E Testing:** Playwright (`@playwright/test`), configured in `playwright.config.ts`.
+- **Network Mocking:** MSW (Mock Service Worker) is installed to intercept and mock API requests during tests.
 
-**Runner:**
-- Vitest 4.1.7
-- Config: `vitest.config.ts`
+## Structure
+- Tests are currently located in the `tests/` directory (E2E) and co-located with components/logic (Vitest).
 
-**Assertion Library:**
-- Vitest's built-in `expect` (compatible with Chai) and `@testing-library/jest-dom` for DOM matchers.
-
-**Run Commands:**
-```bash
-npm run test              # Run all tests
-npm run test:watch        # Watch mode
-```
-
-## Test File Organization
-
-**Location:**
-- Co-located for unit tests (e.g. `src/App.test.tsx`)
-- Separate `tests/` directory for integration/E2E and setup (e.g. `tests/verify-msw.test.ts`, `tests/setup.ts`)
-
-**Naming:**
-- `*.test.ts`, `*.test.tsx`, `*.spec.ts`
-
-**Structure:**
-```
-tests/
-├── e2e/
-├── integration/
-├── regression/
-├── unit/
-├── helpers/
-├── hooks/
-└── setup.ts
-src/
-└── [Component].test.tsx
-```
-
-## Test Structure
-
-**Suite Organization:**
-```typescript
-import { describe, it, expect } from 'vitest';
-
-describe('Component/Hook Name', () => {
-  it('should behave in a specific way', () => {
-    // test body
-  });
-});
-```
-
-**Patterns:**
-- Use `beforeAll`, `afterEach`, `afterAll` (imported from `vitest`) for global setup/teardown in setup files (e.g. `tests/setup.ts` starting MSW server).
-
-## Mocking
-
-**Framework:** Vitest (`vi`), MSW (Mock Service Worker)
-
-**Patterns:**
-```typescript
-// Component mock
-vi.mock('./hooks/useDatabase', () => ({
-  useDatabase: () => ({
-    // mocked implementation
-  }),
-}));
-
-// MSW HTTP mock
-http.post('*/session', () => {
-  return new HttpResponse(JSON.stringify({ ... }), { status: 200 });
-});
-```
-
-**What to Mock:**
-- External hooks and services using `vi.mock`
-- API calls using MSW (Mock Service Worker) setup in `tests/setup.ts`
-- Browser APIs (e.g. `ResizeObserver`, `localStorage`) in `tests/setup.ts`
-
-**What NOT to Mock:**
-- Core component rendering logic (using `@testing-library/react`)
-
-## Fixtures and Factories
-
-**Location:**
-- Hardcoded mock data is used within `tests/setup.ts` (e.g. Mock accounts).
-
-## Coverage
-
-**Requirements:** None enforced in standard scripts, though Vitest supports it.
-
-## Test Types
-
-**Unit Tests:**
-- Component rendering and hook isolation using `@testing-library/react` and `@testing-library/react-hooks` (or similar).
-
-**Integration Tests:**
-- MSW is used to test HTTP flows without hitting real APIs.
-
-**E2E Tests:**
-- Playwright is configured in `playwright.config.ts`.
-- Run commands typically hit `npm run dev` and run against `localhost:3001`.
-
-## Common Patterns
-
-**Async Testing:**
-```typescript
-it('intercepts /session', async () => {
-  const response = await fetch('/session', { method: 'POST' })
-  const data = await response.json()
-  expect(response.status).toBe(200)
-})
-```
-
----
-
-*Testing analysis: 2026-08-12*
+## Current Coverage & Practices
+- **E2E:** Minimal coverage currently exists. The project is transitioning into a "hardening" phase where E2E tests for critical paths (order placement, chart rendering) are a high priority.
+- **Backend:** Testing Vercel serverless functions locally requires careful mocking or the use of `vercel dev`.

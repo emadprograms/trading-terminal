@@ -98,6 +98,7 @@ export const ChartWorkspace: React.FC<ChartWorkspaceProps> = ({
           id={i} 
           isSelected={selectedChartId === i}
           onSelect={() => onSelectChart(i)}
+          tickers={tickers} 
           initialTicker={initialTicker}
           initialTf={initialTf}
           initialEth={initialEth}

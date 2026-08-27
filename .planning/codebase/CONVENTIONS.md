@@ -1,79 +1,16 @@
-# Coding Conventions
+# Conventions
 
-**Analysis Date:** 2026-08-12
+**Mapped:** 2026-06-13
+**Scope:** Full codebase
 
-## Naming Patterns
+## Code Style & Patterns
+- **TypeScript First:** All files should use TypeScript (`.ts`, `.tsx`). Strict mode is enabled.
+- **State Management:** Use Zustand for global UI state to prevent unnecessary React Context re-renders. Keep stores granular (e.g., `useTradeStore`).
+- **Data Fetching:** Use React Query for remote data fetching, mutation, and caching on the frontend.
+- **Web Workers:** Any heavy data processing, especially involving SQLite (`sql.js`), MUST be offloaded to Web Workers. The main thread must remain free for UI rendering to achieve the lightning-fast goal.
+- **Styling:** Use Tailwind CSS for utility-class styling, combined with raw CSS variables in `index.css` for themes. UI components should prioritize micro-animations and a premium feel.
 
-**Files:**
-- React Components: PascalCase (e.g. `App.tsx`, `src/components/TradeBadge.tsx`)
-- Hooks: camelCase starting with `use` (e.g. `src/hooks/useSession.ts`, `src/hooks/useDatabase.ts`)
-- Config/Lib/Stores: camelCase (e.g. `vite.config.ts`, `src/store/useTradeStore.ts`, `src/services/client.ts`)
-
-**Functions:**
-- camelCase (e.g. `login`, `handleUpdateDrawings`)
-- React Components: PascalCase (e.g. `TradeBadge`, `App`)
-
-**Variables:**
-- camelCase for standard variables (e.g. `isLoggingIn`, `currentPriceData`)
-
-**Types:**
-- PascalCase for interfaces/types (e.g. `TradeBadgeProps`, `ChartMarker`)
-
-## Code Style
-
-**Formatting:**
-- Standard TypeScript and React styling applies (2 space indent).
-
-**Linting:**
-- TypeScript compiler is used heavily for type-checking.
-
-## Import Organization
-
-**Order:**
-1. React and third-party libraries (e.g. `import React, { useEffect } from 'react';`, `import { Activity } from 'lucide-react';`)
-2. Custom Hooks (e.g. `import { useDatabase } from '../hooks/useDatabase';`)
-3. Components (e.g. `import { Sidebar } from './components/Sidebar';`)
-4. Stores/Lib (e.g. `import { useSessionStore } from '../store/useSessionStore';`)
-
-**Path Aliases:**
-- Relative paths are mostly used (e.g. `../store/useSessionStore`, `./components/Sidebar`).
-
-## Error Handling
-
-**Patterns:**
-- React Error Boundaries (`<ErrorBoundary>`) wrap major UI sections.
-- Async operations use `try/catch` and throw or return errors for hooks (e.g., in `src/hooks/useSession.ts`, `loginMutation` uses `onError` and `try/catch`).
-
-## Logging
-
-**Framework:** `console`
-
-**Patterns:**
-- Heavy use of `console.log` and `console.error` prefixed with tags like `[StabilityTrace]` or `[App]` for tracing flows.
-
-## Comments
-
-**When to Comment:**
-- Section headers in large files (e.g. `// Hooks`, `// Components`)
-- Explanation of complex effects or state syncing (e.g. `// Keep-alive ping (heartbeat)`)
-
-## Function Design
-
-**Size:** Moderate, utilizing custom hooks to abstract complex logic out of components.
-
-**Parameters:**
-- Components use structured props interfaces (e.g. `interface TradeBadgeProps { ... }` in `src/components/TradeBadge.tsx`).
-- Functions use optional parameter objects (e.g. `params?: { credentials?: ... }`).
-
-**Return Values:**
-- Custom hooks return objects containing state and handler functions.
-
-## Module Design
-
-**Exports:**
-- Named exports are preferred for components and hooks (`export function TradeBadge`, `export function useSession`).
-- `export default` is used for root components like `src/App.tsx`.
-
----
-
-*Convention analysis: 2026-08-12*
+## Backend Proxy
+- **Vercel Serverless:** All proxy endpoints must reside in `api/`. Do not build new features in the legacy `server/` directory.
+- **HTTP Client:** Use `undici` for upstream requests to Capital.com, specifically configuring it with `allowH2: false` if needed for Capital.com compatibility.
+- **Security:** Never expose the Capital.com API key (`X-CAP-API-KEY`) to the frontend. It must only be injected within the `api/` serverless functions.

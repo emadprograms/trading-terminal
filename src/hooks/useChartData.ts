@@ -15,6 +15,7 @@ interface UseChartDataParams {
   initialEth: boolean;
   groupColor: GroupColor;
   groupTicker?: string;
+  tickers: string[];
   chartRef: React.MutableRefObject<IChartApi | null>;
   priceSeriesRef: React.MutableRefObject<ISeriesApi<'Candlestick'> | null>;
   onTimeframeChange?: (id: number, tf: Timeframe) => void;
@@ -28,6 +29,7 @@ export function useChartData({
   initialEth,
   groupColor,
   groupTicker,
+  tickers,
   chartRef,
   priceSeriesRef,
   onTimeframeChange,
@@ -150,13 +152,7 @@ export function useChartData({
         }
         dataTimeframeRef.current = timeframe;
         dataTickerRef.current = ticker;
-        setLocalMasterData((prev: RawBar[]) => {
-          if (prev === data) return prev;
-          if (prev.length === data?.length && prev[prev.length - 1]?.time === data[data.length - 1]?.time && prev[0]?.time === data[0]?.time) {
-            return prev;
-          }
-          return data as RawBar[];
-        });
+        setLocalMasterData(data as RawBar[]);
         setStitchingError(null);
       } catch (err: any) {
         if (cancelled) return;

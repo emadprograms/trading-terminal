@@ -1,60 +1,20 @@
-# External Integrations
+# Integrations
 
-**Analysis Date:** 2026-08-12
+**Mapped:** 2026-06-13
+**Scope:** Full codebase
 
-## APIs & External Services
+## Capital.com API
+The entire terminal is tightly coupled to Capital.com's infrastructure.
 
-**Backend APIs:**
-- Backend API services via `ky` client - Application data fetching (`src/services/client.ts`)
+### REST API
+- **Proxy Endpoints:** The Vercel functions in `api/` act as a transparent proxy.
+- **Authentication:** The frontend holds session tokens (`CST`, `X-SECURITY-TOKEN`), while the Vercel proxy securely injects the API Key (`X-CAP-API-KEY`) before forwarding to Capital.com.
+- **Environments:** Dynamically switches between `https://demo-api-capital.backend-capital.com` and the live URL based on the `X-Environment` header sent by the client.
 
-## Data Storage
+### WebSockets
+- Used for real-time market data streaming.
+- Stitched together with historical REST API data to provide seamless, zero-lag chart rendering and order book updates.
 
-**Databases:**
-- None detected directly in frontend
-
-**File Storage:**
-- Local filesystem only
-
-**Caching:**
-- None detected (Data caching handled locally by React Query)
-
-## Authentication & Identity
-
-**Auth Provider:**
-- Backend driven or Custom
-
-## Monitoring & Observability
-
-**Error Tracking:**
-- None detected
-
-**Logs:**
-- Console logging
-
-## CI/CD & Deployment
-
-**Hosting:**
-- Vercel (indicated by `vercel.json`)
-
-**CI Pipeline:**
-- GitHub Actions (indicated by `.github` directory)
-
-## Environment Configuration
-
-**Required env vars:**
-- Local overrides in `.env.local`
-
-**Secrets location:**
-- Externalized to backend or environment variables (dotenv)
-
-## Webhooks & Callbacks
-
-**Incoming:**
-- None detected
-
-**Outgoing:**
-- None detected
-
----
-
-*Integration audit: 2026-08-12*
+## WebAssembly SQLite (sql.js)
+- Used entirely on the client side for high-performance data caching.
+- The `.wasm` binary is served from the `public/` directory and loaded into a Web Worker.

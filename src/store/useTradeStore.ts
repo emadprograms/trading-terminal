@@ -12,11 +12,8 @@ interface TradeState {
   executingOperations: Set<string>;
   closingDealIds: Set<string>;
   executions: Execution[];
-  historyLookbackDays: number;
-  pendingNavigation: { openTime: string; closeTime: string; epic: string } | null;
   
   // Actions
-  setHistoryLookbackDays: (days: number) => void;
   addExecution: (execution: Execution) => void;
   addPendingOrder: (dealReference: string, order: Order) => void;
   updateOrderStatus: (dealReference: string, status: OrderStatus, details?: Partial<Order>) => void;
@@ -57,10 +54,6 @@ export const useTradeStore = create<TradeState>()(
       executingOperations: new Set<string>(),
       closingDealIds: new Set<string>(),
       executions: [],
-      historyLookbackDays: 7,
-      pendingNavigation: null,
-
-      setHistoryLookbackDays: (days) => set({ historyLookbackDays: days }),
 
       addExecution: (execution) => {
         set((state) => ({
@@ -799,13 +792,6 @@ export const useTradeStore = create<TradeState>()(
           const mappedPositions: Position[] = rawPositions.map(raw => {
             const p = raw.position || raw;
             const m = raw.market || raw;
-              const rawDate = p.createdDate || p.timestamp;
-              let timestamp = Date.now();
-              if (rawDate) {
-                const dateStr = String(rawDate);
-                timestamp = new Date(dateStr.includes('T') && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr).getTime();
-              }
-              
             return {
               dealId: p.dealId,
               epic: m.epic || p.epic,
@@ -814,7 +800,7 @@ export const useTradeStore = create<TradeState>()(
               entryPrice: p.level || p.entryPrice || 0,
               stopLevel: p.stopLevel,
               profitLevel: p.profitLevel,
-              timestamp,
+              timestamp: new Date(p.createdDate || p.timestamp || Date.now()).getTime(),
             };
           });
 
@@ -835,13 +821,6 @@ export const useTradeStore = create<TradeState>()(
                 size: updatedPending[dealRef].size || data.size || data.orderSize || 0
               };
             } else {
-              const rawDate = data.createdDate || data.timestamp;
-              let timestamp = Date.now();
-              if (rawDate) {
-                const dateStr = String(rawDate);
-                timestamp = new Date(dateStr.includes('T') && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr).getTime();
-              }
-
               updatedPending[dealRef] = {
                 dealReference: dealRef,
                 dealId: data.dealId,
@@ -852,7 +831,7 @@ export const useTradeStore = create<TradeState>()(
                 type: data.type || 'LIMIT',
                 direction: data.direction,
                 status: 'PENDING',
-                timestamp,
+                timestamp: new Date(data.createdDate || data.timestamp || Date.now()).getTime(),
               };
             }
           });
@@ -874,11 +853,27 @@ export const useTradeStore = create<TradeState>()(
           const newExecutions: Execution[] = [];
           const priceStore = (await import('./usePriceStore')).usePriceStore;
 
-          // NOTE: ENTRY execution creation has been intentionally removed from syncPositions.
-          // syncExecutions() is the SINGLE source of truth for historical execution markers.
-          // This prevents duplicate markers caused by different ID formats between the two paths.
+          // 1. Detect new positions (ENTRY)
+          mappedPositions.forEach(p => {
+            const exists = state.positions.some(old => old.dealId === p.dealId);
+            if (!exists) {
+              const execExists = state.executions.some(e => e.dealId === p.dealId && e.action === 'ENTRY');
+              if (!execExists) {
+                newExecutions.push({
+                  id: `${p.dealId}_ENTRY_${p.timestamp || Date.now()}`,
+                  dealId: p.dealId,
+                  epic: p.epic,
+                  size: p.size,
+                  price: p.entryPrice,
+                  direction: p.direction,
+                  timestamp: p.timestamp || Date.now(),
+                  action: 'ENTRY'
+                });
+              }
+            }
+          });
 
-          // Detect closed positions (EXIT) — real-time signal, kept here for immediate feedback
+          // 2. Detect closed positions (EXIT)
           state.positions.forEach(p => {
             const stillExists = mappedPositions.some(newPos => newPos.dealId === p.dealId);
             if (!stillExists) {
@@ -914,45 +909,35 @@ export const useTradeStore = create<TradeState>()(
         }
       },
 
-      syncExecutions: async (days) => {
-        if (typeof window !== 'undefined' && (window as any).__E2E_MOCK_EXECUTIONS) {
-          console.log('[E2E] Bypassing syncExecutions for test');
-          return;
-        }
-        const effectiveDays = days ?? get().historyLookbackDays;
+      syncExecutions: async (days = 1) => {
         try {
           const allActivities: any[] = [];
-          
-          // Capital.com API restricts the maximum date range for activity history.
-          // To safely fetch multiple days without throwing 'error.invalid.daterange' or 'error.invalid.lastPeriod',
-          // we fetch it in 1-day chunks using the from/to parameters.
-          
-          const formatIso = (date: Date) => date.toISOString().split('.')[0];
-          
-          for (let i = 0; i < effectiveDays; i++) {
-            const toDate = new Date(Date.now() - i * 24 * 3600 * 1000);
-            const fromDate = new Date(Date.now() - (i + 1) * 24 * 3600 * 1000);
-            
-            const chunk = await tradeApi.fetchActivityHistoryRange(formatIso(fromDate), formatIso(toDate));
-            if (Array.isArray(chunk)) {
-              allActivities.push(...chunk);
+          const now = new Date();
+
+          for (let i = 0; i < days; i++) {
+            const to = new Date(now.getTime() - i * 24 * 3600000);
+            const from = new Date(now.getTime() - (i + 1) * 24 * 3600000);
+
+            // Format to YYYY-MM-DDTHH:MM:SS
+            const toStr = to.toISOString().split('.')[0];
+            const fromStr = from.toISOString().split('.')[0];
+
+            // Fetch detailed activity range
+            const rawDateActivities = await tradeApi.fetchActivityHistoryRange(fromStr, toStr);
+            allActivities.push(...rawDateActivities);
+
+            if (days > 1 && i < days - 1) {
+              // Throttle to respect rate limits
+              await new Promise(resolve => setTimeout(resolve, 150));
             }
           }
 
           const mapped: Execution[] = allActivities
-            .filter(a => {
-              const isValidType = a.type === 'POSITION';
-              const isFilledStatus = ['ACCEPTED', 'EXECUTED', 'FILLED', 'OPENED', 'CLOSED'].includes(a.status);
-              return isValidType && isFilledStatus && a.details && (a.details.level || a.details.openPrice);
-            })
+            .filter(a => a.type === 'POSITION' && a.status === 'ACCEPTED' && a.details)
             .map(a => {
               const d = a.details;
               const rawDate = a.dateUTC || a.date;
-              let timestamp = Date.now();
-              if (rawDate) {
-                const dateStr = rawDate.endsWith('Z') ? rawDate : `${rawDate}Z`;
-                timestamp = new Date(dateStr).getTime();
-              }
+              const timestamp = rawDate ? new Date(rawDate).getTime() : Date.now();
               return {
                 id: `${a.dealId}_${d.direction}_${timestamp}`,
                 dealId: a.dealId,
@@ -961,26 +946,14 @@ export const useTradeStore = create<TradeState>()(
                 price: d.level || d.openPrice || 0,
                 direction: d.direction,
                 timestamp,
-                action: d.openPrice ? 'EXIT' : 'ENTRY',
-                openPrice: d.openPrice
+                action: d.openPrice ? 'EXIT' : 'ENTRY'
               };
             });
 
           set(state => {
-            // Dedup by dealId+action (not by id) to collapse entries from different code paths
-            // that may have different ID formats. syncExecutions data wins over stale entries.
-            const dedupMap = new Map<string, Execution>();
-            // First, add existing executions (from localStorage or other paths)
-            state.executions.forEach(e => {
-              const key = `${e.dealId}_${e.action}`;
-              dedupMap.set(key, e);
-            });
-            // Then overwrite with syncExecutions data (authoritative source)
-            mapped.forEach(e => {
-              const key = `${e.dealId}_${e.action}`;
-              dedupMap.set(key, e);
-            });
-            return { executions: Array.from(dedupMap.values()) };
+            const currentExecMap = new Map(state.executions.map(e => [e.id, e]));
+            mapped.forEach(e => currentExecMap.set(e.id, e));
+            return { executions: Array.from(currentExecMap.values()) };
           });
         } catch (error) {
           console.error('[TradeStore] Failed to sync executions:', error);
@@ -1228,8 +1201,21 @@ export const useTradeStore = create<TradeState>()(
         set((state) => ({
           positions: [...state.positions.filter((p) => p.dealId !== position.dealId), position],
         }));
-        // NOTE: ENTRY execution creation removed. syncExecutions() is the single source of truth
-        // for execution markers, preventing duplicates from different ID formats.
+        
+        const timestamp = position.timestamp || Date.now();
+        const execExists = get().executions.some(e => e.dealId === position.dealId && e.action === 'ENTRY');
+        if (!execExists) {
+          get().addExecution({
+            id: `${position.dealId}_ENTRY_${timestamp}`,
+            dealId: position.dealId,
+            epic: position.epic,
+            size: position.size,
+            price: position.entryPrice,
+            direction: position.direction,
+            timestamp,
+            action: 'ENTRY'
+          });
+        }
       },
 
       removePosition: (dealId) => 
@@ -1246,16 +1232,9 @@ export const useTradeStore = create<TradeState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         pendingOrders: state.pendingOrders,
+        executions: state.executions,
         positions: state.positions
       }),
-      merge: (persistedState: any, currentState) => {
-        return {
-          ...currentState,
-          ...persistedState,
-          // Explicitly ignore executions from localStorage to prevent stale/phantom markers
-          executions: currentState.executions,
-        };
-      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           Object.keys(state.pendingOrders).forEach(dealReference => {
@@ -1268,4 +1247,3 @@ export const useTradeStore = create<TradeState>()(
     }
   )
 );
-if (typeof window !== 'undefined') (window as any).useTradeStore = useTradeStore;

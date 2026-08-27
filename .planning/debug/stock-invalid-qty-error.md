@@ -1,5 +1,5 @@
 ---
-status: resolved
+status: investigating
 trigger: "Stock orders fail with invalid_qty_error from Capital.com. BTCUSD works, AAPL and all stocks fail. Size=10, minimum is 0.1/0.01."
 created: 2026-06-22
 updated: 2026-06-22
@@ -30,6 +30,3 @@ updated: 2026-06-22
 - hypothesis: Recent code changes broke order logic → eliminated: today's commits only changed console.log levels and error reason extraction
 - hypothesis: Market is closed → eliminated: June 22 2026 is Monday, 9:55 AM ET is within market hours
 - hypothesis: expiry field required for stocks → eliminated: Capital.com stock CFDs are open-ended
-
-## Deferred
-Deferred to future milestone — likely a Capital.com instrument-level dealing rule issue, not a code bug. Requires live API investigation.
