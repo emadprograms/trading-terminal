@@ -73,7 +73,7 @@ export function ChartCanvas({
         />
       ))}
       
-      <CrosshairAlertButton chartRef={chartRef} priceSeriesRef={priceSeriesRef} />
+      <CrosshairAlertButton chartContainerRef={chartContainerRef} chartRef={chartRef} priceSeriesRef={priceSeriesRef} />
     </div>
   );
 }

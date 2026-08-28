@@ -47,12 +47,19 @@ test.describe('Real-Time Alerting System', () => {
     // 6. Verify the alert appears in the active alerts list
     await expect(page.locator('.active-alerts-list')).toContainText('Alert: 150.00');
 
-    // 7. Mock a price update that hits the target price
+    // 7. Mock a price update that hits the target price using real WebSocket message flow
     await page.evaluate(() => {
-      // @ts-ignore
-      if (window.__E2E_PUSH_PRICE_TICK) {
-        // @ts-ignore
-        window.__E2E_PUSH_PRICE_TICK(150.05); // Price crosses the threshold
+      if ((window as any).wsManager) {
+        const msg = {
+          destination: 'quote',
+          payload: {
+            epic: 'MOCK_EPIC',
+            bid: 150.05,
+            ofr: 150.06,
+            timestamp: Date.now()
+          }
+        };
+        (window as any).wsManager.handleMessage(JSON.stringify(msg));
       }
     });
 

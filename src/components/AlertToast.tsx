@@ -8,6 +8,23 @@ export const AlertToast: React.FC = () => {
       const msg = `Alert triggered at ${e.detail.currentPrice}`;
       setMessages(prev => [...prev, msg]);
       
+      // Play audio notification
+      try {
+        // Create an audio context and a simple beep since we don't have an audio file
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 880; // A5
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.2); // beep for 0.2s
+      } catch (err) {
+        console.error('Audio playback failed', err);
+      }
+
       // Remove after 5 seconds
       setTimeout(() => {
         setMessages(prev => prev.filter(m => m !== msg));

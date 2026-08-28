@@ -175,7 +175,7 @@ class WebSocketManager {
     });
   }
 
-  private handleMessage(data: string): void {
+  public handleMessage(data: string): void {
     try {
       const message = JSON.parse(data);
       
@@ -188,6 +188,11 @@ class WebSocketManager {
           this.bufferedTicks.set(epic, buffer);
         } else {
           usePriceStore.getState().updatePrice(epic, bid, ofr, timestamp);
+          
+          // Evaluate alerts with the new price
+          import('../store/useAlertStore').then(({ useAlertStore }) => {
+             useAlertStore.getState().evaluatePrice(epic, bid);
+          });
         }
       }
 
@@ -331,3 +336,7 @@ class WebSocketManager {
 }
 
 export const wsManager = WebSocketManager.getInstance();
+
+if (typeof window !== 'undefined') {
+  (window as any).wsManager = wsManager;
+}

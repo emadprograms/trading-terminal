@@ -1,0 +1,64 @@
+{
+  "executor_model": "sonnet",
+  "verifier_model": "sonnet",
+  "tdd_mode": false,
+  "commit_docs": true,
+  "sub_repos": [],
+  "parallelization": true,
+  "context_window": 200000,
+  "branching_strategy": "none",
+  "phase_branch_template": "gsd/phase-{phase}-{slug}",
+  "milestone_branch_template": "gsd/{milestone}-{slug}",
+  "verifier_enabled": true,
+  "phase_found": true,
+  "phase_dir": "/Users/emadarshadalam/Documents/GitHub/trading-terminal/.planning/phases/02-lightweight-charts-visual-alerts",
+  "phase_number": "02",
+  "phase_name": "lightweight-charts-visual-alerts",
+  "phase_slug": "lightweight-charts-visual-alerts",
+  "phase_req_ids": "VISUAL-01",
+  "plans": [
+    "02-PLAN.md"
+  ],
+  "summaries": [],
+  "incomplete_plans": [
+    "02-PLAN.md"
+  ],
+  "plan_count": 1,
+  "incomplete_count": 1,
+  "halted_plans": [],
+  "blocked_by": {},
+  "runnable_plans": [
+    "02-PLAN.md"
+  ],
+  "runnable_count": 1,
+  "branch_name": null,
+  "milestone_version": "v1.4",
+  "milestone_name": "Chart Alerts Integration",
+  "milestone_slug": "chart-alerts-integration",
+  "state_exists": true,
+  "roadmap_exists": true,
+  "config_exists": false,
+  "state_path": "/Users/emadarshadalam/Documents/GitHub/trading-terminal/.planning/STATE.md",
+  "roadmap_path": "/Users/emadarshadalam/Documents/GitHub/trading-terminal/.planning/ROADMAP.md",
+  "config_path": "/Users/emadarshadalam/Documents/GitHub/trading-terminal/.planning/config.json",
+  "requirements_path": "/Users/emadarshadalam/Documents/GitHub/trading-terminal/.planning/REQUIREMENTS.md",
+  "section_manifest": {
+    "workflow": "execute-phase",
+    "included": [
+      "regression-gate"
+    ],
+    "excluded": [
+      "partial-wave",
+      "gap-closure-artifacts"
+    ],
+    "read": [
+      "gsd-core/workflows/execute-phase/steps/regression-gate.md"
+    ]
+  },
+  "project_root": "/Users/emadarshadalam/Documents/GitHub/trading-terminal",
+  "agents_installed": true,
+  "missing_agents": [],
+  "agents_dir": "/Users/emadarshadalam/Documents/GitHub/trading-terminal/.agents/agents",
+  "agent_runtime": "claude",
+  "project_title": "Trading Terminal"
+}

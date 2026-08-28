@@ -1,0 +1,32 @@
+{
+  "phase": "02",
+  "plans": [
+    {
+      "id": "02",
+      "wave": 1,
+      "depends_on": [],
+      "autonomous": false,
+      "objective": null,
+      "files_modified": [
+        "src/hooks/chart/useChartAlerts.ts",
+        "src/components/ChartUnit.tsx"
+      ],
+      "task_count": 2,
+      "has_summary": false,
+      "halted": false,
+      "blocked_by": []
+    }
+  ],
+  "waves": {
+    "1": [
+      "02"
+    ]
+  },
+  "incomplete": [
+    "02"
+  ],
+  "runnable": [
+    "02"
+  ],
+  "has_checkpoints": true
+}
