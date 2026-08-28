@@ -94,14 +94,29 @@ export function useChartData({
     if (onTimeframeChange) onTimeframeChange(id, timeframe);
   }, [timeframe, id, onTimeframeChange]);
 
+  if (typeof window !== 'undefined') {
+    console.log(`BROWSER: useChartData eval - ticker: ${ticker}, timeframe: ${timeframe}, showEth: ${showEth}, id: ${id}`);
+  }
+
   // Force re-render when syncCoordinator finishes background fetching
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!ticker) return;
-    const unsubscribe = syncCoordinator.subscribe(ticker, timeframe, () => {
+    const unsubMain = syncCoordinator.subscribe(ticker, timeframe, () => {
       setTick(t => t + 1);
     });
-    return () => { unsubscribe(); };
+    
+    let unsubIntra = () => {};
+    if (timeframe === '1D') {
+      unsubIntra = syncCoordinator.subscribe(ticker, '30min', () => {
+        setTick(t => t + 1);
+      });
+    }
+
+    return () => { 
+      unsubMain(); 
+      unsubIntra();
+    };
   }, [ticker, timeframe]);
 
   // Initial data fetch + Sync
@@ -308,9 +323,12 @@ export function useChartData({
 
     if (timeframe === '1D' && !showEth && getTzForTicker(ticker) !== 'UTC') {
       const intraday = syncCoordinator.getCache(ticker, '30min');
+      if (typeof window !== 'undefined') console.log("INTRADAY CACHE LENGTH:", intraday?.length);
       if (intraday && intraday.length > 0) {
         const rthIntraday = intraday.filter(b => b.session === 'RTH');
+        if (typeof window !== 'undefined') console.log("RTH INTRADAY LENGTH:", rthIntraday.length);
         const accurateRecentDaily = resampleData(rthIntraday, '1D');
+        if (typeof window !== 'undefined') console.log("ACCURATE RECENT DAILY:", JSON.stringify(accurateRecentDaily));
         if (accurateRecentDaily.length > 0) {
           const oldestAccurateTime = accurateRecentDaily[0].time;
           boundaryTime = oldestAccurateTime;
@@ -328,8 +346,16 @@ export function useChartData({
     }
     
     const result = resampleData(filtered, timeframe);
+
+    if (typeof window !== 'undefined') {
+      if (!(window as any).__TEST_CHART_DATA__) {
+        (window as any).__TEST_CHART_DATA__ = {};
+      }
+      (window as any).__TEST_CHART_DATA__[ticker] = result;
+    }
+
     return { data: result, boundaryTime };
-  }, [localMasterData, timeframe, showEth]);
+  }, [localMasterData, timeframe, showEth, tick]);
 
   const chartData = chartDataResult.data;
   const boundaryTime = chartDataResult.boundaryTime;

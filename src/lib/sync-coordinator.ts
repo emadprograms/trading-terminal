@@ -117,6 +117,7 @@ export class SyncCoordinator {
 
         if (history && history.length > 0) {
           this.cache.set(key, history);
+          this.notifyListeners(ticker, tf);
         } else {
           this.cache.delete(key);
         }
@@ -196,6 +197,7 @@ export class SyncCoordinator {
         if (!this.cache.has(intraKey)) {
           const intra = await this.fetchWithRetry(ticker, toIso, 1000, '30min');
           this.cache.set(intraKey, intra);
+          this.notifyListeners(ticker, '30min');
         }
       }
 
