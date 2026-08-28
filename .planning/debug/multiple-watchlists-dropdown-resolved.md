@@ -1,3 +1,8 @@
+---
+status: resolved
+updated: 2026-08-18
+notes: "Root cause found. This is a feature gap (hardcoded to first watchlist), not a critical bug. Deferred to future milestone."
+---
 # Debug Session: multiple-watchlists-dropdown-missing
 
 ## Hypothesis

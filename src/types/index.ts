@@ -142,7 +142,6 @@ export interface ChartUnitProps {
   id: number;
   isSelected?: boolean;
   onSelect?: () => void;
-  tickers: string[];
   initialTicker: string;
   initialTf: Timeframe;
   initialEth: boolean;

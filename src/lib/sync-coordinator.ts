@@ -5,6 +5,10 @@ import { usePriceStore } from '../store/usePriceStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import type { RawBar, Timeframe } from '../types';
 
+function parseBarTimeMs(timeStr: string): number {
+  return new Date(timeStr.replace(' ', 'T') + 'Z').getTime();
+}
+
 export class DataStitchingError extends Error {
   description: string;
   reason: string;
@@ -161,6 +165,7 @@ export class SyncCoordinator {
       // 2. Subscribe with buffering enabled
       wsManager.subscribe(ticker, true);
 
+      let wasFreshlyFetched = false;
       // 3. Fetch initial history if cache was empty — INDEPENDENT fetch, never shared
       if (!history || history.length === 0) {
         if (abortSignal) {
@@ -172,6 +177,7 @@ export class SyncCoordinator {
           }
         }
         history = await this.fetchWithRetry(ticker, toIso, targetCandles, timeframe);
+        wasFreshlyFetched = true;
 
         if (!history || history.length === 0) {
           wsManager.setBuffering(ticker, false);
@@ -191,7 +197,7 @@ export class SyncCoordinator {
       }
 
       const lastRestCandle = history[history.length - 1];
-      const lastRestTimeMs = new Date(lastRestCandle.time.replace(' ', 'T') + 'Z').getTime();
+      const lastRestTimeMs = parseBarTimeMs(lastRestCandle.time);
 
       // 4. Check for buffered ticks to find the "Live Start"
       const buffer = wsManager.getAndClearBuffer(ticker);
@@ -208,14 +214,19 @@ export class SyncCoordinator {
         '1H': 60,
         '1D': 1440,
       };
-      const thresholdMs = tfMins[timeframe] * 60000;
+      const intervalMs = tfMins[timeframe] * 60000;
+      const thresholdMs = intervalMs * 1.5; // 1.5x grace tolerance
 
       if (firstWsTimeMs - lastRestTimeMs > thresholdMs) {
-        console.log(`[SyncCoordinator] Gap detected for ${ticker} (${Math.round((firstWsTimeMs - lastRestTimeMs) / 60000)} mins). Fetching bridge...`);
+        let bridgeData: RawBar[] | undefined = undefined;
         
-        // Attempt to bridge the gap
-        const bridgeTo = new Date(firstWsTimeMs).toISOString();
-        const bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
+        if (!wasFreshlyFetched) {
+          console.log(`[SyncCoordinator] Gap detected for ${ticker} (${Math.round((firstWsTimeMs - lastRestTimeMs) / 60000)} mins). Fetching bridge...`);
+          const bridgeTo = new Date(firstWsTimeMs).toISOString();
+          bridgeData = await fetchHistoricalChunk(ticker, bridgeTo, 1000, timeframe);
+        } else {
+          console.log(`[SyncCoordinator] Gap detected for ${ticker} but data was freshly fetched. Skipping redundant bridge fetch.`);
+        }
         
         if (bridgeData && bridgeData.length > 0) {
           const merged = [...history, ...bridgeData];
@@ -235,18 +246,22 @@ export class SyncCoordinator {
 
         // Recalculate gap after bridge attempt
         const newLastRestCandle = history[history.length - 1];
-        const newLastRestTimeMs = new Date(newLastRestCandle.time.replace(' ', 'T') + 'Z').getTime();
+        const newLastRestTimeMs = parseBarTimeMs(newLastRestCandle.time);
 
         // If gap still exists AND we have active live ticks proving the market is open and moving
-        if (buffer.length > 0 && firstWsTimeMs - newLastRestTimeMs > thresholdMs) {
+        // We tolerate valid sparse data (0-volume intervals) up to a reasonable limit (e.g., 2 hours).
+        const maxOutageGapMs = Math.max(intervalMs * 10, 2 * 60 * 60 * 1000); // at least 2 hours or 10 intervals
+        if (buffer.length > 0 && firstWsTimeMs - newLastRestTimeMs > maxOutageGapMs) {
           const finalGapMins = Math.round((firstWsTimeMs - newLastRestTimeMs) / 60000);
-          console.log(`[SyncCoordinator] Bridge failed to close gap for ${ticker}: ${finalGapMins} minutes remaining.`);
+          console.log(`[SyncCoordinator] Bridge failed to close massive gap for ${ticker}: ${finalGapMins} minutes remaining. Considered an outage.`);
           
           wsManager.setBuffering(ticker, false);
           throw new DataStitchingError(
             "Timestamp continuity broken", 
-            `Unrecoverable gap of ${finalGapMins} minutes between REST history and WebSocket ticks.`
+            `Unrecoverable outage gap of ${finalGapMins} minutes between REST history and WebSocket ticks.`
           );
+        } else if (buffer.length > 0 && firstWsTimeMs - newLastRestTimeMs > thresholdMs) {
+          console.log(`[SyncCoordinator] Gap of ${Math.round((firstWsTimeMs - newLastRestTimeMs) / 60000)} mins for ${ticker} accepted as valid sparse data (0-volume intervals).`);
         }
       }
 
@@ -257,7 +272,7 @@ export class SyncCoordinator {
         
         if (intraCache && intraCache.length > 0) {
           const lastIntra = intraCache[intraCache.length - 1];
-          const lastIntraTimeMs = new Date(lastIntra.time.replace(' ', 'T') + 'Z').getTime();
+          const lastIntraTimeMs = parseBarTimeMs(lastIntra.time);
           
           if (firstWsTimeMs - lastIntraTimeMs > 30 * 60000) {
             console.log(`[SyncCoordinator] Companion 30min gap detected for ${ticker}. Fetching bridge...`);
@@ -294,7 +309,7 @@ export class SyncCoordinator {
         });
       }
 
-      return [...history];
+      return history;
     } finally {
       this.activeSyncs--;
     }

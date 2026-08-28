@@ -14,10 +14,10 @@ import { parseInput } from '../lib/parsing';
 import { useTradeStore } from '../store/useTradeStore';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { StitchingErrorBanner } from './StitchingErrorBanner';
+import { useChartAlerts } from '../hooks/chart/useChartAlerts';
 
 export default function ChartUnit({ 
   id, 
-  tickers, 
   initialTicker, 
   initialTf,
   initialEth,
@@ -44,6 +44,8 @@ export default function ChartUnit({
   const [showVP, setShowVP] = React.useState(false);
   const theme = useWorkspaceStore((state) => state.theme);
 
+
+
   // 1. Data management
   const data = useChartData({ 
     initialTicker, 
@@ -51,7 +53,6 @@ export default function ChartUnit({
     initialEth, 
     groupColor, 
     groupTicker, 
-    tickers, 
     chartRef, 
     priceSeriesRef, 
     onTimeframeChange, 
@@ -124,6 +125,12 @@ export default function ChartUnit({
     pluginVersion: chart.pluginVersion
   });
 
+  useChartAlerts({
+    ticker: data.ticker,
+    priceSeriesRef,
+    theme,
+  });
+
   const hasExplicitSize = style.width || style.height;
   const mergedStyle = { 
     ...style, 
@@ -163,7 +170,6 @@ export default function ChartUnit({
         setIsDrawingMode={keyboard.setIsDrawingMode}
         drawType={keyboard.drawType}
         setDrawType={keyboard.setDrawType}
-        tickers={tickers}
         groupColor={groupColor}
         onGroupChange={onGroupChange}
         onTickerChange={handleTickerUpdate}
@@ -180,6 +186,8 @@ export default function ChartUnit({
       >
         <ChartCanvas
           chartContainerRef={chartContainerRef}
+          chartRef={chartRef}
+          priceSeriesRef={priceSeriesRef}
           isDrawingMode={keyboard.isDrawingMode}
           isViewModified={chart.isViewModified}
           resetView={chart.resetView}

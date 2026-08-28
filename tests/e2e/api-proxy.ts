@@ -1,9 +1,9 @@
 import { Page } from '@playwright/test';
 
 export async function setupLiveApiProxy(page: Page) {
-  const identifier = process.env.CAPITAL_USER;
-  const password = process.env.CAPITAL_PASSWORD;
-  const apiKey = process.env.CAPITAL_API_KEY;
+  const identifier = process.env.CAPITAL_USER || process.env.VITE_CAPITAL_USER;
+  const password = process.env.CAPITAL_PASSWORD || process.env.VITE_CAPITAL_PASSWORD;
+  const apiKey = process.env.CAPITAL_API_KEY || process.env.VITE_CAPITAL_API_KEY;
 
   if (!identifier || !password || !apiKey) {
     throw new Error('Missing Capital.com live credentials in .env.local');

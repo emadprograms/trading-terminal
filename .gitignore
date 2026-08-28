@@ -38,10 +38,10 @@ code
 .vscode/
 
 # GSD Agent settings
-.agent/
+.agents/
 
 # Scratch files
 scratch/
-playwright-report/
-test-results/
+.playwright/
 trace_output/
+.vercel

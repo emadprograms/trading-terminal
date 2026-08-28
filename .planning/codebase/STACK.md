@@ -1,31 +1,76 @@
-# Stack
+# Technology Stack
 
-**Mapped:** 2026-06-13
-**Scope:** Full codebase
+**Analysis Date:** 2026-08-12
 
-## Core Technologies
-- **Runtime:** Node.js (Vercel Serverless environment), Browser (WebAssembly)
-- **Language:** TypeScript
-- **Framework:** React 18
-- **Build Tool:** Vite
+## Languages
 
-## Frontend
-- **State Management:** Zustand (global UI/app state), TanStack React Query (server state & caching)
-- **Styling:** Vanilla CSS / Tailwind (in `index.css`)
-- **Charting:** Lightweight Charts (`lightweight-charts`)
-- **Icons:** Lucide React
-- **Notifications:** Sonner
+**Primary:**
+- TypeScript 6.0.3 - Application code
+- React / TSX 18.3.1 - UI components
 
-## Backend & API
-- **Architecture:** Vercel Serverless Functions (`api/` directory)
-- **HTTP Client:** `undici` (configured to force HTTP/1.1 for proxying Capital.com requests)
-- **Local Dev Server:** Vercel CLI (`vercel dev`)
+**Secondary:**
+- HTML - Entry point
 
-## Data & Persistence
-- **Database:** SQLite compiled to WebAssembly (`sql.js`)
-- **Execution:** Runs inside Web Workers to keep the main thread unblocked during heavy market data processing.
+## Runtime
 
-## Testing & Quality
-- **Unit/Integration:** Vitest, React Testing Library
-- **E2E:** Playwright
-- **Mocking:** MSW (Mock Service Worker)
+**Environment:**
+- Browser (Frontend application)
+- Node.js (Build and tooling)
+
+**Package Manager:**
+- npm
+- Lockfile: present (`package-lock.json`)
+
+## Frameworks
+
+**Core:**
+- React 18.3.1 - UI Framework
+- Vite 5.4.10 - Bundler and dev server
+
+**Testing:**
+- Vitest 4.1.7 - Unit/Integration Testing
+- Playwright 1.60.0 - E2E Testing
+- React Testing Library 16.3.2 - Component testing
+
+**Build/Dev:**
+- Vite 5.4.10 - Build tool
+- TypeScript 6.0.3 - Type checking
+
+## Key Dependencies
+
+**Critical:**
+- @tanstack/react-query 5.101.0 - Data fetching and cache management
+- zustand 5.0.14 - Global state management
+- lightweight-charts 4.2.1 - Trading charts visualization
+- ky 2.0.2 - HTTP Client
+
+**Infrastructure:**
+- zod 4.4.3 - Schema validation
+- sonner 2.0.7 - Toast notifications
+- lucide-react 0.453.0 - Icons
+- undici 8.4.0 - HTTP/1.1 client for Node.js
+
+## Configuration
+
+**Environment:**
+- Local configuration in `.env.local`
+- Environment variables managed via dotenv
+
+**Build:**
+- `vite.config.ts` (Vite bundler configuration)
+- `tsconfig.json`, `tsconfig.node.json` (TypeScript configuration)
+- `vitest.config.ts` (Vitest test runner configuration)
+- `playwright.config.ts` (Playwright E2E configuration)
+- `vercel.json` (Vercel deployment configuration)
+
+## Platform Requirements
+
+**Development:**
+- Node.js
+
+**Production:**
+- Vercel (Deployment target)
+
+---
+
+*Stack analysis: 2026-08-12*

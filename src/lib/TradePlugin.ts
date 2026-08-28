@@ -74,6 +74,8 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                 ctx.save();
                 ctx.globalAlpha = 0.8;
 
+                const executionCounts = new Map<string, number>();
+
                 this._items.forEach(item => {
                     const { y, direction, id } = item;
                     if (y === null) return;
@@ -104,7 +106,11 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         // Draw sleek modern chevron arrow for executions
                         ctx.save();
                         const { x, direction } = item;
-                        const yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
+                        let yPos = item.arrowY ?? item.y; // Fallback to execution price if no high/low available
+                        
+                        const key = `${Math.round(x)}_${direction}`;
+                        const count = executionCounts.get(key) || 0;
+                        executionCounts.set(key, count + 1);
                         
                         let scale = 1;
                         if (this._chart) {
@@ -120,6 +126,15 @@ class TradeRenderer implements ISeriesPrimitivePaneRenderer {
                         }
                         
                         const isBuy = direction === 'BUY';
+                        
+                        // Stack offset calculation
+                        const stackOffset = count * 8 * scale;
+                        if (isBuy) {
+                            yPos = (yPos + stackOffset) as Coordinate;
+                        } else {
+                            yPos = (yPos - stackOffset) as Coordinate;
+                        }
+
                         ctx.fillStyle = isBuy ? '#007aff' : '#ff3b30';
                         ctx.beginPath();
                         
@@ -358,9 +373,15 @@ export class TradePlugin implements ISeriesPrimitive<Time> {
             return this._items.map(item => {
                 const y = this._series!.priceToCoordinate(item.price);
                 
-                let x = null;
-                if (item.time) {
-                    x = this._chart!.timeScale().timeToCoordinate(item.time);
+                let x: Coordinate | null = null;
+                if (item.time !== undefined && item.time !== null) {
+                    try {
+                        x = this._chart!.timeScale().timeToCoordinate(item.time as Time);
+                        console.log('MARKER X:', x, 'TIME:', item.time);
+                    } catch (e) {
+                        console.log('MARKER X ERROR:', e);
+                        x = null;
+                    }
                 }
 
                 let parentY = null;

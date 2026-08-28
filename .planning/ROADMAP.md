@@ -2,27 +2,45 @@
 
 ## Milestones
 
-- ✅ **v1.1 Orders Audit & Hardening** — Phases 4-6 (shipped 2026-06-21)
+- ✅ **v1.4 Chart Alerts Integration** — Phases 1-3 (shipped 2026-08-19)
+- ✅ **v1.3 Real-Time Alerting System** — Phases 1-4 (shipped 2026-08-18)
+- ✅ **v1.2 Advanced Order History & Chart Integration** — Phases 1-3 (shipped 2026-08-18)
+- ✅ **v1.1 Security** — Phases 4-6 (shipped 2026-06-24)
 
 ## Phases
 
 <details>
-<summary>✅ v1.1 Orders Audit & Hardening (Phases 4-6) — SHIPPED 2026-06-21</summary>
+<summary>✅ v1.4 Chart Alerts Integration (Phases 1-3) — SHIPPED 2026-08-19</summary>
 
-- [x] Phase 4: Order System Audit & Core Fixes (1/1 plans) — completed 2026-06-21
-- [x] Phase 5: Order Lifecycle Testing & Validation (1/1 plans) — completed 2026-06-21
-- [x] Phase 5.1: Advanced Edge Case Testing (1/1 plans) — completed 2026-06-21
-- [x] Phase 5.2: Data Stitching & Market Engine Validation (1/1 plans) — completed 2026-06-21
-- [x] Phase 6: Sync watchlist with capital.com (6/6 plans) — completed 2026-06-21
+- [x] Phase 1: Chart Alerts E2E Benchmark (TDD) — completed
+- [x] Phase 2: Lightweight Charts Visual Alerts — completed
+- [x] Phase 3: Crosshair Interactive Alert Creation — completed
 
 </details>
 
-## Progress
+<details>
+<summary>✅ v1.3 Real-Time Alerting System (Phases 1-4) — SHIPPED 2026-08-18</summary>
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 4. Order System Audit | v1.1 | 1/1 | Complete | 2026-06-21 |
-| 5. Order Lifecycle Testing | v1.1 | 1/1 | Complete | 2026-06-21 |
-| 5.1 Advanced Edge Case | v1.1 | 1/1 | Complete | 2026-06-21 |
-| 5.2 Data Stitching | v1.1 | 1/1 | Complete | 2026-06-21 |
-| 6. Sync watchlist | v1.1 | 6/6 | Complete | 2026-06-21 |
+See full archive: `.planning/milestones/v1.3-ROADMAP.md`
+
+</details>
+
+<details>
+<summary>✅ v1.2 Advanced Order History & Chart Integration (Phases 1-3) — SHIPPED 2026-08-18</summary>
+
+- [x] Phase 1: Test-Driven Development (TDD) Foundation
+- [x] Phase 2: Netting Engine Implementation
+- [x] Phase 3: Sidebar UI & Chart Sync
+
+</details>
+
+<details>
+<summary>✅ v1.1 Security (Phases 4-6) — SHIPPED 2026-06-24</summary>
+
+- [x] Phase 4: Order System Audit & Core Fixes
+- [x] Phase 5: Order Lifecycle Testing & Validation
+- [x] Phase 5.1: Advanced Edge Case Testing
+- [x] Phase 5.2: Data Stitching & Market Engine Validation
+- [x] Phase 6: Sync watchlist with capital.com
+
+</details>

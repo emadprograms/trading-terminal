@@ -8,21 +8,48 @@ A lightning-fast, highly robust, and aesthetically pleasing trading terminal bui
 - **Direct Order Placement:** Low-latency trade execution via minimal Vercel Serverless Functions proxying to Capital.com, handling CORS and credential injection without adding unnecessary overhead.
 - **Robust Local State:** High-performance, play-by-play market data caching using a Web Worker-based SQLite (sql.js) database to prevent main thread blocking.
 - **Premium Aesthetics:** A sleek, modern, and highly polished user interface with fluid micro-animations and exact interaction states.
+- **Real-Time Alerting:** Asset-specific price alerts that evaluate live WebSocket ticks and notify the user visually (toast) and audibly (Web Audio API beep).
+
+## Next Milestone Goals
+- **Multiple Watchlist Support:** Support selection between multiple watchlists.
+- **Dealing Rules Validation:** Enforce stock order quantity validation using Capital.com dealing rules.
 
 ## Current State
 
-Shipped v1.1 Orders Audit & Hardening.
-- **Order Execution:** Hardened with local execution locks to prevent double/ghost orders and fixed limits.
-- **E2E Testing:** Comprehensive suite in Playwright for live Capital.com demo API validation, stitching, and advanced edge cases.
-- **Watchlist:** Synchronized live with Capital.com endpoints.
+Shipped v1.4 Chart Alerts Integration.
+- **Visual Chart Alerts:** Active alerts are visually plotted on the Lightweight Chart as horizontal price lines.
+- **Interactive Creation:** Clickable plus symbol on the chart's Y-axis crosshair allows setting alerts precisely at price levels.
+- **TDD Flow:** Implemented Playwright E2E benchmark tests to ensure correct chart UI interaction before actual implementation.
 
-## Next Milestone Goals
-[To be defined in next planning phase]
+## Requirements
+
+### Validated
+- ✓ Ultra-fast chart switching — v1.0
+- ✓ Direct order placement — v1.1
+- ✓ Order history & trade netting engine — v1.2
+- ✓ Chart sync with trade entries/exits — v1.2
+- ✓ Real-time price alert engine (per-asset) — v1.3
+- ✓ Alert creation UI in sidebar — v1.3
+- ✓ Toast + audio notification on alert trigger — v1.3
+- ✓ E2E TDD test coverage for alert lifecycle — v1.3
+- ✓ Chart alerts benchmark E2E test — v1.4 (Phase 01)
+- ✓ Lightweight Charts Visual Alerts — v1.4 (Phase 02)
+- ✓ Crosshair Interactive Alert Creation — v1.4 (Phase 03)
+
+### Active (Next Milestone)
+- [ ] Multiple watchlist selection dropdown
+- [ ] Stock order qty validation using Capital.com dealing rules
+- [ ] 1-minute chart sparse data tolerance (graceful handling of 0-volume minutes)
+
+### Out of Scope
+- Mobile app — web-first approach
+- Backend alert processing — client-side via WebSockets saves latency/cost
+- SMS/Email delivery — future milestone
 
 ## Future Milestones
-- Advanced Order Types & Strategies
+- Advanced Order Types & Strategies (limit orders, stop-loss, take-profit)
 - Portfolio Analytics & Performance History
-- Real-time Alerting System
+- Watchlist multi-select & dealing rules validation
 
 ## Technical Constraints & Stack
 - **Frontend:** React (Vite), Zustand (State), TailwindCSS (assumed, or Vanilla CSS), Lightweight Charts.
@@ -52,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-21 after v1.1 milestone*
+*Last updated: 2026-08-19 after v1.4 milestone*

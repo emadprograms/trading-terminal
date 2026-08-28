@@ -1,10 +1,14 @@
 import React from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { TradeBadge } from './TradeBadge';
+import { CrosshairAlertButton } from './CrosshairAlertButton';
 import type { ChartMarker } from '../lib/TradePlugin';
+import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 
 interface ChartCanvasProps {
   chartContainerRef: React.RefObject<HTMLDivElement | null>;
+  chartRef: React.RefObject<IChartApi | null>;
+  priceSeriesRef: React.RefObject<ISeriesApi<"Candlestick"> | null>;
   isDrawingMode: boolean;
   isViewModified: boolean;
   resetView: () => void;
@@ -20,6 +24,8 @@ interface ChartCanvasProps {
 
 export function ChartCanvas({
   chartContainerRef,
+  chartRef,
+  priceSeriesRef,
   isDrawingMode,
   isViewModified,
   resetView,
@@ -33,7 +39,7 @@ export function ChartCanvas({
   theme = 'oled'
 }: ChartCanvasProps) {
   return (
-    <div ref={chartContainerRef} style={{ flex: 1, position: 'relative', minHeight: 0, minWidth: 0, overflow: 'hidden', cursor: isDrawingMode ? 'crosshair' : 'default' }}>
+    <div data-testid="chart-container" ref={chartContainerRef} style={{ flex: 1, position: 'relative', minHeight: 0, minWidth: 0, overflow: 'hidden', cursor: isDrawingMode ? 'crosshair' : 'default' }}>
       
       {!isHydrated && (
         <div style={{ 
@@ -66,6 +72,8 @@ export function ChartCanvas({
           onHoverMarker={onHoverMarker}
         />
       ))}
+      
+      <CrosshairAlertButton chartRef={chartRef} priceSeriesRef={priceSeriesRef} />
     </div>
   );
 }
