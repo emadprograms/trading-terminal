@@ -10,8 +10,10 @@ const DEFAULT_PREFIX = '/api'
  */
 const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
+const isVitest = typeof process !== 'undefined' && process.env.VITEST === 'true';
+
 export const api = ky.create({
-  prefix: DEFAULT_PREFIX,
+  prefix: isVitest ? 'http://localhost/api' : DEFAULT_PREFIX,
   retry: 0,
   hooks: {
     beforeRequest: [

@@ -6,7 +6,7 @@ vi.mock('../services/trade', () => ({
   tradeApi: {
     fetchPositions: vi.fn(),
     fetchWorkingOrders: vi.fn(),
-    fetchActivityHistory: vi.fn(),
+    fetchActivityHistoryRange: vi.fn(),
   },
 }));
 
@@ -48,7 +48,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
   });
 
   it('syncExecutions should be the single source of truth for ENTRY markers', async () => {
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-1',
         epic: 'TSLA',
@@ -90,7 +90,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
       },
     ]);
     (tradeApi.fetchWorkingOrders as any).mockResolvedValue([]);
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-1',
         epic: 'TSLA',
@@ -154,7 +154,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
     });
 
     // syncExecutions returns the SAME trade but with a DIFFERENT id format
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-1',
         epic: 'TSLA',
@@ -191,7 +191,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
       },
     ]);
     (tradeApi.fetchWorkingOrders as any).mockResolvedValue([]);
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-A', epic: 'AAPL', type: 'POSITION', status: 'OPENED',
         dateUTC: '2024-08-12T14:00:00',
@@ -213,8 +213,8 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
     expect(state.executions.filter(e => e.dealId === 'DEAL-B')).toHaveLength(1);
   });
 
-  it('ACCEPTED status activities are correctly parsed and mapped to ENTRY markers', async () => {
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+  it('ACCEPTED status activities (WORKING_ORDER) are ignored and do NOT map to ENTRY markers', async () => {
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-PENDING',
         epic: 'TSLA',
@@ -224,10 +224,8 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
         details: { direction: 'BUY', size: 10, level: 250.5 },
       },
     ]);
-
     await useTradeStore.getState().syncExecutions(1);
     const state = useTradeStore.getState();
-    expect(state.executions).toHaveLength(1);
-    expect(state.executions[0].action).toBe('ENTRY');
+    expect(state.executions).toHaveLength(0);
   });
 });

@@ -4,7 +4,7 @@ import { tradeApi } from '../services/trade';
 
 vi.mock('../services/trade', () => ({
   tradeApi: {
-    fetchActivityHistory: vi.fn(),
+    fetchActivityHistoryRange: vi.fn(),
   },
 }));
 
@@ -80,21 +80,21 @@ describe('useTradeStore - syncExecutions', () => {
       }
     ];
 
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue(mockActivities);
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue(mockActivities);
 
     await useTradeStore.getState().syncExecutions(1);
 
     const executions = useTradeStore.getState().executions;
 
     // 'deal-1' (OPENED → ENTRY), 'deal-2' (FILLED → ENTRY), 'deal-1' (CLOSED → EXIT)
-    // With dedup by dealId+action: deal-1 has ENTRY + EXIT = 2, deal-2 has ENTRY = 1, and deal-4 has ENTRY = 1 (ACCEPTED)
-    expect(executions).toHaveLength(4);
+    // With dedup by dealId+action: deal-1 has ENTRY + EXIT = 2, deal-2 has ENTRY = 1. deal-3 (ACCEPTED) is ignored.
+    expect(executions).toHaveLength(3);
 
     expect(executions.map(e => e.dealId)).toContain('deal-1');
     expect(executions.map(e => e.dealId)).toContain('deal-2');
     
-    // deal-3 (the phantom pending order) now has ACCEPTED status, so it WILL be included as an ENTRY.
-    expect(executions.map(e => e.dealId)).toContain('deal-3');
+    // deal-3 (the phantom pending order) now has ACCEPTED status, but is a WORKING_ORDER, so it will NOT be included.
+    expect(executions.map(e => e.dealId)).not.toContain('deal-3');
 
     // Check that deal-1 has both ENTRY and EXIT
     const deal1Execs = executions.filter(e => e.dealId === 'deal-1');
