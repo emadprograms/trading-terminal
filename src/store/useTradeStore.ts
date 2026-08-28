@@ -941,7 +941,7 @@ export const useTradeStore = create<TradeState>()(
 
           const mapped: Execution[] = allActivities
             .filter(a => {
-              const isValidType = ['POSITION', 'WORKING_ORDER'].includes(a.type);
+              const isValidType = a.type === 'POSITION';
               const isFilledStatus = ['ACCEPTED', 'EXECUTED', 'FILLED', 'OPENED', 'CLOSED'].includes(a.status);
               return isValidType && isFilledStatus && a.details && (a.details.level || a.details.openPrice);
             })

@@ -5,20 +5,20 @@ describe('Netting Engine (TDD)', () => {
   it('should process a full close and calculate realized PnL', () => {
     const mockExecutions: Execution[] = [
       {
-        id: '1',
-        timestamp: new Date('2024-01-01T10:00:00.000').getTime(),
+        dateUTC: '2024-01-01T10:00:00.000',
         epic: 'BTCUSD',
         dealId: 'deal-1',
-        action: 'ENTRY',
-        size: 1, direction: 'BUY', price: 50000
+        type: 'POSITION',
+        status: 'ACCEPTED',
+        details: { size: 1, direction: 'BUY', level: 50000 }
       },
       {
-        id: '2',
-        timestamp: new Date('2024-01-01T11:00:00.000').getTime(),
+        dateUTC: '2024-01-01T11:00:00.000',
         epic: 'BTCUSD',
         dealId: 'deal-1',
-        action: 'EXIT',
-        size: 1, direction: 'SELL', price: 51000, openPrice: 50000
+        type: 'POSITION',
+        status: 'ACCEPTED',
+        details: { size: 1, direction: 'SELL', level: 51000, openPrice: 50000 }
       }
     ];
 
@@ -27,26 +27,26 @@ describe('Netting Engine (TDD)', () => {
     expect(trades).toHaveLength(1);
     expect(trades[0].status).toBe('CLOSED');
     expect(trades[0].realizedPnL).toBe(1000); // (51000 - 50000) * 1
-    expect(trades[0].closeTime).toBe(new Date('2024-01-01T11:00:00.000').toISOString());
+    expect(trades[0].closeTime).toBe('2024-01-01T11:00:00.000');
   });
 
   it('should process a partial close correctly', () => {
     const mockExecutions: Execution[] = [
       {
-        id: '3',
-        timestamp: new Date('2024-02-01T10:00:00.000').getTime(),
-        epic: 'AAPL',
+        dateUTC: '2024-01-01T10:00:00.000',
+        epic: 'BTCUSD',
         dealId: 'deal-2',
-        action: 'ENTRY',
-        size: 2, direction: 'SELL', price: 60000
+        type: 'POSITION',
+        status: 'ACCEPTED',
+        details: { size: 2, direction: 'SELL', level: 60000 }
       },
       {
-        id: '4',
-        timestamp: new Date('2024-02-01T11:00:00.000').getTime(),
-        epic: 'AAPL',
+        dateUTC: '2024-01-01T12:00:00.000',
+        epic: 'BTCUSD',
         dealId: 'deal-2',
-        action: 'EXIT',
-        size: 1, direction: 'BUY', price: 59000, openPrice: 60000
+        type: 'POSITION',
+        status: 'ACCEPTED',
+        details: { size: 1, direction: 'BUY', level: 59000, openPrice: 60000 }
       }
     ];
 

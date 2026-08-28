@@ -7,7 +7,7 @@ describe('useAlertStore Engine', () => {
   });
 
   it('adds an alert correctly', () => {
-    useAlertStore.getState().addAlert('AAPL', 150, 100);
+    useAlertStore.getState().addAlert(150, 100);
     const alerts = useAlertStore.getState().alerts;
     expect(alerts.length).toBe(1);
     expect(alerts[0].targetPrice).toBe(150);
@@ -15,24 +15,24 @@ describe('useAlertStore Engine', () => {
   });
 
   it('triggers an above alert', () => {
-    useAlertStore.getState().addAlert('AAPL', 150, 100);
+    useAlertStore.getState().addAlert(150, 100);
     expect(useAlertStore.getState().alerts[0].triggered).toBe(false);
 
-    useAlertStore.getState().evaluatePrice('AAPL', 149);
+    useAlertStore.getState().evaluatePrice(149);
     expect(useAlertStore.getState().alerts[0].triggered).toBe(false);
 
-    useAlertStore.getState().evaluatePrice('AAPL', 150);
+    useAlertStore.getState().evaluatePrice(150);
     expect(useAlertStore.getState().alerts[0].triggered).toBe(true);
   });
 
   it('triggers a below alert', () => {
-    useAlertStore.getState().addAlert('AAPL', 100, 150);
+    useAlertStore.getState().addAlert(100, 150);
     expect(useAlertStore.getState().alerts[0].condition).toBe('below');
 
-    useAlertStore.getState().evaluatePrice('AAPL', 101);
+    useAlertStore.getState().evaluatePrice(101);
     expect(useAlertStore.getState().alerts[0].triggered).toBe(false);
 
-    useAlertStore.getState().evaluatePrice('AAPL', 100);
+    useAlertStore.getState().evaluatePrice(100);
     expect(useAlertStore.getState().alerts[0].triggered).toBe(true);
   });
 });
