@@ -6,7 +6,7 @@ vi.mock('../services/trade', () => ({
   tradeApi: {
     fetchPositions: vi.fn(),
     fetchWorkingOrders: vi.fn(),
-    fetchActivityHistory: vi.fn(),
+    fetchActivityHistoryRange: vi.fn(),
   },
 }));
 
@@ -48,7 +48,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
   });
 
   it('syncExecutions should be the single source of truth for ENTRY markers', async () => {
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-1',
         epic: 'TSLA',
@@ -90,7 +90,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
       },
     ]);
     (tradeApi.fetchWorkingOrders as any).mockResolvedValue([]);
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-1',
         epic: 'TSLA',
@@ -154,7 +154,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
     });
 
     // syncExecutions returns the SAME trade but with a DIFFERENT id format
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-1',
         epic: 'TSLA',
@@ -191,7 +191,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
       },
     ]);
     (tradeApi.fetchWorkingOrders as any).mockResolvedValue([]);
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-A', epic: 'AAPL', type: 'POSITION', status: 'OPENED',
         dateUTC: '2024-08-12T14:00:00',
@@ -214,7 +214,7 @@ describe('useTradeStore - Execution Dedup (phantom markers fix)', () => {
   });
 
   it('ACCEPTED status activities are correctly parsed and mapped to ENTRY markers', async () => {
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue([
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue([
       {
         dealId: 'DEAL-PENDING',
         epic: 'TSLA',

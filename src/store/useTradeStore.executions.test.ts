@@ -4,7 +4,7 @@ import { tradeApi } from '../services/trade';
 
 vi.mock('../services/trade', () => ({
   tradeApi: {
-    fetchActivityHistory: vi.fn(),
+    fetchActivityHistoryRange: vi.fn(),
   },
 }));
 
@@ -80,7 +80,7 @@ describe('useTradeStore - syncExecutions', () => {
       }
     ];
 
-    (tradeApi.fetchActivityHistory as any).mockResolvedValue(mockActivities);
+    (tradeApi.fetchActivityHistoryRange as any).mockResolvedValue(mockActivities);
 
     await useTradeStore.getState().syncExecutions(1);
 
