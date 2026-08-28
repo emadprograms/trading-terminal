@@ -33,8 +33,8 @@ describe('useTradeStore - syncExecutions', () => {
       {
         dealId: 'deal-2',
         epic: 'AAPL',
-        type: 'WORKING_ORDER',
-        status: 'FILLED', // or EXECUTED
+        type: 'POSITION',
+        status: 'OPENED',
         dateUTC: '2023-11-20T10:05:00',
         details: {
           direction: 'SELL',
