@@ -22,8 +22,15 @@ test.describe('Historical Marker System', () => {
     await page.route('**/history/activity*', route => {
       const url = route.request().url();
       // Ensure the request is asking for at least 30 hours (108000 seconds)
-      const lastPeriodMatch = url.match(/lastPeriod=(\d+)/);
-      const requestedSeconds = lastPeriodMatch ? parseInt(lastPeriodMatch[1]) : 0;
+      const fromMatch = url.match(/from=([^&]+)/);
+      const toMatch = url.match(/to=([^&]+)/);
+      
+      let requestedSeconds = 0;
+      if (fromMatch && toMatch) {
+         const fromTime = new Date(fromMatch[1]).getTime();
+         const toTime = new Date(toMatch[1]).getTime();
+         requestedSeconds = (toTime - fromTime) / 1000;
+      }
       
       const now = Date.now();
       const fiveHoursAgo = new Date(now - 5 * 3600 * 1000).toISOString();
@@ -96,8 +103,7 @@ test.describe('Historical Marker System', () => {
       window.localStorage.setItem('auth-storage', JSON.stringify({
         state: {
           isAuthenticated: true,
-          activeAccountId: 'test-account',
-          tokens: { CST: 'mock-cst', XST: 'mock-xst' }
+          selectedAccountId: 'test-account', cst: 'mock-cst', securityToken: 'mock-xst', environment: 'DEMO'
         },
         version: 0
       }));

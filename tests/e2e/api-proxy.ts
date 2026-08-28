@@ -18,6 +18,17 @@ export async function setupLiveApiProxy(page: Page) {
     if (!urlPath.startsWith('/api/') || urlPath.includes('connect')) {
       return route.fallback();
     }
+    
+    if (req.method() === 'OPTIONS') {
+       return route.fulfill({ 
+         status: 200, 
+         headers: { 
+           'access-control-allow-origin': '*', 
+           'access-control-allow-headers': '*', 
+           'access-control-allow-methods': '*' 
+         } 
+       });
+    }
 
     let targetPath = urlPath;
     if (urlPath.startsWith('/api/order')) {
@@ -81,6 +92,10 @@ export async function setupLiveApiProxy(page: Page) {
              allowedHeaders[key] = responseHeaders[key];
          }
       }
+      
+      // Ensure CORS is satisfied for Playwright browser context
+      allowedHeaders['access-control-allow-origin'] = '*';
+      allowedHeaders['access-control-expose-headers'] = 'CST, X-SECURITY-TOKEN';
 
       if (responseHeaders['content-type']?.includes('application/json')) {
           await route.fulfill({ status, headers: allowedHeaders, json: responseBody });

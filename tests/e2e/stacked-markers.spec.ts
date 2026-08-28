@@ -130,10 +130,27 @@ async function setupRouteMocks(page: Page) {
  * Also installs a canvas fillStyle spy to detect marker draw calls.
  */
 async function bootWithExecutions(page: Page, executions: any[]) {
-  // Serialize executions for the init script closure
-  const execJSON = JSON.stringify(executions);
+  // Translate the simplified test executions into Capital.com activity mock objects
+  const activities = executions.map(e => ({
+    dealId: e.dealId,
+    epic: e.epic || 'SPY',
+    type: 'POSITION',
+    status: 'EXECUTED',
+    dateUTC: new Date(e.timestamp).toISOString(),
+    details: { 
+      direction: e.direction, 
+      size: e.size, 
+      level: e.price,
+      openPrice: e.action === 'EXIT' ? (e.openPrice || e.price) : undefined
+    }
+  }));
 
-  await page.addInitScript((serialized: string) => {
+  // Intercept the history fetch to return these mock activities
+  await page.route('**/api/order/v1/history/activity**', route =>
+    route.fulfill({ status: 200, json: { activities } })
+  );
+
+  await page.addInitScript(() => {
     // Auth tokens
     window.localStorage.setItem('CST', 'mock-cst-token');
     window.localStorage.setItem('X-SECURITY-TOKEN', 'mock-security-token');
@@ -163,15 +180,12 @@ async function bootWithExecutions(page: Page, executions: any[]) {
       });
     }
 
-    // Inject executions into Zustand persisted storage
-    localStorage.setItem(
-      'trade-storage',
-      JSON.stringify({
-        state: { executions: JSON.parse(serialized), positions: [], pendingOrders: {} },
-        version: 0,
-      })
-    );
-  }, execJSON);
+    // Auth storage for SessionStore
+    window.localStorage.setItem('auth-storage', JSON.stringify({
+      state: { isAuthenticated: true, selectedAccountId: 'test-account', cst: 'mock-cst', securityToken: 'mock-xst', environment: 'DEMO' },
+      version: 0
+    }));
+  });
 
   await page.goto('/');
 

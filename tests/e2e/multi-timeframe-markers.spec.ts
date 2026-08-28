@@ -61,8 +61,7 @@ test.describe('Multi-Timeframe Marker Visibility', () => {
       window.localStorage.setItem('auth-storage', JSON.stringify({
         state: {
           isAuthenticated: true,
-          activeAccountId: 'test-account',
-          tokens: { CST: 'mock-cst', XST: 'mock-xst' }
+          selectedAccountId: 'test-account', cst: 'mock-cst', securityToken: 'mock-xst', environment: 'DEMO'
         },
         version: 0
       }));

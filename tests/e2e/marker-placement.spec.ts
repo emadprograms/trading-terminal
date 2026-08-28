@@ -18,7 +18,7 @@ test.describe('Order Marker Placement E2E', () => {
     await page.route('**/api/order/v1/workingorders**', route => route.fulfill({ status: 200, json: { workingOrders: [] } }));
     await page.route('**/api/market/v1/markets*', route => route.fulfill({ status: 200, json: { markets: [{ epic: 'SPY', instrumentName: 'SPY', expiry: '-', lotSize: 1, currencies: [{ symbol: '$' }] }] } }));
     await page.route('**/api/watchlist/1', route => route.fulfill({ status: 200, json: { id: '1', name: 'My Watchlist', markets: [{ epic: 'SPY', instrumentName: 'SPY', updateTime: '', updateTimeUTC: '' }] } }));
-    await page.route('**/api/order/v1/history/activity**', route => route.fulfill({ status: 200, json: [{ dealId: 'mock-deal-1', epic: 'SPY', date: '2023-11-14T22:13:20', type: 'POSITION', status: 'ACCEPTED', details: { direction: 'BUY', size: 1, level: 150 } }] }));
+    await page.route('**/api/order/v1/history/activity**', route => route.fulfill({ status: 200, json: { activities: [{ dealId: 'mock-deal-1', epic: 'SPY', date: '2023-11-14T22:13:20', type: 'POSITION', status: 'ACCEPTED', details: { direction: 'BUY', size: 1, level: 150 } }] } }));
   });
 
   test('Execution marker exactly matches the time of a simulated trade', async ({ page }) => {

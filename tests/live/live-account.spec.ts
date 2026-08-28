@@ -31,8 +31,10 @@ test.describe('Live Account Verification', () => {
       window.localStorage.setItem('auth-storage', JSON.stringify({
         state: {
           isAuthenticated: true,
-          activeAccountId: accountId,
-          tokens: { CST: cst, XST: xst }
+          selectedAccountId: accountId,
+          cst: cst,
+          securityToken: xst,
+          environment: 'DEMO'
         },
         version: 0
       }));
