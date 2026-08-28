@@ -18,19 +18,35 @@ test.describe('Order Marker Placement E2E', () => {
     await page.route('**/api/order/v1/workingorders**', route => route.fulfill({ status: 200, json: { workingOrders: [] } }));
     await page.route('**/api/market/v1/markets*', route => route.fulfill({ status: 200, json: { markets: [{ epic: 'SPY', instrumentName: 'SPY', expiry: '-', lotSize: 1, currencies: [{ symbol: '$' }] }] } }));
     await page.route('**/api/watchlist/1', route => route.fulfill({ status: 200, json: { id: '1', name: 'My Watchlist', markets: [{ epic: 'SPY', instrumentName: 'SPY', updateTime: '', updateTimeUTC: '' }] } }));
-    await page.route('**/api/order/v1/history/activity**', route => route.fulfill({ status: 200, json: { activities: [{ dealId: 'mock-deal-1', epic: 'SPY', date: '2023-11-14T22:13:20', type: 'POSITION', status: 'ACCEPTED', details: { direction: 'BUY', size: 1, level: 150 } }] } }));
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 3600 * 1000);
+    const twoDaysAgo = new Date(today.getTime() - 48 * 3600 * 1000);
+    const tomorrow = new Date(today.getTime() + 24 * 3600 * 1000);
+    
+    const isoYesterday = yesterday.toISOString().split('T')[0] + 'T22:13:20';
+
+    await page.route('**/api/order/v1/history/activity**', route => route.fulfill({ status: 200, json: { activities: [{ dealId: 'mock-deal-1', epic: 'SPY', date: isoYesterday, type: 'POSITION', status: 'ACCEPTED', details: { direction: 'BUY', size: 1, level: 150 } }] } }));
   });
 
   test('Execution marker exactly matches the time of a simulated trade', async ({ page }) => {
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 3600 * 1000);
+    const twoDaysAgo = new Date(today.getTime() - 48 * 3600 * 1000);
+    const tomorrow = new Date(today.getTime() + 24 * 3600 * 1000);
+
+    const isoTwoDaysAgo = twoDaysAgo.toISOString().split('T')[0] + 'T00:00:00.000';
+    const isoYesterday = yesterday.toISOString().split('T')[0] + 'T00:00:00.000';
+    const isoToday = today.toISOString().split('T')[0] + 'T00:00:00.000';
+
     // 1. Mock Chart prices to contain the exact candle
     await page.route('**/api/market/v1/prices/*', route => {
       return route.fulfill({
         status: 200, 
         json: {
           prices: [
-            { snapshotTime: '2023-11-13T00:00:00.000', snapshotTimeUTC: '2023-11-13T00:00:00.000', openPrice: { bid: 150, ask: 150 }, closePrice: { bid: 150, ask: 150 }, highPrice: { bid: 151, ask: 151 }, lowPrice: { bid: 140, ask: 140 } },
-            { snapshotTime: '2023-11-14T00:00:00.000', snapshotTimeUTC: '2023-11-14T00:00:00.000', openPrice: { bid: 150, ask: 150 }, closePrice: { bid: 150, ask: 150 }, highPrice: { bid: 151, ask: 151 }, lowPrice: { bid: 149, ask: 149 } },
-            { snapshotTime: '2023-11-15T00:00:00.000', snapshotTimeUTC: '2023-11-15T00:00:00.000', openPrice: { bid: 151, ask: 151 }, closePrice: { bid: 152, ask: 152 }, highPrice: { bid: 153, ask: 153 }, lowPrice: { bid: 150, ask: 150 } }
+            { snapshotTime: isoTwoDaysAgo, snapshotTimeUTC: isoTwoDaysAgo, openPrice: { bid: 150, ask: 150 }, closePrice: { bid: 150, ask: 150 }, highPrice: { bid: 151, ask: 151 }, lowPrice: { bid: 140, ask: 140 } },
+            { snapshotTime: isoYesterday, snapshotTimeUTC: isoYesterday, openPrice: { bid: 150, ask: 150 }, closePrice: { bid: 150, ask: 150 }, highPrice: { bid: 151, ask: 151 }, lowPrice: { bid: 149, ask: 149 } },
+            { snapshotTime: isoToday, snapshotTimeUTC: isoToday, openPrice: { bid: 151, ask: 151 }, closePrice: { bid: 152, ask: 152 }, highPrice: { bid: 153, ask: 153 }, lowPrice: { bid: 150, ask: 150 } }
           ]
         }
       });
@@ -50,7 +66,7 @@ test.describe('Order Marker Placement E2E', () => {
         status: 200, 
         json: { 
           positions: positionsRequested ? [{
-            position: { dealId: 'mock-deal-1', direction: 'BUY', size: 1, createdDate: '2023-11-14T22:13:32.000' },
+            position: { dealId: 'mock-deal-1', direction: 'BUY', size: 1, createdDate: isoYesterday },
             market: { epic: 'SPY', instrumentName: 'SPY', expiry: '-' }
           }] : [] 
         } 
@@ -58,13 +74,46 @@ test.describe('Order Marker Placement E2E', () => {
     });
 
 
+    // 3. Mock history/activity to return the execution (useTradeStore explicitly ignores persisted executions)
+    await page.route('**/api/order/v1/history/activity**', route => {
+      return route.fulfill({
+        status: 200,
+        json: {
+          activities: [{
+            dealId: 'mock-deal-1',
+            epic: 'SPY',
+            type: 'POSITION',
+            status: 'ACCEPTED',
+            size: 1,
+            level: 150,
+            direction: 'SELL',
+            dateUTC: isoYesterday,
+            date: isoYesterday
+          }]
+        }
+      });
+    });
+
     page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
     
     // Set localStorage tokens before navigating to prevent auth errors in syncExecutions
-    await page.addInitScript(() => {
+    await page.addInitScript((isoYesterdayStr) => {
       window.localStorage.setItem('CST', 'mock-cst-token');
       window.localStorage.setItem('X-SECURITY-TOKEN', 'mock-security-token');
       
+      (window as any).__E2E_MOCK_EXECUTIONS = [
+        {
+          id: 'mock-exec-1',
+          dealId: 'mock-deal-1',
+          epic: 'SPY',
+          size: 1,
+          price: 150,
+          direction: 'SELL',
+          timestamp: new Date(isoYesterdayStr).getTime(),
+          action: 'ENTRY'
+        }
+      ];
+
       // Inject the canvas spy
       window.__MOCK_DRAW_CALLS = [];
       const originalFillStyle = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'fillStyle');
@@ -81,27 +130,7 @@ test.describe('Order Marker Placement E2E', () => {
           }
         });
       }
-      
-      localStorage.setItem('trade-storage', JSON.stringify({
-        state: {
-          executions: [
-            {
-              id: 'mock-exec-1',
-              dealId: 'mock-deal-1',
-              epic: 'SPY',
-              size: 1,
-              price: 150,
-              direction: 'SELL',
-              timestamp: new Date('2023-11-14T22:13:30Z').getTime(), // 1700000010000
-              action: 'ENTRY'
-            }
-          ],
-          positions: [],
-          pendingOrders: {}
-        },
-        version: 0
-      }));
-    });
+    }, isoYesterday);
 
     await page.goto('/');
     

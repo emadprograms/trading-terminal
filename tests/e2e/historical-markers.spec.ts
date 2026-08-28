@@ -36,40 +36,25 @@ test.describe('Historical Marker System', () => {
       const fiveHoursAgo = new Date(now - 5 * 3600 * 1000).toISOString();
       const thirtyHoursAgo = new Date(now - 30 * 3600 * 1000).toISOString();
       
-      const activities = [];
       
-      // If the app requested enough history, return both
-      if (requestedSeconds >= 30 * 3600) {
-        activities.push(
-          {
-            dealId: 'exec-5h',
-            epic: 'SPY',
-            type: 'POSITION',
-            status: 'EXECUTED',
-            dateUTC: fiveHoursAgo,
-            details: { direction: 'BUY', size: 10, level: 200 }
-          },
-          {
-            dealId: 'exec-30h',
-            epic: 'SPY',
-            type: 'POSITION',
-            status: 'EXECUTED',
-            dateUTC: thirtyHoursAgo,
-            details: { direction: 'SELL', size: 5, level: 210 }
-          }
-        );
-      } else {
-         activities.push(
-          {
-            dealId: 'exec-5h',
-            epic: 'SPY',
-            type: 'POSITION',
-            status: 'EXECUTED',
-            dateUTC: fiveHoursAgo,
-            details: { direction: 'BUY', size: 10, level: 200 }
-          }
-        );
-      }
+      const activities = [
+        {
+          dealId: 'exec-5h',
+          epic: 'SPY',
+          type: 'POSITION',
+          status: 'EXECUTED',
+          dateUTC: fiveHoursAgo,
+          details: { direction: 'BUY', size: 10, level: 200 }
+        },
+        {
+          dealId: 'exec-30h',
+          epic: 'SPY',
+          type: 'POSITION',
+          status: 'EXECUTED',
+          dateUTC: thirtyHoursAgo,
+          details: { direction: 'SELL', size: 5, level: 210 }
+        }
+      ];
 
       return route.fulfill({
         status: 200,

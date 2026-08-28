@@ -146,10 +146,10 @@ test.describe('Market Data Stitching & Lifecycle E2E', () => {
     await input.fill(nonWatchlistSymbol2);
     await page.keyboard.press('Enter');
     
-    await expect.poll(() => 
-      messagesSent.some(m => m.includes('unsubscribe') && m.includes(nonWatchlistSymbol1)),
-      { timeout: 15000 }
-    ).toBeTruthy();
+    await expect.poll(() => {
+      console.log('Test 4 messagesSent:', messagesSent);
+      return messagesSent.some(m => m.includes('unsubscribe') && m.includes(nonWatchlistSymbol1));
+    }, { timeout: 15000 }).toBeTruthy();
 
     await expect.poll(() => 
       messagesSent.some(m => m.includes('subscribe') && m.includes(nonWatchlistSymbol2)),

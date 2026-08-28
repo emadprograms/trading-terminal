@@ -146,7 +146,8 @@ export class SyncCoordinator {
     toIso: string, 
     targetCandles: number,
     onCacheHit?: (data: RawBar[]) => void,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    skipSubscribe = false
   ): Promise<RawBar[]> {
     this.activeSyncs++;
 
@@ -163,7 +164,9 @@ export class SyncCoordinator {
       }
 
       // 2. Subscribe with buffering enabled
-      wsManager.subscribe(ticker, true);
+      if (!skipSubscribe) {
+        wsManager.subscribe(ticker, true);
+      }
 
       let wasFreshlyFetched = false;
       // 3. Fetch initial history if cache was empty — INDEPENDENT fetch, never shared
@@ -172,7 +175,7 @@ export class SyncCoordinator {
           await new Promise(r => setTimeout(r, 150));
           if (abortSignal.aborted) {
             console.log(`[SyncCoordinator] Initial fetch aborted for ${ticker} due to rapid switching`);
-            wsManager.setBuffering(ticker, false);
+            if (!skipSubscribe) wsManager.setBuffering(ticker, false);
             return [];
           }
         }

@@ -917,6 +917,9 @@ export const useTradeStore = create<TradeState>()(
       syncExecutions: async (days) => {
         if (typeof window !== 'undefined' && (window as any).__E2E_MOCK_EXECUTIONS) {
           console.log('[E2E] Bypassing syncExecutions for test');
+          if (Array.isArray((window as any).__E2E_MOCK_EXECUTIONS)) {
+            set({ executions: (window as any).__E2E_MOCK_EXECUTIONS });
+          }
           return;
         }
         const effectiveDays = days ?? get().historyLookbackDays;

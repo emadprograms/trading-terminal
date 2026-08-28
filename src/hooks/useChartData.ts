@@ -182,7 +182,7 @@ export function useChartData({
 
     let cancelled = false;
 
-    const triggerSync = async (reason: string) => {
+    const triggerSync = async (reason: string, skipSubscribe = false) => {
       console.log(`[useChartData] Visibility/Network/WS event (${reason}): Triggering sync for ${ticker} (${timeframe})`);
       setIsLoadingHistory(true);
       const targetCandles = 1000;
@@ -192,7 +192,10 @@ export function useChartData({
           ticker,
           timeframe,
           new Date().toISOString(),
-          targetCandles
+          targetCandles,
+          undefined,
+          undefined,
+          skipSubscribe
         );
         
         if (cancelled) return;
@@ -217,7 +220,7 @@ export function useChartData({
 
     const handleSyncOnActivity = () => {
       if (document.visibilityState === 'visible' && window.navigator.onLine) {
-        triggerSync('visibility/online');
+        triggerSync('visibility/online', true);
       }
     };
 
@@ -226,7 +229,7 @@ export function useChartData({
     
     const unsubscribeWs = wsManager.onConnect(() => {
       if (document.visibilityState === 'visible') {
-        triggerSync('ws_reconnect');
+        triggerSync('ws_reconnect', true);
       }
     });
 
